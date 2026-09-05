@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+
+<html class="h-full bg-[#F8F6F1] text-[#24201D]" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Pediatra Concierge — The Atelier Sanctuary Boutique Suite</title>
+<!-- Tailwind CSS v3 with Plugins -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Google Fonts: Cormorant Garamond & Plus Jakarta Sans -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&amp;family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<!-- Phosphor Icons CDN -->
+<script src="https://unpkg.com/@phosphor-icons/web"></script>
+<script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+            serif: ['"Cormorant Garamond"', 'Georgia', 'serif'],
+          },
+          colors: {
+            linen: {
+              base: '#F8F6F1',
+              card: '#FFFFFF',
+              surface: '#F3EFE6',
+              muted: '#EAE4D8',
+              border: '#E3DCcf',
+            },
+            espresso: {
+              900: '#141210',
+              800: '#1F1B18',
+              700: '#2D2723',
+              600: '#4A423C',
+              muted: '#7C736A',
+            },
+            cognac: {
+              50: '#FDF7F2',
+              100: '#FBECE2',
+              200: '#F6D5C0',
+              500: '#C47135',
+              600: '#B25D23',
+              700: '#8F4616',
+            },
+            sage: {
+              50: '#F1F7F4',
+              100: '#E1EFE8',
+              200: '#C4E1D3',
+              600: '#2D6A4F',
+              700: '#22543D',
+              800: '#183C2B',
+            }
+          },
+          boxShadow: {
+            'atelier': '0 4px 20px -2px rgba(24, 21, 19, 0.05), 0 0 0 1px rgba(227, 220, 207, 0.7)',
+            'atelier-elevated': '0 12px 36px -4px rgba(24, 21, 19, 0.08), 0 0 0 1px rgba(227, 220, 207, 0.8)',
+            'pill': '0 2px 8px rgba(196, 113, 53, 0.15)',
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    body {
+      font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+      -webkit-font-smoothing: antialiased;
+    }
+    ::-webkit-scrollbar {
+      width: 5px;
+      height: 5px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #F3EFE6;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #D8D0C0;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #C47135;
+    }
+  </style>
+</head>
+<body class="h-full antialiased overflow-hidden flex flex-col font-sans bg-[#F8F6F1] text-[#24201D] select-none">
+<!-- BEGIN: 1. Executive Atelier Header -->
+<header class="h-16 border-b border-linen-border bg-linen-card/90 backdrop-blur-md px-6 flex items-center justify-between shrink-0 z-30 shadow-sm">
+<!-- Left: Brand mark & Subtitle -->
+<div class="flex items-center gap-7">
+<div class="flex items-center gap-3">
+<div class="h-9 w-9 rounded-xl bg-espresso-800 text-cognac-200 flex items-center justify-center shadow-sm">
+<i class="ph-bold ph-hands-clapping text-lg"></i>
+</div>
+<div>
+<div class="flex items-center gap-2">
+<span class="font-serif font-bold text-base tracking-widest uppercase text-espresso-900">Pediatra Concierge</span>
+<span class="text-[9px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-cognac-50 text-cognac-600 border border-cognac-200">Privé Clinic</span>
+</div>
+<p class="text-[10px] text-espresso-muted tracking-tight font-medium">Private Child Longevity &amp; Wellness</p>
+</div>
+</div>
+<!-- Center Search Command Bar -->
+<div class="relative w-80 xl:w-96">
+<div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-espresso-muted">
+<i class="ph ph-magnifying-glass text-base"></i>
+</div>
+<input class="w-full pl-9 pr-16 py-1.5 text-xs bg-linen-surface/70 border border-linen-border focus:border-cognac-500 focus:bg-white focus:ring-1 focus:ring-cognac-500 rounded-full text-espresso-900 placeholder-espresso-muted transition-all shadow-inner" placeholder="Search patients, prescriptions, or clinical notes..." type="text"/>
+<div class="absolute inset-y-0 right-0 pr-2.5 flex items-center pointer-events-none">
+<kbd class="text-[9px] uppercase font-mono px-1.5 py-0.5 rounded bg-linen-muted text-espresso-700 border border-linen-border">Ctrl + K</kbd>
+</div>
+</div>
+</div>
+<!-- Right Global Status & Attending Physician Profile -->
+<div class="flex items-center gap-4">
+<!-- Live HIPAA Encrypted security pill -->
+<div class="hidden lg:flex items-center gap-2 px-3 py-1 rounded-full bg-sage-50 border border-sage-200 text-[11px] text-sage-800 font-medium">
+<span class="relative flex h-2 w-2">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-sage-600 opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2 w-2 bg-sage-600"></span>
+</span>
+<i class="ph-bold ph-shield-check text-sage-700 text-xs"></i>
+<span>HIPAA Encrypted</span>
+<span class="h-1 w-1 rounded-full bg-sage-300"></span>
+<span class="text-espresso-muted font-mono">Fri, 05 Sep 2026 • 01:53 PM</span>
+</div>
+<!-- Utility: Notifications & Language -->
+<div class="flex items-center gap-2">
+<div class="flex items-center bg-linen-surface p-0.5 rounded-full border border-linen-border text-[11px]">
+<button class="px-2.5 py-0.5 rounded-full bg-white text-espresso-900 font-bold shadow-xs">EN</button>
+<button class="px-2.5 py-0.5 rounded-full text-espresso-muted hover:text-espresso-900 transition-colors font-medium">ES-MX</button>
+</div>
+<button class="relative h-8 w-8 rounded-full flex items-center justify-center text-espresso-600 hover:text-espresso-900 hover:bg-linen-surface transition-colors" title="Notifications" type="button">
+<i class="ph ph-bell text-lg"></i>
+<span class="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-cognac-500 ring-2 ring-white"></span>
+</button>
+</div>
+<div class="h-6 w-px bg-linen-border mx-1"></div>
+<!-- Chief Pediatrician -->
+<div class="flex items-center gap-3 cursor-pointer pl-1 group">
+<div class="relative">
+<div class="h-9 w-9 rounded-full bg-gradient-to-tr from-espresso-900 to-espresso-700 flex items-center justify-center text-linen-base font-serif font-bold text-xs ring-2 ring-cognac-500 shadow-sm">
+            GR
+          </div>
+<span class="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-sage-600 ring-2 ring-white"></span>
+</div>
+<div class="text-left leading-tight hidden xl:block">
+<div class="flex items-center gap-1">
+<span class="text-xs font-bold text-espresso-900">Dr. Gamaliel</span>
+<i class="ph ph-caret-down text-[10px] text-espresso-muted group-hover:translate-y-0.5 transition-transform"></i>
+</div>
+<span class="text-[10px] text-cognac-600 font-semibold tracking-wide">Chief Pediatrician, FAAP</span>
+</div>
+</div>
+</div>
+</header>
+<!-- END: 1. Executive Atelier Header -->
+<!-- BEGIN: 2. Navigation Bar (Horizontal Atelier Bar) -->
+<nav class="h-11 bg-linen-card border-b border-linen-border px-6 flex items-center justify-between shrink-0 text-xs overflow-x-auto">
+<div class="flex items-center space-x-1 sm:space-x-2">
+<!-- Active Pill with Cognac Accent -->
+<a class="px-3 py-1 rounded-full bg-cognac-50 text-cognac-600 font-bold border border-cognac-200 flex items-center gap-1.5 shadow-pill" href="#">
+<i class="ph-bold ph-squares-four text-sm"></i>
+<span>Dashboard</span>
+</a>
+<a class="px-3 py-1 rounded-full text-espresso-600 hover:text-espresso-900 hover:bg-linen-surface transition-colors font-medium flex items-center gap-1.5" href="#">
+<i class="ph ph-calendar-blank text-sm"></i>
+<span>Appointments</span>
+</a>
+<a class="px-3 py-1 rounded-full text-espresso-600 hover:text-espresso-900 hover:bg-linen-surface transition-colors font-medium flex items-center gap-1.5" href="#">
+<i class="ph ph-users-three text-sm"></i>
+<span>Patients Registry</span>
+</a>
+<a class="px-3 py-1 rounded-full text-espresso-600 hover:text-espresso-900 hover:bg-linen-surface transition-colors font-medium flex items-center gap-1.5" href="#">
+<i class="ph ph-video-camera text-sm text-sage-600"></i>
+<span>Telehealth VIP</span>
+<span class="px-1.5 py-0.2 rounded-full text-[9px] bg-sage-100 text-sage-800 font-bold">Live</span>
+</a>
+<a class="px-3 py-1 rounded-full text-espresso-600 hover:text-espresso-900 hover:bg-linen-surface transition-colors font-medium flex items-center gap-1.5" href="#">
+<i class="ph ph-folder-notch text-sm"></i>
+<span>Medical Records</span>
+</a>
+<!-- Prescriptions -->
+<a class="px-3 py-1 rounded-full text-espresso-800 font-semibold hover:bg-linen-surface transition-colors flex items-center gap-1.5" href="#">
+<i class="ph ph-prescription text-sm text-cognac-600"></i>
+<span>Prescriptions</span>
+<span class="h-1.5 w-1.5 rounded-full bg-cognac-500"></span>
+</a>
+<a class="px-3 py-1 rounded-full text-espresso-600 hover:text-espresso-900 hover:bg-linen-surface transition-colors font-medium flex items-center gap-1.5" href="#">
+<i class="ph ph-receipt text-sm"></i>
+<span>Invoices &amp; Retainers</span>
+</a>
+<a class="px-3 py-1 rounded-full text-espresso-600 hover:text-espresso-900 hover:bg-linen-surface transition-colors font-medium flex items-center gap-1.5" href="#">
+<i class="ph ph-chart-line-up text-sm"></i>
+<span>Growth Analytics</span>
+</a>
+<a class="px-3 py-1 rounded-full text-espresso-600 hover:text-espresso-900 hover:bg-linen-surface transition-colors font-medium flex items-center gap-1.5" href="#">
+<i class="ph ph-gear text-sm"></i>
+<span>Settings</span>
+</a>
+</div>
+<!-- Quick Status Right Strip -->
+<div class="hidden md:flex items-center gap-3 text-[11px] text-espresso-muted">
+<span class="flex items-center gap-1">
+<span class="h-1.5 w-1.5 rounded-full bg-sage-600"></span>
+<strong class="text-espresso-800 font-semibold">Concierge Clinic Active</strong>
+</span>
+<span>•</span>
+<span class="font-serif italic text-cognac-600">"Healthy kids, happier families."</span>
+</div>
+</nav>
+<!-- END: 2. Navigation Bar -->
+<!-- BEGIN: 3. Main Grid / Dual Column Clinical Workspace -->
+<main class="flex-1 flex overflow-hidden p-5 gap-5">
+<!-- LEFT PANEL: Schedule & Patient Flow (~360px) -->
+<section class="w-80 lg:w-[360px] bg-linen-card rounded-2xl border border-linen-border flex flex-col shrink-0 shadow-atelier overflow-hidden" data-purpose="todays-schedule-panel">
+<!-- Panel Header -->
+<div class="p-4 border-b border-linen-border bg-linen-surface/40 flex items-center justify-between">
+<div>
+<div class="flex items-center gap-2">
+<span class="h-2 w-2 rounded-full bg-cognac-500"></span>
+<h2 class="text-xs font-bold uppercase tracking-wider text-espresso-900">Today's Consultations</h2>
+</div>
+<div class="flex items-center gap-1.5 text-xs text-espresso-muted mt-1">
+<i class="ph ph-caret-left text-[10px] cursor-pointer hover:text-espresso-900"></i>
+<span class="font-semibold text-espresso-800">Fri, 5 Sep 2026</span>
+<i class="ph ph-caret-right text-[10px] cursor-pointer hover:text-espresso-900"></i>
+</div>
+</div>
+<button class="flex items-center gap-1 text-xs font-bold bg-espresso-900 hover:bg-espresso-800 text-white px-3 py-1.5 rounded-xl shadow-xs transition-transform active:scale-95" type="button">
+<i class="ph-bold ph-plus text-xs"></i>
+<span>Add Appointment</span>
+</button>
+</div>
+<!-- Consultations List -->
+<div class="flex-1 overflow-y-auto divide-y divide-linen-border/60 p-2.5 space-y-1.5">
+<!-- 09:00 AM: Emilia Torres (Active/Selected) -->
+<div class="p-3 rounded-xl bg-cognac-50/70 border-l-4 border-l-cognac-500 border border-cognac-200/80 shadow-xs cursor-pointer transition-all">
+<div class="flex items-center justify-between mb-1.5">
+<div class="flex items-center gap-2">
+<span class="text-xs font-bold font-mono text-cognac-600">09:00 AM</span>
+<span class="h-2 w-2 rounded-full bg-sage-600 animate-pulse"></span>
+</div>
+<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-sage-100 text-sage-800 border border-sage-200">
+              Checked In
+            </span>
+</div>
+<div class="flex items-center gap-3">
+<img alt="Emilia Torres" class="h-9 w-9 rounded-full object-cover ring-2 ring-cognac-500 shadow-xs" src="https://lh3.googleusercontent.com/aida/AEtjO1Vn5SEE3rkLZB2dJqw7DQyE8hBC7vxi6vcPGMBHcxdw6gcA6-WUxTbqMllaQo_lDHK5Bodh67-ZT6jvIF1MTLbpR9ujoHSApPjWWfN2lCqH_SaYYUvZcZybZEBRUxGs_APg9QHdOBOTP0mb6aDtf0O-fjFVg04MdhTthp-gSP8hrmPIez3GR7CGCuwKMA3KiumjGpztVhZSj9KNrtOjBZEgH07UKP9rVOyPkf6Lb2HpiyDyci50Psduobdt"/>
+<div class="flex-1 min-w-0">
+<h4 class="text-xs font-bold text-espresso-900 truncate">Emilia Torres</h4>
+<p class="text-[11px] text-espresso-muted truncate">Well-Child Visit • <span class="text-cognac-600 font-semibold">In Exam Room 2</span></p>
+</div>
+<i class="ph-bold ph-caret-right text-xs text-cognac-500"></i>
+</div>
+</div>
+<!-- 09:30 AM: Mateo Ramírez -->
+<div class="p-3 rounded-xl hover:bg-linen-surface/70 transition-colors cursor-pointer group">
+<div class="flex items-center justify-between mb-1.5">
+<span class="text-xs font-semibold font-mono text-espresso-700">09:30 AM</span>
+<span class="px-2 py-0.5 rounded-full text-[10px] font-medium bg-sage-50 text-sage-700 border border-sage-200">
+              Confirmed
+            </span>
+</div>
+<div class="flex items-center gap-3">
+<div class="h-8 w-8 rounded-full bg-blue-50 text-blue-800 border border-blue-200 text-xs font-bold flex items-center justify-center">
+              MR
+            </div>
+<div class="flex-1 min-w-0">
+<h4 class="text-xs font-semibold text-espresso-900 group-hover:text-cognac-600 truncate">Mateo Ramírez</h4>
+<p class="text-[11px] text-espresso-muted truncate">Vaccination (MMR Booster)</p>
+</div>
+<i class="ph ph-caret-right text-xs text-espresso-muted/50 group-hover:text-espresso-700"></i>
+</div>
+</div>
+<!-- 10:00 AM: Sofía Delgado -->
+<div class="p-3 rounded-xl hover:bg-linen-surface/70 transition-colors cursor-pointer group">
+<div class="flex items-center justify-between mb-1.5">
+<span class="text-xs font-semibold font-mono text-espresso-700">10:00 AM</span>
+<span class="px-2 py-0.5 rounded-full text-[10px] font-medium bg-sage-50 text-sage-700 border border-sage-200">
+              Confirmed
+            </span>
+</div>
+<div class="flex items-center gap-3">
+<div class="h-8 w-8 rounded-full bg-rose-50 text-rose-800 border border-rose-200 text-xs font-bold flex items-center justify-center">
+              SD
+            </div>
+<div class="flex-1 min-w-0">
+<h4 class="text-xs font-semibold text-espresso-900 group-hover:text-cognac-600 truncate">Sofía Delgado</h4>
+<p class="text-[11px] text-espresso-muted truncate">Growth Check &amp; Nutrition</p>
+</div>
+<i class="ph ph-caret-right text-xs text-espresso-muted/50 group-hover:text-espresso-700"></i>
+</div>
+</div>
+<!-- 10:30 AM: Diego Navarro -->
+<div class="p-3 rounded-xl hover:bg-linen-surface/70 transition-colors cursor-pointer group">
+<div class="flex items-center justify-between mb-1.5">
+<span class="text-xs font-semibold font-mono text-espresso-700">10:30 AM</span>
+<span class="px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-50 text-amber-800 border border-amber-200">
+              Pending
+            </span>
+</div>
+<div class="flex items-center gap-3">
+<div class="h-8 w-8 rounded-full bg-amber-50 text-amber-800 border border-amber-200 text-xs font-bold flex items-center justify-center">
+              DN
+            </div>
+<div class="flex-1 min-w-0">
+<h4 class="text-xs font-semibold text-espresso-900 group-hover:text-cognac-600 truncate">Diego Navarro</h4>
+<p class="text-[11px] text-espresso-muted truncate">General Consultation</p>
+</div>
+<i class="ph ph-caret-right text-xs text-espresso-muted/50 group-hover:text-espresso-700"></i>
+</div>
+</div>
+<!-- 11:00 AM: Valentina Cruz -->
+<div class="p-3 rounded-xl hover:bg-linen-surface/70 transition-colors cursor-pointer group">
+<div class="flex items-center justify-between mb-1.5">
+<span class="text-xs font-semibold font-mono text-espresso-700">11:00 AM</span>
+<span class="px-2 py-0.5 rounded-full text-[10px] font-medium bg-sage-50 text-sage-700 border border-sage-200">
+              Confirmed
+            </span>
+</div>
+<div class="flex items-center gap-3">
+<div class="h-8 w-8 rounded-full bg-teal-50 text-teal-800 border border-teal-200 text-xs font-bold flex items-center justify-center">
+              VC
+            </div>
+<div class="flex-1 min-w-0">
+<h4 class="text-xs font-semibold text-espresso-900 group-hover:text-cognac-600 truncate">Valentina Cruz</h4>
+<p class="text-[11px] text-espresso-muted truncate">Follow-Up (Bronchitis)</p>
+</div>
+<i class="ph ph-caret-right text-xs text-espresso-muted/50 group-hover:text-espresso-700"></i>
+</div>
+</div>
+<!-- 11:30 AM: Lucas Mendoza -->
+<div class="p-3 rounded-xl hover:bg-linen-surface/70 transition-colors cursor-pointer group">
+<div class="flex items-center justify-between mb-1.5">
+<span class="text-xs font-semibold font-mono text-espresso-600">11:30 AM</span>
+<span class="px-2 py-0.5 rounded-full text-[10px] font-medium bg-linen-surface text-espresso-muted border border-linen-border">
+              Scheduled
+            </span>
+</div>
+<div class="flex items-center gap-3">
+<div class="h-8 w-8 rounded-full bg-linen-muted text-espresso-700 border border-linen-border text-xs font-bold flex items-center justify-center">
+              LM
+            </div>
+<div class="flex-1 min-w-0">
+<h4 class="text-xs font-semibold text-espresso-800 truncate">Lucas Mendoza</h4>
+<p class="text-[11px] text-espresso-muted truncate">Sick Visit</p>
+</div>
+<i class="ph ph-caret-right text-xs text-espresso-muted/40"></i>
+</div>
+</div>
+<!-- 12:00 PM: Isabella Ríos -->
+<div class="p-3 rounded-xl hover:bg-linen-surface/70 transition-colors cursor-pointer group">
+<div class="flex items-center justify-between mb-1.5">
+<span class="text-xs font-semibold font-mono text-espresso-600">12:00 PM</span>
+<span class="px-2 py-0.5 rounded-full text-[10px] font-medium bg-linen-surface text-espresso-muted border border-linen-border">
+              Scheduled
+            </span>
+</div>
+<div class="flex items-center gap-3">
+<div class="h-8 w-8 rounded-full bg-purple-50 text-purple-800 border border-purple-200 text-xs font-bold flex items-center justify-center">
+              IR
+            </div>
+<div class="flex-1 min-w-0">
+<h4 class="text-xs font-semibold text-espresso-800 truncate">Isabella Ríos</h4>
+<p class="text-[11px] text-espresso-muted truncate">Vaccination</p>
+</div>
+<i class="ph ph-caret-right text-xs text-espresso-muted/40"></i>
+</div>
+</div>
+<!-- 12:30 PM: Sebastián Mora -->
+<div class="p-3 rounded-xl hover:bg-linen-surface/70 transition-colors cursor-pointer group">
+<div class="flex items-center justify-between mb-1.5">
+<span class="text-xs font-semibold font-mono text-espresso-600">12:30 PM</span>
+<span class="px-2 py-0.5 rounded-full text-[10px] font-medium bg-linen-surface text-espresso-muted border border-linen-border">
+              Scheduled
+            </span>
+</div>
+<div class="flex items-center gap-3">
+<div class="h-8 w-8 rounded-full bg-amber-50 text-amber-900 border border-amber-200 text-xs font-bold flex items-center justify-center">
+              SM
+            </div>
+<div class="flex-1 min-w-0">
+<h4 class="text-xs font-semibold text-espresso-800 truncate">Sebastián Mora</h4>
+<p class="text-[11px] text-espresso-muted truncate">Consultation</p>
+</div>
+<i class="ph ph-caret-right text-xs text-espresso-muted/40"></i>
+</div>
+</div>
+</div>
+<!-- Bottom Daily Throughput Summary -->
+<div class="p-3 border-t border-linen-border bg-linen-surface/50 text-[11px] text-espresso-muted flex items-center justify-between">
+<span class="font-medium text-espresso-700">8 Consultations Scheduled</span>
+<span class="text-espresso-muted">•</span>
+<span class="text-cognac-600 font-semibold">1 In-Room</span>
+<span class="text-espresso-muted">•</span>
+<span class="text-espresso-700">2 Rx Pending</span>
+</div>
+</section>
+<!-- END: LEFT PANEL -->
+<!-- CENTER & RIGHT MAIN CLINICAL STAGE -->
+<section class="flex-1 bg-linen-card rounded-2xl border border-linen-border flex flex-col shadow-atelier overflow-hidden min-w-0" data-purpose="patient-dossier-prescriptions">
+<!-- Patient Dossier Header -->
+<div class="p-5 border-b border-linen-border bg-gradient-to-r from-linen-card via-[#FCFAF6] to-linen-surface/50 flex flex-wrap items-center justify-between gap-4">
+<div class="flex items-center gap-4">
+<!-- Circular portrait with luxury cognac-gold subtle border and active green status dot -->
+<div class="relative">
+<img alt="Emilia Torres" class="h-16 w-16 rounded-full object-cover ring-2 ring-cognac-500/80 shadow-md" src="https://lh3.googleusercontent.com/aida/AEtjO1Vn5SEE3rkLZB2dJqw7DQyE8hBC7vxi6vcPGMBHcxdw6gcA6-WUxTbqMllaQo_lDHK5Bodh67-ZT6jvIF1MTLbpR9ujoHSApPjWWfN2lCqH_SaYYUvZcZybZEBRUxGs_APg9QHdOBOTP0mb6aDtf0O-fjFVg04MdhTthp-gSP8hrmPIez3GR7CGCuwKMA3KiumjGpztVhZSj9KNrtOjBZEgH07UKP9rVOyPkf6Lb2HpiyDyci50Psduobdt"/>
+<span class="absolute bottom-0 right-0 h-4 w-4 rounded-full bg-sage-600 ring-2 ring-white flex items-center justify-center text-[9px] text-white">
+              ✓
+            </span>
+</div>
+<!-- Patient Meta Information -->
+<div>
+<div class="flex items-center gap-2.5 flex-wrap">
+<h2 class="text-2xl font-bold font-serif tracking-wide text-espresso-900">Emilia Torres</h2>
+<span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-sage-50 text-sage-800 border border-sage-200 flex items-center gap-1.5">
+<span class="h-1.5 w-1.5 rounded-full bg-sage-600"></span>
+                Active Patient
+              </span>
+<span class="px-2 py-0.5 rounded text-[10px] font-mono uppercase bg-cognac-50 text-cognac-700 border border-cognac-200 font-bold">
+                Concierge Child Member
+              </span>
+</div>
+<div class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-xs text-espresso-muted">
+<span class="flex items-center gap-1 text-espresso-700">
+<i class="ph ph-cake text-cognac-500"></i>
+<strong class="font-semibold">Age: 4 years 2 months</strong>
+</span>
+<span>•</span>
+<span>Female</span>
+<span>•</span>
+<span>DOB: <strong class="text-espresso-800">14 Mar 2022</strong></span>
+<span>•</span>
+<span>Patient ID: <span class="font-mono text-cognac-600 font-bold">PT-2026-0015</span></span>
+</div>
+</div>
+</div>
+<!-- High-Impact Action Buttons -->
+<div class="flex items-center gap-2.5">
+<button class="flex items-center gap-2 px-4 py-2 rounded-xl bg-espresso-900 text-white hover:bg-espresso-800 text-xs font-bold shadow-md active:scale-95 transition-all" type="button">
+<i class="ph-fill ph-stethoscope text-sm text-cognac-200"></i>
+<span>Start Consultation</span>
+</button>
+<button class="h-9 w-9 rounded-xl bg-linen-surface border border-linen-border text-espresso-700 hover:text-espresso-900 hover:border-espresso-600 flex items-center justify-center transition-colors" title="Quick Clinical Note" type="button">
+<i class="ph ph-note-pencil text-base"></i>
+</button>
+<button class="h-9 w-9 rounded-xl bg-linen-surface border border-linen-border text-espresso-700 hover:text-espresso-900 hover:border-espresso-600 flex items-center justify-center transition-colors" title="Export Dossier PDF" type="button">
+<i class="ph ph-export text-base"></i>
+</button>
+</div>
+</div>
+<!-- Dossier Navigation Tabs -->
+<div class="px-5 border-b border-linen-border bg-linen-surface/30 flex items-center justify-between">
+<nav class="flex space-x-6 overflow-x-auto text-xs font-semibold">
+<button class="py-3 text-espresso-muted hover:text-espresso-900 transition-colors flex items-center gap-1.5">
+<i class="ph ph-user-circle"></i>
+<span>Overview</span>
+</button>
+<button class="py-3 text-espresso-muted hover:text-espresso-900 transition-colors flex items-center gap-1.5">
+<i class="ph ph-clock-counter-clockwise"></i>
+<span>Medical History</span>
+</button>
+<button class="py-3 text-espresso-muted hover:text-espresso-900 transition-colors flex items-center gap-1.5">
+<i class="ph ph-syringe"></i>
+<span>Vaccinations</span>
+</button>
+<!-- ACTIVE: Prescriptions -->
+<button class="py-3 text-cognac-600 border-b-2 border-cognac-500 font-bold flex items-center gap-1.5 relative">
+<i class="ph-bold ph-prescription"></i>
+<span>Prescriptions</span>
+<span class="h-1.5 w-1.5 rounded-full bg-cognac-500 ml-1"></span>
+</button>
+<button class="py-3 text-espresso-muted hover:text-espresso-900 transition-colors flex items-center gap-1.5">
+<i class="ph ph-chart-line"></i>
+<span>Growth &amp; Vitals</span>
+</button>
+</nav>
+<button class="flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-lg bg-cognac-500 text-white hover:bg-cognac-600 transition-all shadow-xs">
+<i class="ph-bold ph-plus-circle"></i>
+<span>Issue New Rx</span>
+</button>
+</div>
+<!-- Prescription Suite Content & Split Grid -->
+<div class="flex-1 overflow-y-auto p-5 space-y-5">
+<!-- Pediatric Safety & Drug Interaction Card -->
+<div class="rounded-xl p-3.5 bg-sage-50 border border-sage-200/80 flex items-start justify-between gap-3 text-xs">
+<div class="flex items-start gap-3">
+<div class="h-7 w-7 rounded-lg bg-sage-100 text-sage-800 flex items-center justify-center shrink-0 mt-0.5">
+<i class="ph-bold ph-shield-check text-base"></i>
+</div>
+<div>
+<span class="font-bold text-sage-800 text-xs tracking-wide">Pediatric Interaction &amp; Allergy Verification</span>
+<p class="text-sage-800/90 text-[11px] mt-0.5 leading-relaxed">
+                No adverse drug-drug interactions detected with current profile. Allergy note: <span class="underline font-bold">Penicillin</span> flagged — verified that Amoxicillin oral suspension was previously tolerated under pediatric supervision; caregiver briefed on protocol.
+              </p>
+</div>
+</div>
+<span class="shrink-0 text-[10px] font-bold uppercase bg-sage-200/70 text-sage-800 px-2.5 py-0.5 rounded-full border border-sage-300">
+            Verified Safe
+          </span>
+</div>
+<!-- MAIN ACTIVE PRESCRIPTION DOSSIER (RX-1042) -->
+<div class="rounded-2xl bg-white border border-linen-border p-5 shadow-atelier-elevated relative overflow-hidden">
+<div class="flex flex-wrap items-center justify-between gap-2 pb-3.5 border-b border-linen-border">
+<div>
+<div class="flex items-center gap-2.5">
+<span class="font-mono text-sm font-bold tracking-wider text-cognac-600">RX-1042</span>
+<span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-sage-100 text-sage-800 border border-sage-200 uppercase tracking-wider">
+                  ACTIVE REGIMEN
+                </span>
+</div>
+<div class="flex items-center gap-2 mt-1 text-xs text-espresso-muted">
+<span>Date Issued: <strong class="text-espresso-800 font-mono">2026-08-20</strong></span>
+<span>•</span>
+<span>Dispensed for: <strong class="text-espresso-800">Emilia Torres</strong></span>
+</div>
+</div>
+<div class="text-right">
+<div class="text-xs font-bold text-espresso-900 flex items-center justify-end gap-1">
+<i class="ph-fill ph-seal-check text-cognac-500 text-sm"></i>
+<span>Dr. Gamaliel, FAAP</span>
+</div>
+<span class="text-[10px] text-espresso-muted font-mono">Lic. Pediatría #49120-MX</span>
+</div>
+</div>
+<!-- Primary Diagnosis -->
+<div class="py-3">
+<span class="text-[10px] font-mono uppercase tracking-widest text-espresso-muted font-bold">Primary Diagnosis</span>
+<div class="text-sm font-bold text-espresso-900 mt-0.5 flex items-center gap-2">
+<span class="h-2 w-2 rounded-full bg-cognac-500"></span>
+<span>Acute otitis media (Bilateral childhood presentation)</span>
+<span class="text-[10px] font-mono text-espresso-700 bg-linen-surface px-2 py-0.5 rounded border border-linen-border font-semibold">ICD-10: H66.90</span>
+</div>
+</div>
+<!-- Prescribed Formulations (2) -->
+<div class="space-y-3 pt-1">
+<span class="text-[10px] font-mono uppercase tracking-widest text-espresso-muted font-bold">Prescribed Formulations (2)</span>
+<!-- Formulation 1: Amoxicillin with Schedule Tracker -->
+<div class="p-3.5 rounded-xl bg-linen-surface/40 border border-linen-border flex flex-col md:flex-row md:items-center justify-between gap-3">
+<div class="flex items-start gap-3">
+<div class="h-9 w-9 rounded-xl bg-sage-100 text-sage-800 border border-sage-200 flex items-center justify-center shrink-0 mt-0.5">
+<i class="ph-bold ph-drop text-lg"></i>
+</div>
+<div>
+<div class="flex items-center gap-2">
+<h4 class="text-xs font-bold text-espresso-900">Amoxicillin 250mg/5mL Oral Suspension</h4>
+<span class="px-2 py-0.2 rounded text-[9px] font-bold bg-sage-100 text-sage-800 border border-sage-200">Antibiotic</span>
+</div>
+<p class="text-xs text-espresso-800 mt-1 font-semibold">
+                    Dosage: <span class="text-cognac-600">5mL every 8 hours for 10 days</span> with meals.
+                  </p>
+<!-- Visual dosage schedule tracker -->
+<div class="flex items-center gap-2 mt-2">
+<span class="text-[10px] text-espresso-muted font-medium">Daily Schedule:</span>
+<span class="px-2 py-0.5 rounded bg-white border border-linen-border text-[10px] font-bold text-espresso-800 flex items-center gap-1">
+<i class="ph ph-sun text-amber-500"></i> Morning (08:00)
+                    </span>
+<span class="px-2 py-0.5 rounded bg-white border border-linen-border text-[10px] font-bold text-espresso-800 flex items-center gap-1">
+<i class="ph ph-sun-horizon text-orange-500"></i> Midday (16:00)
+                    </span>
+<span class="px-2 py-0.5 rounded bg-white border border-linen-border text-[10px] font-bold text-espresso-800 flex items-center gap-1">
+<i class="ph ph-moon text-indigo-500"></i> Evening (00:00)
+                    </span>
+</div>
+</div>
+</div>
+<div class="text-right shrink-0 border-t md:border-t-0 pt-2 md:pt-0 border-linen-border">
+<span class="text-[10px] font-mono text-espresso-muted">Refills Remaining: <strong class="text-espresso-900 font-bold">1</strong></span>
+<div class="text-[11px] font-bold text-sage-700 flex items-center justify-end gap-1 mt-0.5">
+<i class="ph-bold ph-check-circle"></i> Pharmacy Fulfilled
+                </div>
+</div>
+</div>
+<!-- Formulation 2: Paracetamol -->
+<div class="p-3.5 rounded-xl bg-linen-surface/40 border border-linen-border flex flex-col md:flex-row md:items-center justify-between gap-3">
+<div class="flex items-start gap-3">
+<div class="h-9 w-9 rounded-xl bg-cognac-100 text-cognac-700 border border-cognac-200 flex items-center justify-center shrink-0 mt-0.5">
+<i class="ph-bold ph-pill text-lg"></i>
+</div>
+<div>
+<div class="flex items-center gap-2">
+<h4 class="text-xs font-bold text-espresso-900">Paracetamol (Acetaminophen) 160mg/5mL Oral Solution</h4>
+<span class="px-2 py-0.2 rounded text-[9px] font-bold bg-amber-50 text-amber-800 border border-amber-200">Antipyretic / Analgesic</span>
+</div>
+<p class="text-xs text-espresso-800 mt-1 font-semibold">
+                    Dosage: <span class="text-cognac-600">5mL every 6 hours</span> as needed for pain or fever. Max 4 doses/24h.
+                  </p>
+<p class="text-[11px] text-espresso-muted mt-0.5">
+                    Shake well before dosing. Ensure adequate hydration during fever spikes.
+                  </p>
+</div>
+</div>
+<div class="text-right shrink-0 border-t md:border-t-0 pt-2 md:pt-0 border-linen-border">
+<span class="text-[10px] font-mono text-espresso-muted">Refills Remaining: <strong class="text-espresso-900 font-bold">2</strong></span>
+<div class="text-[11px] font-bold text-sage-700 flex items-center justify-end gap-1 mt-0.5">
+<i class="ph-bold ph-check-circle"></i> Active PRN
+                </div>
+</div>
+</div>
+</div>
+<!-- Pharmacy Fulfillment Status Strip -->
+<div class="mt-4 pt-3.5 border-t border-linen-border flex flex-wrap items-center justify-between gap-3 bg-linen-surface/30 p-2.5 rounded-xl">
+<div class="flex items-center gap-2 text-xs">
+<i class="ph-fill ph-storefront text-base text-cognac-500"></i>
+<span class="font-bold text-espresso-800">Filled at Farmacia San Pablo VIP Concierge</span>
+<span class="text-espresso-muted">•</span>
+<span class="text-sage-700 font-semibold flex items-center gap-1">
+<i class="ph-bold ph-truck"></i> Delivery Confirmed
+              </span>
+</div>
+<div class="flex items-center gap-2">
+<button class="px-3 py-1 rounded-lg bg-white border border-linen-border text-xs font-bold text-espresso-800 hover:bg-linen-surface flex items-center gap-1.5 transition-colors">
+<i class="ph ph-printer"></i>
+<span>Print Official PDF</span>
+</button>
+<button class="px-3 py-1 rounded-lg bg-espresso-900 text-white text-xs font-bold hover:bg-espresso-800 flex items-center gap-1.5 transition-colors">
+<i class="ph ph-repeat"></i>
+<span>Renew / Refill</span>
+</button>
+</div>
+</div>
+</div>
+<!-- BOTTOM SPLIT GRID: Caregiver Concierge & Recent Consultations -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 pt-1">
+<!-- LEFT: Caregiver Concierge Quick Contact Card -->
+<div class="rounded-2xl bg-white border border-linen-border p-4 shadow-atelier flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between mb-3">
+<span class="text-[10px] font-mono uppercase tracking-widest text-espresso-muted font-bold">Caregiver Concierge</span>
+<span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-sage-50 text-sage-800 border border-sage-200">Verified Guardian</span>
+</div>
+<div class="flex items-center gap-3">
+<div class="h-10 w-10 rounded-full bg-cognac-50 border border-cognac-200 flex items-center justify-center text-cognac-600 font-serif font-bold text-sm">
+                  NT
+                </div>
+<div>
+<h4 class="text-xs font-bold text-espresso-900">Natalia Torres (Mother)</h4>
+<p class="text-[11px] font-mono text-espresso-muted mt-0.5">+52 55 4192 8812</p>
+</div>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-2 mt-4 pt-3 border-t border-linen-border">
+<button class="flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-sage-50 hover:bg-sage-100 text-sage-800 border border-sage-200 text-xs font-bold transition-all" type="button">
+<i class="ph-bold ph-whatsapp-logo text-base text-sage-600"></i>
+<span>WhatsApp VIP Direct</span>
+</button>
+<button class="flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-white hover:bg-linen-surface text-espresso-900 border border-espresso-800 text-xs font-bold transition-all" type="button">
+<i class="ph-bold ph-phone-outgoing text-base text-espresso-800"></i>
+<span>Direct Voice Call</span>
+</button>
+</div>
+</div>
+<!-- RIGHT: Recent Consultations Timeline -->
+<div class="rounded-2xl bg-white border border-linen-border p-4 shadow-atelier">
+<div class="flex items-center justify-between mb-3">
+<span class="text-[10px] font-mono uppercase tracking-widest text-espresso-muted font-bold">Recent Consultations</span>
+<a class="text-[11px] font-bold text-cognac-600 hover:text-cognac-700 flex items-center gap-0.5" href="#">
+<span>Timeline</span>
+<i class="ph-bold ph-arrow-right text-[10px]"></i>
+</a>
+</div>
+<div class="space-y-2.5">
+<!-- 12 Aug 2026 -->
+<div class="flex items-start justify-between p-2 rounded-xl bg-linen-surface/40 text-xs">
+<div>
+<div class="flex items-center gap-2">
+<strong class="font-bold text-espresso-900">12 Aug 2026</strong>
+<span class="text-espresso-muted">•</span>
+<span class="font-semibold text-espresso-800">Well-Child Visit</span>
+</div>
+<p class="text-[10px] text-espresso-muted mt-0.5">Vitals normal, 95th percentile height</p>
+</div>
+<span class="text-[10px] font-bold text-cognac-600 font-serif">Dr. Gamaliel</span>
+</div>
+<!-- 05 May 2026 -->
+<div class="flex items-start justify-between p-2 rounded-xl bg-linen-surface/40 text-xs">
+<div>
+<div class="flex items-center gap-2">
+<strong class="font-bold text-espresso-900">05 May 2026</strong>
+<span class="text-espresso-muted">•</span>
+<span class="font-semibold text-espresso-800">Vaccination DTaP Booster</span>
+</div>
+</div>
+<span class="text-[10px] font-semibold text-espresso-muted font-serif">Dr. Santos</span>
+</div>
+<!-- 10 Feb 2026 -->
+<div class="flex items-start justify-between p-2 rounded-xl bg-linen-surface/40 text-xs">
+<div>
+<div class="flex items-center gap-2">
+<strong class="font-bold text-espresso-900">10 Feb 2026</strong>
+<span class="text-espresso-muted">•</span>
+<span class="font-semibold text-espresso-800">Fever &amp; Cold</span>
+</div>
+</div>
+<span class="text-[10px] font-bold text-cognac-600 font-serif">Dr. Gamaliel</span>
+</div>
+<!-- 18 Nov 2025 -->
+<div class="flex items-start justify-between p-2 rounded-xl bg-linen-surface/40 text-xs">
+<div>
+<div class="flex items-center gap-2">
+<strong class="font-bold text-espresso-900">18 Nov 2025</strong>
+<span class="text-espresso-muted">•</span>
+<span class="font-semibold text-espresso-800">Growth Check</span>
+</div>
+</div>
+<span class="text-[10px] font-semibold text-espresso-muted font-serif">Dr. Ruiz</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- END: MAIN CLINICAL STAGE -->
+</main>
+<!-- END: 3. Main Grid -->
+</body></html>

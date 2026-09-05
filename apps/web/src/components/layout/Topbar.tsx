@@ -1,4 +1,4 @@
-import { Bell, ChevronDown, Moon, Search, Sun } from "lucide-react"
+import { Bell, ChevronDown, Heart, Moon, Search, Sun } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -22,18 +22,42 @@ export function Topbar() {
   const { dark, toggle } = useDarkMode()
 
   return (
-    <header className="flex h-[74px] shrink-0 items-center gap-4 border-b bg-card px-8">
-      <div className="relative max-w-[460px] flex-1">
+    <header className="flex h-16 shrink-0 items-center justify-between gap-7 border-b bg-card px-6 shadow-atelier">
+      <div className="flex items-center gap-3">
+        <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-sidebar text-sidebar-primary shadow-sm">
+          <Heart className="size-4.5" strokeWidth={1.8} fill="currentColor" fillOpacity={0.15} />
+        </div>
+        <div className="leading-tight">
+          <div className="flex items-center gap-2">
+            <span className="font-heading text-base font-bold tracking-widest text-foreground uppercase">Pediatra</span>
+            <span className="rounded-full border border-primary/30 bg-accent px-2 py-0.5 text-[9px] font-bold tracking-wide text-primary uppercase">
+              {t.headerBadge}
+            </span>
+          </div>
+          <p className="text-[10.5px] font-medium text-muted-foreground">
+            {t.brandTagline1} · {t.brandTagline2}
+          </p>
+        </div>
+      </div>
+
+      <div className="relative w-full max-w-96">
         <Search className="pointer-events-none absolute top-1/2 left-4 size-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           placeholder={t.searchPlaceholder}
-          className="rounded-full border-none bg-muted pr-16 pl-10 text-[13.5px] shadow-none"
+          className="rounded-full border bg-muted/70 pr-16 pl-10 text-[13.5px] shadow-inner focus-visible:border-primary focus-visible:bg-card"
         />
-        <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 rounded-md border border-border bg-card px-1.5 py-0.5 text-[10.5px] font-semibold text-muted-foreground">
+        <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 rounded-md border border-border bg-muted px-1.5 py-0.5 text-[10.5px] font-semibold text-muted-foreground">
           {t.searchShortcut}
         </span>
       </div>
-      <div className="flex-1" />
+
+      <div className="hidden items-center gap-2 rounded-full border border-secondary/30 bg-secondary/10 px-3 py-1 text-[11px] font-medium text-secondary lg:flex">
+        <span className="relative flex size-2">
+          <span className="absolute inline-flex size-full animate-ping rounded-full bg-secondary opacity-75" />
+          <span className="relative inline-flex size-2 rounded-full bg-secondary" />
+        </span>
+        {t.clinicActiveLabel}
+      </div>
 
       <button
         onClick={toggle}

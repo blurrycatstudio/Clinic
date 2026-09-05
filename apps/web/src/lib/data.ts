@@ -40,12 +40,12 @@ export const APPOINTMENTS: AppointmentRaw[] = [
 ]
 
 export const STATUS_COLORS: Record<AppointmentStatus, { bg: string; color: string }> = {
-  statusCheckedIn: { bg: "#e3f3e6", color: "#227a44" },
-  statusConfirmed: { bg: "#e3f3e6", color: "#227a44" },
-  statusPending: { bg: "#fdf1de", color: "#a85d00" },
-  statusCompleted: { bg: "#e5f0fb", color: "#1f5fa8" },
-  statusCancelled: { bg: "#fbe7e5", color: "#b03a2e" },
-  statusScheduled: { bg: "#eef0e9", color: "#4a5a4e" },
+  statusCheckedIn: { bg: "#E1EFE8", color: "#22543D" },
+  statusConfirmed: { bg: "#F1F7F4", color: "#2D6A4F" },
+  statusPending: { bg: "#FBECE2", color: "#8F4616" },
+  statusCompleted: { bg: "#FDF7F2", color: "#B25D23" },
+  statusCancelled: { bg: "#FBECE2", color: "#B25D23" },
+  statusScheduled: { bg: "#F3EFE6", color: "#7C736A" },
 }
 
 // ---------- Today's Schedule (Dashboard) ----------

@@ -1,17 +1,15 @@
 import { Outlet } from "react-router-dom"
-import { Sidebar } from "./Sidebar"
+import { NavBar } from "./NavBar"
 import { Topbar } from "./Topbar"
 
 export function AppShell() {
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-background text-foreground">
-      <Sidebar />
-      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <Topbar />
-        <main className="flex-1 overflow-y-auto px-8 py-7">
-          <Outlet />
-        </main>
-      </div>
+    <div className="flex h-screen w-full flex-col overflow-hidden bg-background text-foreground">
+      <Topbar />
+      <NavBar />
+      <main className="flex-1 overflow-y-auto p-5">
+        <Outlet />
+      </main>
     </div>
   )
 }
