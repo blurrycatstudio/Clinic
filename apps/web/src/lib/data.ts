@@ -29,23 +29,23 @@ export type AppointmentRaw = {
 }
 
 export const APPOINTMENTS: AppointmentRaw[] = [
-  { id: "a6", time: "08:00 AM", duration: "30 min", child: "Santiago Flores", patientId: "santiago", phone: "+52 664 678 9012", initials: "SF", color: "#5a7d9e", type: "typeVaccination", status: "statusCompleted" },
-  { id: "a7", time: "08:30 AM", duration: "30 min", child: "Isabella Mendoza", patientId: "isabella", phone: "+52 664 789 0123", initials: "IM", color: "#8a6d3f", type: "typeWellchild", status: "statusCompleted" },
-  { id: "a1", time: "09:00 AM", duration: "30 min", child: "Emilia Torres", patientId: "emilia", phone: "+52 664 123 4567", initials: "ET", color: "#2f6b46", type: "typeWellchild", status: "statusCheckedIn" },
-  { id: "a2", time: "09:30 AM", duration: "20 min", child: "Mateo Ramírez", patientId: "mateo", phone: "+52 664 987 6543", initials: "MR", color: "#e2764a", type: "typeVaccination", status: "statusConfirmed" },
-  { id: "a3", time: "10:00 AM", duration: "30 min", child: "Sofía Delgado", patientId: "sofia", phone: "+52 664 234 5678", initials: "SD", color: "#3f7d52", type: "typeGrowth", status: "statusConfirmed" },
-  { id: "a4", time: "10:30 AM", duration: "45 min", child: "Diego Navarro", patientId: "diego", phone: "+52 664 345 6789", initials: "DN", color: "#c96a3e", type: "typeConsultation", status: "statusPending" },
-  { id: "a5", time: "11:00 AM", duration: "20 min", child: "Valentina Cruz", patientId: "valentina", phone: "+52 664 456 7890", initials: "VC", color: "#4a72a8", type: "typeFollowup", status: "statusConfirmed" },
-  { id: "a8", time: "11:30 AM", duration: "20 min", child: "Camila Herrera", patientId: "camila", phone: "+52 664 567 8901", initials: "CH", color: "#a8567a", type: "typeConsultation", status: "statusCancelled" },
+  { id: "a6", time: "08:00 AM", duration: "30 min", child: "Santiago Flores", patientId: "santiago", phone: "+52 664 678 9012", initials: "SF", color: "#0891B2", type: "typeVaccination", status: "statusCompleted" },
+  { id: "a7", time: "08:30 AM", duration: "30 min", child: "Isabella Mendoza", patientId: "isabella", phone: "+52 664 789 0123", initials: "IM", color: "#9333EA", type: "typeWellchild", status: "statusCompleted" },
+  { id: "a1", time: "09:00 AM", duration: "30 min", child: "Emilia Torres", patientId: "emilia", phone: "+52 664 123 4567", initials: "ET", color: "#16A34A", type: "typeWellchild", status: "statusCheckedIn" },
+  { id: "a2", time: "09:30 AM", duration: "20 min", child: "Mateo Ramírez", patientId: "mateo", phone: "+52 664 987 6543", initials: "MR", color: "#F97316", type: "typeVaccination", status: "statusConfirmed" },
+  { id: "a3", time: "10:00 AM", duration: "30 min", child: "Sofía Delgado", patientId: "sofia", phone: "+52 664 234 5678", initials: "SD", color: "#0D9488", type: "typeGrowth", status: "statusConfirmed" },
+  { id: "a4", time: "10:30 AM", duration: "45 min", child: "Diego Navarro", patientId: "diego", phone: "+52 664 345 6789", initials: "DN", color: "#DC2626", type: "typeConsultation", status: "statusPending" },
+  { id: "a5", time: "11:00 AM", duration: "20 min", child: "Valentina Cruz", patientId: "valentina", phone: "+52 664 456 7890", initials: "VC", color: "#2563EB", type: "typeFollowup", status: "statusConfirmed" },
+  { id: "a8", time: "11:30 AM", duration: "20 min", child: "Camila Herrera", patientId: "camila", phone: "+52 664 567 8901", initials: "CH", color: "#DB2777", type: "typeConsultation", status: "statusCancelled" },
 ]
 
 export const STATUS_COLORS: Record<AppointmentStatus, { bg: string; color: string }> = {
-  statusCheckedIn: { bg: "#E1EFE8", color: "#22543D" },
-  statusConfirmed: { bg: "#F1F7F4", color: "#2D6A4F" },
-  statusPending: { bg: "#FBECE2", color: "#8F4616" },
-  statusCompleted: { bg: "#FDF7F2", color: "#B25D23" },
-  statusCancelled: { bg: "#FBECE2", color: "#B25D23" },
-  statusScheduled: { bg: "#F3EFE6", color: "#7C736A" },
+  statusCheckedIn: { bg: "#DCFCE7", color: "#16A34A" },
+  statusConfirmed: { bg: "#EFF6FF", color: "#2563EB" },
+  statusPending: { bg: "#FFEDD5", color: "#C2410C" },
+  statusCompleted: { bg: "#FFF7ED", color: "#C2410C" },
+  statusCancelled: { bg: "#FFEDD5", color: "#C2410C" },
+  statusScheduled: { bg: "#F1F5F9", color: "#64748B" },
 }
 
 // ---------- Today's Schedule (Dashboard) ----------
@@ -59,14 +59,14 @@ export type ScheduleItem = {
 }
 
 export const TODAYS_SCHEDULE: ScheduleItem[] = [
-  { time: "09:00 AM", child: "Emilia Torres", initials: "ET", color: "#e2764a", type: "typeWellchild", status: "statusCheckedIn" },
-  { time: "09:30 AM", child: "Mateo Ramírez", initials: "MR", color: "#4a72a8", type: "typeVaccination", status: "statusConfirmed" },
-  { time: "10:00 AM", child: "Sofía Delgado", initials: "SD", color: "#c9628a", type: "typeGrowth", status: "statusConfirmed" },
-  { time: "10:30 AM", child: "Diego Navarro", initials: "DN", color: "#3f7d52", type: "typeConsultation", status: "statusPending" },
-  { time: "11:00 AM", child: "Valentina Cruz", initials: "VC", color: "#c96a3e", type: "typeFollowup", status: "statusConfirmed" },
-  { time: "11:30 AM", child: "Lucas Mendoza", initials: "LM", color: "#5a7d9e", type: "typeSickVisit", status: "statusScheduled" },
-  { time: "12:00 PM", child: "Isabella Ríos", initials: "IR", color: "#a8567a", type: "typeVaccination", status: "statusScheduled" },
-  { time: "12:30 PM", child: "Sebastián Mora", initials: "SM", color: "#8a6d3f", type: "typeConsultation", status: "statusScheduled" },
+  { time: "09:00 AM", child: "Emilia Torres", initials: "ET", color: "#F97316", type: "typeWellchild", status: "statusCheckedIn" },
+  { time: "09:30 AM", child: "Mateo Ramírez", initials: "MR", color: "#2563EB", type: "typeVaccination", status: "statusConfirmed" },
+  { time: "10:00 AM", child: "Sofía Delgado", initials: "SD", color: "#E11D48", type: "typeGrowth", status: "statusConfirmed" },
+  { time: "10:30 AM", child: "Diego Navarro", initials: "DN", color: "#0D9488", type: "typeConsultation", status: "statusPending" },
+  { time: "11:00 AM", child: "Valentina Cruz", initials: "VC", color: "#DC2626", type: "typeFollowup", status: "statusConfirmed" },
+  { time: "11:30 AM", child: "Lucas Mendoza", initials: "LM", color: "#0891B2", type: "typeSickVisit", status: "statusScheduled" },
+  { time: "12:00 PM", child: "Isabella Ríos", initials: "IR", color: "#DB2777", type: "typeVaccination", status: "statusScheduled" },
+  { time: "12:30 PM", child: "Sebastián Mora", initials: "SM", color: "#9333EA", type: "typeConsultation", status: "statusScheduled" },
 ]
 
 export type RecentVisit = { date: string; type: string; doctor: string }
@@ -104,10 +104,10 @@ export const RECENT_CALLS: InteractionRaw[] = [
 ]
 
 export const TAG_COLORS: Record<InteractionTag, { bg: string; color: string }> = {
-  outgoing: { bg: "#e5f0fb", color: "#1f5fa8" },
-  inbound: { bg: "#eef0e9", color: "#4a5a4e" },
-  incoming: { bg: "#eef0e9", color: "#4a5a4e" },
-  missed: { bg: "#fbe7e5", color: "#b03a2e" },
+  outgoing: { bg: "#DBEAFE", color: "#2563EB" },
+  inbound: { bg: "#F1F5F9", color: "#64748B" },
+  incoming: { bg: "#F1F5F9", color: "#64748B" },
+  missed: { bg: "#FEE2E2", color: "#DC2626" },
 }
 
 export type HistoryRow = { date: string; type: string; details: string }
@@ -202,11 +202,11 @@ export const TEMPLATES: TemplateKey[] = [
 export type RxPatient = { id: string; name: string; age: string; initials: string; color: string }
 
 export const RX_PATIENTS: RxPatient[] = [
-  { id: "emilia", name: "Emilia Torres", age: "4 yrs", initials: "ET", color: "#2f6b46" },
-  { id: "mateo", name: "Mateo Ramírez", age: "2 yrs", initials: "MR", color: "#e2764a" },
-  { id: "sofia", name: "Sofía Delgado", age: "6 yrs", initials: "SD", color: "#3f7d52" },
-  { id: "diego", name: "Diego Navarro", age: "8 yrs", initials: "DN", color: "#c96a3e" },
-  { id: "valentina", name: "Valentina Cruz", age: "3 yrs", initials: "VC", color: "#4a72a8" },
+  { id: "emilia", name: "Emilia Torres", age: "4 yrs", initials: "ET", color: "#16A34A" },
+  { id: "mateo", name: "Mateo Ramírez", age: "2 yrs", initials: "MR", color: "#F97316" },
+  { id: "sofia", name: "Sofía Delgado", age: "6 yrs", initials: "SD", color: "#0D9488" },
+  { id: "diego", name: "Diego Navarro", age: "8 yrs", initials: "DN", color: "#DC2626" },
+  { id: "valentina", name: "Valentina Cruz", age: "3 yrs", initials: "VC", color: "#2563EB" },
 ]
 
 export const COMMON_MEDICATIONS = [
@@ -343,14 +343,14 @@ export type Patient = {
 }
 
 export const PATIENTS: Patient[] = [
-  { id: "emilia", patientCode: "PT-2026-0015", name: "Emilia Torres", initials: "ET", color: "#2f6b46", age: "4 yrs", ageFull: { en: "4 years 2 months", es: "4 años 2 meses" }, gender: { en: "Female", es: "Femenino" }, dob: "14 Mar 2022", guardian: "Fernanda Torres (mother)", guardianPhone: "+52 664 123 4567", email: "fernanda.torres@gmail.com", address: "Tijuana, B.C.", bloodType: "O+", lastVisit: "Aug 20, 2026", nextVisit: "Sep 5, 2026", status: "active", allergies: ["Peanuts"] },
-  { id: "mateo", patientCode: "PT-2026-0022", name: "Mateo Ramírez", initials: "MR", color: "#e2764a", age: "2 yrs", ageFull: { en: "2 years", es: "2 años" }, gender: { en: "Male", es: "Masculino" }, dob: "02 Jul 2024", guardian: "Ricardo Ramírez (father)", guardianPhone: "+52 664 987 6543", email: "ricardo.ramirez@hotmail.com", address: "Tijuana, B.C.", bloodType: "A+", lastVisit: "Aug 12, 2026", nextVisit: "Sep 5, 2026", status: "active", allergies: [] },
-  { id: "sofia", patientCode: "PT-2026-0031", name: "Sofía Delgado", initials: "SD", color: "#3f7d52", age: "6 yrs", ageFull: { en: "6 years", es: "6 años" }, gender: { en: "Female", es: "Femenino" }, dob: "28 Nov 2019", guardian: "Gabriela Delgado (mother)", guardianPhone: "+52 664 234 5678", email: "gaby.delgado@gmail.com", address: "Tijuana, B.C.", bloodType: "B+", lastVisit: "Jul 2, 2026", nextVisit: "Sep 5, 2026", status: "active", allergies: ["Seasonal Pollen"] },
-  { id: "diego", patientCode: "PT-2026-0008", name: "Diego Navarro", initials: "DN", color: "#c96a3e", age: "8 yrs", ageFull: { en: "8 years", es: "8 años" }, gender: { en: "Male", es: "Masculino" }, dob: "16 Feb 2018", guardian: "Luis Navarro (father)", guardianPhone: "+52 664 345 6789", email: "luis.navarro@outlook.com", address: "Tijuana, B.C.", bloodType: "AB+", lastVisit: "Jun 18, 2026", nextVisit: "Sep 5, 2026", status: "active", allergies: [] },
-  { id: "valentina", patientCode: "PT-2026-0019", name: "Valentina Cruz", initials: "VC", color: "#4a72a8", age: "3 yrs", ageFull: { en: "3 years", es: "3 años" }, gender: { en: "Female", es: "Femenino" }, dob: "09 Sep 2023", guardian: "Carmen Cruz (mother)", guardianPhone: "+52 664 456 7890", email: "carmen.cruz@gmail.com", address: "Tijuana, B.C.", bloodType: "O-", lastVisit: "May 30, 2026", nextVisit: "Sep 5, 2026", status: "active", allergies: ["Amoxicillin"] },
-  { id: "camila", patientCode: "PT-2026-0044", name: "Camila Herrera", initials: "CH", color: "#a8567a", age: "5 yrs", ageFull: { en: "5 years", es: "5 años" }, gender: { en: "Female", es: "Femenino" }, dob: "21 Jan 2021", guardian: "Patricia Herrera (mother)", guardianPhone: "+52 664 567 8901", email: "paty.herrera@gmail.com", address: "Tijuana, B.C.", bloodType: "A-", lastVisit: "Apr 14, 2026", nextVisit: null, status: "inactive", allergies: [] },
-  { id: "santiago", patientCode: "PT-2026-0051", name: "Santiago Flores", initials: "SF", color: "#5a7d9e", age: "1 yr", ageFull: { en: "1 year", es: "1 año" }, gender: { en: "Male", es: "Masculino" }, dob: "03 Jun 2025", guardian: "Andrea Flores (mother)", guardianPhone: "+52 664 678 9012", email: "andrea.flores@gmail.com", address: "Tijuana, B.C.", bloodType: "B-", lastVisit: "Aug 28, 2026", nextVisit: "Sep 12, 2026", status: "active", allergies: [] },
-  { id: "isabella", patientCode: "PT-2026-0037", name: "Isabella Mendoza", initials: "IM", color: "#8a6d3f", age: "7 yrs", ageFull: { en: "7 years", es: "7 años" }, gender: { en: "Female", es: "Femenino" }, dob: "12 Oct 2018", guardian: "Roberto Mendoza (father)", guardianPhone: "+52 664 789 0123", email: "r.mendoza@gmail.com", address: "Tijuana, B.C.", bloodType: "O+", lastVisit: "Mar 3, 2026", nextVisit: null, status: "inactive", allergies: ["Dust mites"] },
+  { id: "emilia", patientCode: "PT-2026-0015", name: "Emilia Torres", initials: "ET", color: "#16A34A", age: "4 yrs", ageFull: { en: "4 years 2 months", es: "4 años 2 meses" }, gender: { en: "Female", es: "Femenino" }, dob: "14 Mar 2022", guardian: "Fernanda Torres (mother)", guardianPhone: "+52 664 123 4567", email: "fernanda.torres@gmail.com", address: "Tijuana, B.C.", bloodType: "O+", lastVisit: "Aug 20, 2026", nextVisit: "Sep 5, 2026", status: "active", allergies: ["Peanuts"] },
+  { id: "mateo", patientCode: "PT-2026-0022", name: "Mateo Ramírez", initials: "MR", color: "#F97316", age: "2 yrs", ageFull: { en: "2 years", es: "2 años" }, gender: { en: "Male", es: "Masculino" }, dob: "02 Jul 2024", guardian: "Ricardo Ramírez (father)", guardianPhone: "+52 664 987 6543", email: "ricardo.ramirez@hotmail.com", address: "Tijuana, B.C.", bloodType: "A+", lastVisit: "Aug 12, 2026", nextVisit: "Sep 5, 2026", status: "active", allergies: [] },
+  { id: "sofia", patientCode: "PT-2026-0031", name: "Sofía Delgado", initials: "SD", color: "#0D9488", age: "6 yrs", ageFull: { en: "6 years", es: "6 años" }, gender: { en: "Female", es: "Femenino" }, dob: "28 Nov 2019", guardian: "Gabriela Delgado (mother)", guardianPhone: "+52 664 234 5678", email: "gaby.delgado@gmail.com", address: "Tijuana, B.C.", bloodType: "B+", lastVisit: "Jul 2, 2026", nextVisit: "Sep 5, 2026", status: "active", allergies: ["Seasonal Pollen"] },
+  { id: "diego", patientCode: "PT-2026-0008", name: "Diego Navarro", initials: "DN", color: "#DC2626", age: "8 yrs", ageFull: { en: "8 years", es: "8 años" }, gender: { en: "Male", es: "Masculino" }, dob: "16 Feb 2018", guardian: "Luis Navarro (father)", guardianPhone: "+52 664 345 6789", email: "luis.navarro@outlook.com", address: "Tijuana, B.C.", bloodType: "AB+", lastVisit: "Jun 18, 2026", nextVisit: "Sep 5, 2026", status: "active", allergies: [] },
+  { id: "valentina", patientCode: "PT-2026-0019", name: "Valentina Cruz", initials: "VC", color: "#2563EB", age: "3 yrs", ageFull: { en: "3 years", es: "3 años" }, gender: { en: "Female", es: "Femenino" }, dob: "09 Sep 2023", guardian: "Carmen Cruz (mother)", guardianPhone: "+52 664 456 7890", email: "carmen.cruz@gmail.com", address: "Tijuana, B.C.", bloodType: "O-", lastVisit: "May 30, 2026", nextVisit: "Sep 5, 2026", status: "active", allergies: ["Amoxicillin"] },
+  { id: "camila", patientCode: "PT-2026-0044", name: "Camila Herrera", initials: "CH", color: "#DB2777", age: "5 yrs", ageFull: { en: "5 years", es: "5 años" }, gender: { en: "Female", es: "Femenino" }, dob: "21 Jan 2021", guardian: "Patricia Herrera (mother)", guardianPhone: "+52 664 567 8901", email: "paty.herrera@gmail.com", address: "Tijuana, B.C.", bloodType: "A-", lastVisit: "Apr 14, 2026", nextVisit: null, status: "inactive", allergies: [] },
+  { id: "santiago", patientCode: "PT-2026-0051", name: "Santiago Flores", initials: "SF", color: "#0891B2", age: "1 yr", ageFull: { en: "1 year", es: "1 año" }, gender: { en: "Male", es: "Masculino" }, dob: "03 Jun 2025", guardian: "Andrea Flores (mother)", guardianPhone: "+52 664 678 9012", email: "andrea.flores@gmail.com", address: "Tijuana, B.C.", bloodType: "B-", lastVisit: "Aug 28, 2026", nextVisit: "Sep 12, 2026", status: "active", allergies: [] },
+  { id: "isabella", patientCode: "PT-2026-0037", name: "Isabella Mendoza", initials: "IM", color: "#9333EA", age: "7 yrs", ageFull: { en: "7 years", es: "7 años" }, gender: { en: "Female", es: "Femenino" }, dob: "12 Oct 2018", guardian: "Roberto Mendoza (father)", guardianPhone: "+52 664 789 0123", email: "r.mendoza@gmail.com", address: "Tijuana, B.C.", bloodType: "O+", lastVisit: "Mar 3, 2026", nextVisit: null, status: "inactive", allergies: ["Dust mites"] },
 ]
 
 // ---------- Voice Calls ----------
@@ -369,14 +369,14 @@ export type CallLog = {
 }
 
 export const CALL_LOGS: CallLog[] = [
-  { id: "c1", name: "Luis Navarro", phone: "+52 664 345 6789", initials: "LN", color: "#c96a3e", direction: "incoming", duration: "4:12", date: "Today", time: "09:40 AM", note: "Asked about consultation availability for Diego's cough." },
-  { id: "c2", name: "Unknown Caller", phone: "+52 664 555 2211", initials: "?", color: "#8a8a8a", direction: "missed", duration: "—", date: "Today", time: "08:50 AM", note: "No voicemail left." },
-  { id: "c3", name: "Fernanda Torres", phone: "+52 664 123 4567", initials: "FT", color: "#2f6b46", direction: "outgoing", duration: "2:35", date: "Today", time: "08:15 AM", note: "Confirmed Emilia's appointment for tomorrow 9:00 AM." },
-  { id: "c4", name: "Gabriela Delgado", phone: "+52 664 234 5678", initials: "GD", color: "#3f7d52", direction: "incoming", duration: "6:48", date: "Yesterday", time: "04:22 PM", note: "Requested to reschedule Sofía's growth check." },
-  { id: "c5", name: "Ricardo Ramírez", phone: "+52 664 987 6543", initials: "RR", color: "#e2764a", direction: "outgoing", duration: "1:52", date: "Yesterday", time: "11:05 AM", note: "Reminder call for Mateo's DTaP booster." },
-  { id: "c6", name: "Unknown Caller", phone: "+52 664 900 3344", initials: "?", color: "#8a8a8a", direction: "missed", duration: "—", date: "Yesterday", time: "09:12 AM", note: "Called back — no answer." },
-  { id: "c7", name: "Carmen Cruz", phone: "+52 664 456 7890", initials: "CC", color: "#4a72a8", direction: "incoming", duration: "3:20", date: "Sep 3, 2026", time: "02:40 PM", note: "Asked about Valentina's allergy test results." },
-  { id: "c8", name: "Andrea Flores", phone: "+52 664 678 9012", initials: "AF", color: "#5a7d9e", direction: "outgoing", duration: "5:03", date: "Sep 2, 2026", time: "10:18 AM", note: "Discussed Santiago's feeding schedule concerns." },
+  { id: "c1", name: "Luis Navarro", phone: "+52 664 345 6789", initials: "LN", color: "#DC2626", direction: "incoming", duration: "4:12", date: "Today", time: "09:40 AM", note: "Asked about consultation availability for Diego's cough." },
+  { id: "c2", name: "Unknown Caller", phone: "+52 664 555 2211", initials: "?", color: "#6B7280", direction: "missed", duration: "—", date: "Today", time: "08:50 AM", note: "No voicemail left." },
+  { id: "c3", name: "Fernanda Torres", phone: "+52 664 123 4567", initials: "FT", color: "#16A34A", direction: "outgoing", duration: "2:35", date: "Today", time: "08:15 AM", note: "Confirmed Emilia's appointment for tomorrow 9:00 AM." },
+  { id: "c4", name: "Gabriela Delgado", phone: "+52 664 234 5678", initials: "GD", color: "#0D9488", direction: "incoming", duration: "6:48", date: "Yesterday", time: "04:22 PM", note: "Requested to reschedule Sofía's growth check." },
+  { id: "c5", name: "Ricardo Ramírez", phone: "+52 664 987 6543", initials: "RR", color: "#F97316", direction: "outgoing", duration: "1:52", date: "Yesterday", time: "11:05 AM", note: "Reminder call for Mateo's DTaP booster." },
+  { id: "c6", name: "Unknown Caller", phone: "+52 664 900 3344", initials: "?", color: "#6B7280", direction: "missed", duration: "—", date: "Yesterday", time: "09:12 AM", note: "Called back — no answer." },
+  { id: "c7", name: "Carmen Cruz", phone: "+52 664 456 7890", initials: "CC", color: "#2563EB", direction: "incoming", duration: "3:20", date: "Sep 3, 2026", time: "02:40 PM", note: "Asked about Valentina's allergy test results." },
+  { id: "c8", name: "Andrea Flores", phone: "+52 664 678 9012", initials: "AF", color: "#0891B2", direction: "outgoing", duration: "5:03", date: "Sep 2, 2026", time: "10:18 AM", note: "Discussed Santiago's feeding schedule concerns." },
 ]
 
 // ---------- Medical Records ----------
@@ -451,11 +451,11 @@ export const PATIENT_GROWTH = [
 ]
 
 export const APPT_TYPE_BREAKDOWN: { type: AppointmentType; count: number; color: string }[] = [
-  { type: "typeWellchild", count: 38, color: "#2f6b46" },
-  { type: "typeVaccination", count: 26, color: "#e2764a" },
-  { type: "typeConsultation", count: 31, color: "#4a72a8" },
-  { type: "typeGrowth", count: 18, color: "#3f7d52" },
-  { type: "typeFollowup", count: 14, color: "#a8865a" },
+  { type: "typeWellchild", count: 38, color: "#16A34A" },
+  { type: "typeVaccination", count: 26, color: "#F97316" },
+  { type: "typeConsultation", count: 31, color: "#2563EB" },
+  { type: "typeGrowth", count: 18, color: "#0D9488" },
+  { type: "typeFollowup", count: 14, color: "#D97706" },
 ]
 
 export type ChatMessage = { from: "me" | "them"; text: string; time: string }
@@ -476,7 +476,7 @@ export const CONTACTS: Contact[] = [
     name: "Fernanda Torres",
     child: "Emilia Torres",
     initials: "FT",
-    bg: "#2f6b46",
+    bg: "#16A34A",
     time: "09:16 AM",
     unread: false,
     msgs: [
@@ -490,7 +490,7 @@ export const CONTACTS: Contact[] = [
     name: "Ricardo Ramírez",
     child: "Mateo Ramírez",
     initials: "RR",
-    bg: "#e2764a",
+    bg: "#F97316",
     time: "07:41 AM",
     unread: true,
     msgs: [
@@ -503,7 +503,7 @@ export const CONTACTS: Contact[] = [
     name: "Gabriela Delgado",
     child: "Sofía Delgado",
     initials: "GD",
-    bg: "#3f7d52",
+    bg: "#0D9488",
     time: "08:02 AM",
     unread: true,
     msgs: [
@@ -516,7 +516,7 @@ export const CONTACTS: Contact[] = [
     name: "Luis Navarro",
     child: "Diego Navarro",
     initials: "LN",
-    bg: "#c96a3e",
+    bg: "#DC2626",
     time: "Ayer",
     unread: false,
     msgs: [
@@ -530,7 +530,7 @@ export const CONTACTS: Contact[] = [
     name: "Carmen Cruz",
     child: "Valentina Cruz",
     initials: "CC",
-    bg: "#4a72a8",
+    bg: "#2563EB",
     time: "Ayer",
     unread: false,
     msgs: [

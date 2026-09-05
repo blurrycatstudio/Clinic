@@ -4,6 +4,7 @@ import { AppShell } from "@/components/layout/AppShell"
 import { ProtectedRoute } from "@/components/layout/ProtectedRoute"
 import { AuthProvider } from "@/lib/useAuth"
 import { LanguageProvider } from "@/lib/i18n"
+import { ToastProvider } from "@/lib/toast"
 import Login from "@/pages/Login"
 import Dashboard from "@/pages/Dashboard"
 import WhatsAppPage from "@/pages/WhatsAppPage"
@@ -24,6 +25,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <LanguageProvider>
+        <ToastProvider>
           <BrowserRouter>
             <Routes>
               <Route path="/login" element={<Login />} />
@@ -44,6 +46,7 @@ function App() {
               </Route>
             </Routes>
           </BrowserRouter>
+        </ToastProvider>
         </LanguageProvider>
       </AuthProvider>
     </QueryClientProvider>

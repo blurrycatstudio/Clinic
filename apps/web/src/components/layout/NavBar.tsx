@@ -7,7 +7,7 @@ export function NavBar() {
   const { t } = useLang()
 
   return (
-    <nav className="scrollbar-hide flex h-11 shrink-0 items-center justify-between gap-4 overflow-x-auto border-b bg-card px-6 text-xs">
+    <nav className="scrollbar-hide flex h-11 shrink-0 items-center justify-between gap-4 overflow-x-auto border-b border-border/60 bg-white px-6 text-xs">
       <div className="flex items-center gap-1.5">
         {NAV_ITEMS.map((item) => (
           <NavLink
@@ -18,15 +18,18 @@ export function NavBar() {
               cn(
                 "flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1 font-semibold transition-colors",
                 isActive
-                  ? "border border-primary/25 bg-accent text-primary shadow-atelier"
-                  : "border border-transparent text-muted-foreground hover:bg-muted hover:text-foreground",
+                  ? "bg-[#EFF6FF] text-[#2563EB] shadow-sm"
+                  : "border border-transparent text-[#64748B] hover:bg-[#F8FAFC] hover:text-foreground",
               )
             }
           >
-            <item.icon className="size-3.5" strokeWidth={2} />
+            <item.icon className="size-3.5" strokeWidth={2} style={{ color: item.iconColor }} />
             <span className="whitespace-nowrap">{t[item.labelKey]}</span>
             {item.badge ? (
-              <span className="rounded-full bg-primary/15 px-1.5 py-0.5 text-[9px] font-bold text-primary">
+              <span
+                className="rounded-full px-1.5 py-0.5 text-[9px] font-bold text-white"
+                style={{ backgroundColor: item.badgeColor ?? "#2563EB" }}
+              >
                 {item.badge}
               </span>
             ) : null}

@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { MessageSquarePlus, Paperclip, Phone, Search, Send, Video } from "lucide-react"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { useLang } from "@/lib/i18n"
 import { CONTACTS, type ChatMessage, type Contact } from "@/lib/data"
 import { cn } from "@/lib/utils"
+import { useToast } from "@/lib/toast"
 
 function formatNow() {
   const now = new Date()
@@ -19,13 +20,24 @@ function formatNow() {
 
 export default function Messages() {
   const { t } = useLang()
+  const toast = useToast()
   const [contacts, setContacts] = useState<Contact[]>(CONTACTS)
   const [activeId, setActiveId] = useState<string | null>(CONTACTS[0].id)
   const [query, setQuery] = useState("")
   const [draft, setDraft] = useState("")
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const active = contacts.find((c) => c.id === activeId) ?? null
   const filteredContacts = contacts.filter((c) => c.name.toLowerCase().includes(query.toLowerCase()))
+
+  function handleAttach(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file || !activeId) return
+    const msg: ChatMessage = { from: "me", text: `📎 ${file.name}`, time: formatNow() }
+    setContacts((prev) => prev.map((c) => (c.id === activeId ? { ...c, msgs: [...c.msgs, msg] } : c)))
+    toast(`Attached ${file.name}`)
+    e.target.value = ""
+  }
 
   function send() {
     const text = draft.trim()
@@ -42,7 +54,7 @@ export default function Messages() {
           <h1 className="font-heading text-2xl font-bold">{t.messagesPageTitle}</h1>
           <p className="mt-0.5 text-[13.5px] text-muted-foreground">{t.messagesPageSub}</p>
         </div>
-        <Button className="gap-1.5 rounded-[10px] font-bold">
+        <Button onClick={() => toast("New conversation started")} className="gap-1.5 rounded-[10px] font-bold">
           <MessageSquarePlus className="size-3.5" strokeWidth={2.4} />
           {t.messagesNew}
         </Button>
@@ -105,10 +117,16 @@ export default function Messages() {
                   <div className="text-[13.5px] font-bold">{active.name}</div>
                   <div className="text-[11px] text-muted-foreground">{active.child}</div>
                 </div>
-                <button className="flex size-8.5 items-center justify-center rounded-[9px] hover:bg-muted">
+                <button
+                  onClick={() => {
+                    window.location.href = "tel:"
+                    toast(`Calling ${active.name}…`)
+                  }}
+                  className="flex size-8.5 items-center justify-center rounded-[9px] hover:bg-muted"
+                >
                   <Phone className="size-4.5 text-foreground" strokeWidth={1.8} />
                 </button>
-                <button className="flex size-8.5 items-center justify-center rounded-[9px] hover:bg-muted">
+                <button onClick={() => toast(`Starting video call with ${active.name}…`)} className="flex size-8.5 items-center justify-center rounded-[9px] hover:bg-muted">
                   <Video className="size-4.5 text-foreground" strokeWidth={1.8} />
                 </button>
               </div>
@@ -133,9 +151,10 @@ export default function Messages() {
               </div>
 
               <div className="flex items-center gap-2.5 border-t px-4.5 py-3.5">
-                <button className="flex size-9 shrink-0 items-center justify-center rounded-[9px] hover:bg-muted">
+                <button onClick={() => fileInputRef.current?.click()} className="flex size-9 shrink-0 items-center justify-center rounded-[9px] hover:bg-muted">
                   <Paperclip className="size-4.5 text-muted-foreground" strokeWidth={1.8} />
                 </button>
+                <input ref={fileInputRef} type="file" className="hidden" onChange={handleAttach} />
                 <Input
                   value={draft}
                   onChange={(e) => setDraft(e.target.value)}

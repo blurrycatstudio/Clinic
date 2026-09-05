@@ -1,11 +1,12 @@
 import { useMemo, useState } from "react"
-import { Phone, PhoneCall, PhoneIncoming, PhoneMissed, PhoneOutgoing, Play, Search } from "lucide-react"
+import { Loader2, Phone, PhoneCall, PhoneIncoming, PhoneMissed, PhoneOutgoing, Play, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { useLang } from "@/lib/i18n"
 import { CALL_LOGS, type CallDirection } from "@/lib/data"
 import { cn } from "@/lib/utils"
+import { useToast } from "@/lib/toast"
 
 type Filter = "all" | CallDirection
 
@@ -17,8 +18,22 @@ const DIRECTION_META: Record<CallDirection, { icon: React.ElementType; color: st
 
 export default function VoiceCalls() {
   const { t } = useLang()
+  const toast = useToast()
   const [query, setQuery] = useState("")
   const [filter, setFilter] = useState<Filter>("all")
+  const [playingId, setPlayingId] = useState<string | null>(null)
+
+  function playRecording(id: string, name: string) {
+    if (playingId) return
+    setPlayingId(id)
+    toast(`Playing recording — ${name}`)
+    setTimeout(() => setPlayingId(null), 2500)
+  }
+
+  function callBack(phone: string, name: string) {
+    toast(`Calling ${name}…`)
+    window.location.href = `tel:${phone.replace(/\s+/g, "")}`
+  }
 
   const filtered = useMemo(
     () =>
@@ -155,13 +170,23 @@ export default function VoiceCalls() {
                   </div>
                   <div className="w-14 shrink-0 text-right text-[13px] font-bold whitespace-nowrap">{c.duration}</div>
                   {c.direction === "missed" ? (
-                    <Button size="sm" className="shrink-0 gap-1 rounded-lg font-semibold">
+                    <Button onClick={() => callBack(c.phone, c.name)} size="sm" className="shrink-0 gap-1 rounded-lg font-semibold">
                       <PhoneOutgoing className="size-3.5" strokeWidth={2.2} />
                       {t.callsCallBack}
                     </Button>
                   ) : (
-                    <Button variant="outline" size="sm" className="shrink-0 gap-1 rounded-lg font-semibold">
-                      <Play className="size-3.5" strokeWidth={2.2} />
+                    <Button
+                      onClick={() => playRecording(c.id, c.name)}
+                      disabled={playingId === c.id}
+                      variant="outline"
+                      size="sm"
+                      className="shrink-0 gap-1 rounded-lg font-semibold"
+                    >
+                      {playingId === c.id ? (
+                        <Loader2 className="size-3.5 animate-spin" strokeWidth={2.2} />
+                      ) : (
+                        <Play className="size-3.5" strokeWidth={2.2} />
+                      )}
                       {t.callsPlay}
                     </Button>
                   )}

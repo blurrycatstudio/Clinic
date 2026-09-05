@@ -1,4 +1,5 @@
 import {
+  Calendar,
   CircleCheck,
   ClipboardList,
   Clock,
@@ -12,20 +13,24 @@ import {
   ShieldCheck,
   Stethoscope,
   Syringe,
+  TriangleAlert,
   Upload,
   User,
 } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
+import { useNavigate } from "react-router-dom"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { PhoneCallIcon } from "@/components/icons/PhoneCallIcon"
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon"
-import { getPatientDocuments, HISTORY, PATIENTS, PRESCRIPTIONS, RECENT_VISITS, type Patient } from "@/lib/data"
+import { getPatientDocuments, HISTORY, PATIENTS, PRESCRIPTIONS, RECENT_VISITS, type Patient, type PatientDocument } from "@/lib/data"
 import { useLang } from "@/lib/i18n"
 import type { Strings } from "@/lib/i18n"
 import { cn } from "@/lib/utils"
+import { useToast } from "@/lib/toast"
+import { downloadTextFile } from "@/lib/download"
 
 type TabKey = "overview" | "history" | "vaccinations" | "prescriptions" | "growth" | "documents"
 
@@ -42,11 +47,22 @@ const DEFAULT_PATIENT = PATIENTS.find((patient) => patient.id === "emilia")!
 
 export function PatientSnapshotCard({ patient = DEFAULT_PATIENT }: { patient?: Patient }) {
   const { t, lang } = useLang()
+  const navigate = useNavigate()
+  const toast = useToast()
   const [tab, setTab] = useState<TabKey>("overview")
+  const [extraAllergies, setExtraAllergies] = useState<string[]>([])
+  const [extraMedications, setExtraMedications] = useState<string[]>([])
+  const [extraDocuments, setExtraDocuments] = useState<PatientDocument[]>([])
+  const [editingInfo, setEditingInfo] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const p = patient
 
   useEffect(() => {
     setTab("overview")
+    setExtraAllergies([])
+    setExtraMedications([])
+    setExtraDocuments([])
+    setEditingInfo(false)
   }, [p.id])
 
   const visits = RECENT_VISITS[lang]
@@ -55,7 +71,58 @@ export function PatientSnapshotCard({ patient = DEFAULT_PATIENT }: { patient?: P
   const growth = HISTORY.notes[lang]
   const prescriptions = PRESCRIPTIONS.filter((rx) => rx.patientId === p.id)
   const activeRx = prescriptions.find((rx) => rx.status === "rxStatusActive") ?? prescriptions[0]
-  const documents = getPatientDocuments(p.id)
+  const documents = [...getPatientDocuments(p.id), ...extraDocuments]
+  const allAllergies = [...p.allergies, ...extraAllergies]
+
+  function handleAddAllergy() {
+    const value = window.prompt("Add allergy")?.trim()
+    if (value) {
+      setExtraAllergies((prev) => [...prev, value])
+      toast(`Added allergy: ${value}`)
+    }
+  }
+
+  function handleAddMedication() {
+    const value = window.prompt("Add current medication")?.trim()
+    if (value) {
+      setExtraMedications((prev) => [...prev, value])
+      toast(`Added medication: ${value}`)
+    }
+  }
+
+  function handleQuickNote() {
+    const value = window.prompt("Quick clinical note")?.trim()
+    if (value) toast("Clinical note saved to dossier")
+  }
+
+  function handleExportDossier() {
+    const lines = [
+      `Patient: ${p.name}`,
+      `DOB: ${p.dob}`,
+      `Gender: ${p.gender[lang]}`,
+      `Guardian: ${p.guardian} (${p.guardianPhone})`,
+      `Allergies: ${allAllergies.length ? allAllergies.join(", ") : "None known"}`,
+      "",
+      "Recent visits:",
+      ...visits.map((v) => `- ${v.date}: ${v.type} (${v.doctor})`),
+    ]
+    downloadTextFile(`${p.name.replace(/\s+/g, "_")}_dossier.txt`, lines.join("\n"))
+    toast("Dossier exported")
+  }
+
+  function handleFilesSelected(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = e.target.files
+    if (!files || files.length === 0) return
+    const uploaded: PatientDocument[] = Array.from(files).map((f) => ({
+      name: f.name,
+      date: new Date().toLocaleDateString(),
+      size: `${Math.max(1, Math.round(f.size / 1024))} KB`,
+      type: f.name.toLowerCase().endsWith(".pdf") ? "pdf" : "image",
+    }))
+    setExtraDocuments((prev) => [...uploaded, ...prev])
+    toast(`Uploaded ${uploaded.length} document${uploaded.length > 1 ? "s" : ""}`)
+    e.target.value = ""
+  }
 
   const tabs: { key: TabKey; icon: React.ElementType; labelKey: keyof Strings }[] = [
     { key: "overview", icon: User, labelKey: "tabOverview" },
@@ -69,10 +136,10 @@ export function PatientSnapshotCard({ patient = DEFAULT_PATIENT }: { patient?: P
   return (
     <Card className="h-full min-w-0 flex-1 gap-0 overflow-hidden rounded-2xl border p-0 shadow-atelier-elevated">
       {/* Dossier header */}
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b bg-gradient-to-r from-card via-card to-accent/25 p-5">
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b bg-gradient-to-r from-white via-white to-[#EFF6FF]/50 p-5">
         <div className="flex items-center gap-4">
           <div className="relative">
-            <Avatar className="size-16 ring-2 ring-primary/60 shadow-md">
+            <Avatar className="size-16 ring-2 ring-[#2563EB]/50 shadow-md">
               <AvatarFallback className="text-xl font-bold text-white" style={{ background: p.color }}>
                 {p.initials}
               </AvatarFallback>
@@ -89,7 +156,7 @@ export function PatientSnapshotCard({ patient = DEFAULT_PATIENT }: { patient?: P
               <span
                 className={cn(
                   "flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-bold",
-                  p.status === "active" ? "bg-[#E1EFE8] text-[#22543D]" : "bg-muted text-muted-foreground",
+                  p.status === "active" ? "bg-[#DCFCE7] text-[#16A34A]" : "bg-muted text-muted-foreground",
                 )}
               >
                 <span className="size-1.5 rounded-full bg-current" />
@@ -103,26 +170,32 @@ export function PatientSnapshotCard({ patient = DEFAULT_PATIENT }: { patient?: P
               <span>•</span>
               <span>{t.patientDobFullLabel}: <strong className="text-foreground">{p.dob}</strong></span>
               <span>•</span>
-              <span>{t.patientIdFullLabel}: <span className="font-mono font-bold text-primary">{p.patientCode}</span></span>
+              <span>{t.patientIdFullLabel}: <span className="font-mono font-bold text-[#2563EB]">{p.patientCode}</span></span>
             </div>
           </div>
         </div>
         <div className="flex items-center gap-2.5">
-          <Button className="gap-1.5 rounded-xl font-bold shadow-md">
+          <Button
+            onClick={() => {
+              toast(`Consultation started for ${p.name}`)
+              navigate("/prescriptions")
+            }}
+            className="gap-1.5 rounded-xl bg-gradient-to-r from-[#F97316] via-[#EC4899] to-[#8B5CF6] font-bold text-white shadow-md hover:opacity-90"
+          >
             <Stethoscope className="size-4" strokeWidth={2} />
             {t.startConsultation}
           </Button>
-          <Button variant="outline" size="icon" className="rounded-xl" aria-label="Quick clinical note">
+          <Button onClick={handleQuickNote} variant="outline" size="icon" className="rounded-xl" aria-label="Quick clinical note">
             <PenLine className="size-4" />
           </Button>
-          <Button variant="outline" size="icon" className="rounded-xl" aria-label="Export dossier">
+          <Button onClick={handleExportDossier} variant="outline" size="icon" className="rounded-xl" aria-label="Export dossier">
             <FileOutput className="size-4" />
           </Button>
         </div>
       </div>
 
       {/* Tabs row */}
-      <div className="flex items-center justify-between gap-3 border-b bg-accent/20 px-5">
+      <div className="flex items-center justify-between gap-3 border-b bg-[#F8FAFC] px-5">
         <nav className="flex gap-5 overflow-x-auto text-xs font-bold">
           {tabs.map((tabItem) => (
             <button
@@ -130,7 +203,7 @@ export function PatientSnapshotCard({ patient = DEFAULT_PATIENT }: { patient?: P
               onClick={() => setTab(tabItem.key)}
               className={cn(
                 "flex items-center gap-1.5 border-b-2 py-3 whitespace-nowrap transition-colors",
-                tab === tabItem.key ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground",
+                tab === tabItem.key ? "border-[#2563EB] text-[#2563EB]" : "border-transparent text-[#64748B] hover:text-foreground",
               )}
             >
               <tabItem.icon className="size-3.5" strokeWidth={2} />
@@ -139,7 +212,7 @@ export function PatientSnapshotCard({ patient = DEFAULT_PATIENT }: { patient?: P
           ))}
         </nav>
         {tab === "prescriptions" && (
-          <Button size="sm" className="shrink-0 gap-1.5 rounded-lg font-bold shadow-xs">
+          <Button onClick={() => navigate("/prescriptions")} size="sm" className="shrink-0 gap-1.5 rounded-lg font-bold shadow-xs">
             <Plus className="size-3.5" strokeWidth={2.4} />
             {t.qaNewPrescription}
           </Button>
@@ -152,10 +225,19 @@ export function PatientSnapshotCard({ patient = DEFAULT_PATIENT }: { patient?: P
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="rounded-xl border p-4">
               <div className="mb-1 flex items-center justify-between">
-                <h3 className="font-heading text-[14.5px] font-bold">{t.basicInfoTitle}</h3>
-                <button className="flex cursor-pointer items-center gap-1 text-xs font-bold text-primary">
+                <h3 className="flex items-center gap-2 font-heading text-[14.5px] font-bold">
+                  <ClipboardList className="size-4 text-[#2563EB]" strokeWidth={2} />
+                  {t.basicInfoTitle}
+                </h3>
+                <button
+                  onClick={() => {
+                    if (editingInfo) toast("Basic info updated")
+                    setEditingInfo((v) => !v)
+                  }}
+                  className="flex cursor-pointer items-center gap-1 text-xs font-bold text-[#2563EB]"
+                >
                   <PenLine className="size-3" strokeWidth={2.4} />
-                  {t.doctorEdit}
+                  {editingInfo ? "Save" : t.doctorEdit}
                 </button>
               </div>
               <div className="flex flex-col divide-y">
@@ -165,13 +247,32 @@ export function PatientSnapshotCard({ patient = DEFAULT_PATIENT }: { patient?: P
                 <InfoRow
                   label={t.patientPhoneParentLabel}
                   value={
-                    <span className="flex items-center gap-1.5">
-                      {p.guardianPhone}
-                      <WhatsAppIcon className="size-3.5" />
-                    </span>
+                    editingInfo ? (
+                      <input
+                        defaultValue={p.guardianPhone}
+                        className="w-40 rounded-md border px-2 py-1 text-right text-[13px] outline-none focus-visible:border-ring"
+                      />
+                    ) : (
+                      <span className="flex items-center gap-1.5">
+                        {p.guardianPhone}
+                        <WhatsAppIcon className="size-3.5" />
+                      </span>
+                    )
                   }
                 />
-                <InfoRow label={t.patientEmailLabel} value={p.email} />
+                <InfoRow
+                  label={t.patientEmailLabel}
+                  value={
+                    editingInfo ? (
+                      <input
+                        defaultValue={p.email}
+                        className="w-40 rounded-md border px-2 py-1 text-right text-[13px] outline-none focus-visible:border-ring"
+                      />
+                    ) : (
+                      p.email
+                    )
+                  }
+                />
                 <InfoRow label={t.patientAddressLabel} value={p.address} />
               </div>
             </div>
@@ -179,35 +280,48 @@ export function PatientSnapshotCard({ patient = DEFAULT_PATIENT }: { patient?: P
             <div className="flex flex-col gap-4">
               <div>
                 <div className="mb-2 flex items-center justify-between">
-                  <h3 className="font-heading text-[14.5px] font-bold">{t.allergiesTitle}</h3>
-                  <button className="flex cursor-pointer items-center gap-1 text-xs font-bold text-primary">
+                  <h3 className="flex items-center gap-2 font-heading text-[14.5px] font-bold">
+                    <TriangleAlert className="size-4 text-[#DC2626]" strokeWidth={2} />
+                    {t.allergiesTitle}
+                  </h3>
+                  <button onClick={handleAddAllergy} className="flex cursor-pointer items-center gap-1 text-xs font-bold text-[#2563EB]">
                     <Plus className="size-3" strokeWidth={2.6} />
                     {t.addLabel}
                   </button>
                 </div>
-                {p.allergies.length === 0 ? (
-                  <div className="rounded-xl bg-[#E1EFE8] px-3.5 py-2.5 text-[13px] font-semibold text-[#22543D]">
+                {allAllergies.length === 0 ? (
+                  <div className="rounded-xl bg-[#DCFCE7] px-3.5 py-2.5 text-[13px] font-semibold text-[#16A34A]">
                     {t.noKnownAllergies}
                   </div>
                 ) : (
-                  <div className="rounded-xl bg-[#FBECE2] px-3.5 py-2.5 text-[13px] font-semibold text-[#8F4616]">
-                    {p.allergies.join(", ")}
+                  <div className="flex items-center gap-2 rounded-xl bg-[#FEF2F2] px-3.5 py-2.5 text-[13px] font-semibold text-[#DC2626]">
+                    <TriangleAlert className="size-4 shrink-0" strokeWidth={2} />
+                    {allAllergies.join(", ")}
                   </div>
                 )}
               </div>
 
               <div>
                 <div className="mb-2 flex items-center justify-between">
-                  <h3 className="font-heading text-[14.5px] font-bold">{t.medicationsTitle}</h3>
-                  <button className="flex cursor-pointer items-center gap-1 text-xs font-bold text-primary">
+                  <h3 className="flex items-center gap-2 font-heading text-[14.5px] font-bold">
+                    <Pill className="size-4 text-[#EC4899]" strokeWidth={2} />
+                    {t.medicationsTitle}
+                  </h3>
+                  <button onClick={handleAddMedication} className="flex cursor-pointer items-center gap-1 text-xs font-bold text-[#2563EB]">
                     <Plus className="size-3" strokeWidth={2.6} />
                     {t.addLabel}
                   </button>
                 </div>
-                <div className="flex items-center gap-1.5 rounded-xl bg-[#E1EFE8] px-3.5 py-2.5 text-[13px] font-semibold text-[#22543D]">
-                  <CircleCheck className="size-4" strokeWidth={2} />
-                  {t.noCurrentMedications}
-                </div>
+                {extraMedications.length === 0 ? (
+                  <div className="flex items-center gap-1.5 rounded-xl bg-[#DCFCE7] px-3.5 py-2.5 text-[13px] font-semibold text-[#16A34A]">
+                    <CircleCheck className="size-4" strokeWidth={2} />
+                    {t.noCurrentMedications}
+                  </div>
+                ) : (
+                  <div className="rounded-xl bg-[#EFF6FF] px-3.5 py-2.5 text-[13px] font-semibold text-[#2563EB]">
+                    {extraMedications.join(", ")}
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -236,7 +350,7 @@ export function PatientSnapshotCard({ patient = DEFAULT_PATIENT }: { patient?: P
             <div className="flex flex-col divide-y">
               {vaccinations.map((row, i) => (
                 <div key={i} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
-                  <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[#F1F7F4] text-[#2D6A4F]">
+                  <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[#F0FDF4] text-[#15803D]">
                     <Syringe className="size-4" strokeWidth={1.8} />
                   </div>
                   <div className="min-w-0 flex-1">
@@ -255,21 +369,21 @@ export function PatientSnapshotCard({ patient = DEFAULT_PATIENT }: { patient?: P
         {tab === "prescriptions" && (
           <div className="space-y-4">
             {/* Safety & interaction banner */}
-            <div className="flex items-start justify-between gap-3 rounded-xl border border-[#C4E1D3] bg-[#F1F7F4] p-3.5 text-xs">
+            <div className="flex items-start justify-between gap-3 rounded-xl border border-[#BBF7D0] bg-[#F0FDF4] p-3.5 text-xs">
               <div className="flex items-start gap-3">
-                <div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg bg-[#E1EFE8] text-[#22543D]">
+                <div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg bg-[#DCFCE7] text-[#16A34A]">
                   <ShieldCheck className="size-4" strokeWidth={2.2} />
                 </div>
                 <div>
-                  <span className="text-xs font-bold tracking-wide text-[#22543D]">Pediatric Interaction &amp; Allergy Verification</span>
-                  <p className="mt-0.5 text-[11px] leading-relaxed text-[#22543D]/90">
+                  <span className="text-xs font-bold tracking-wide text-[#16A34A]">Pediatric Interaction &amp; Allergy Verification</span>
+                  <p className="mt-0.5 text-[11px] leading-relaxed text-[#16A34A]/90">
                     {p.allergies.length === 0
                       ? "No known allergies on file — no adverse drug-drug interactions detected with current profile."
                       : `Allergy note: ${p.allergies.join(", ")} flagged — verified against current profile before dispensing.`}
                   </p>
                 </div>
               </div>
-              <span className="shrink-0 rounded-full border border-[#C4E1D3] bg-[#C4E1D3]/60 px-2.5 py-0.5 text-[10px] font-bold text-[#22543D] uppercase">
+              <span className="shrink-0 rounded-full border border-[#BBF7D0] bg-[#BBF7D0]/60 px-2.5 py-0.5 text-[10px] font-bold text-[#16A34A] uppercase">
                 Verified Safe
               </span>
             </div>
@@ -308,7 +422,7 @@ export function PatientSnapshotCard({ patient = DEFAULT_PATIENT }: { patient?: P
                   {activeRx.medications.map((med, i) => (
                     <div key={i} className="flex flex-col gap-3 rounded-xl border bg-accent/25 p-3.5 md:flex-row md:items-center md:justify-between">
                       <div className="flex items-start gap-3">
-                        <div className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#FBECE2] text-[#B25D23]">
+                        <div className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#FFEDD5] text-[#C2410C]">
                           <Pill className="size-4.5" strokeWidth={2} />
                         </div>
                         <div>
@@ -343,7 +457,7 @@ export function PatientSnapshotCard({ patient = DEFAULT_PATIENT }: { patient?: P
             <div className="flex flex-col divide-y">
               {growth.map((row, i) => (
                 <div key={i} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
-                  <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[#FDF7F2] text-[#B25D23]">
+                  <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[#FFF7ED] text-[#C2410C]">
                     <LineChart className="size-4" strokeWidth={1.8} />
                   </div>
                   <div className="min-w-0 flex-1">
@@ -363,10 +477,11 @@ export function PatientSnapshotCard({ patient = DEFAULT_PATIENT }: { patient?: P
           <div className="rounded-xl border p-4">
             <div className="mb-3 flex items-center justify-between">
               <h3 className="font-heading text-[14.5px] font-bold">{t.tabDocuments}</h3>
-              <button className="flex cursor-pointer items-center gap-1 text-xs font-bold text-primary">
+              <button onClick={() => fileInputRef.current?.click()} className="flex cursor-pointer items-center gap-1 text-xs font-bold text-primary">
                 <Upload className="size-3" strokeWidth={2.4} />
                 {t.qaUploadDocument}
               </button>
+              <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleFilesSelected} />
             </div>
             {documents.length === 0 ? (
               <div className="rounded-xl bg-muted px-3.5 py-2.5 text-[13px] font-semibold text-muted-foreground">
@@ -376,7 +491,7 @@ export function PatientSnapshotCard({ patient = DEFAULT_PATIENT }: { patient?: P
               <div className="flex flex-col divide-y">
                 {documents.map((doc, i) => (
                   <div key={i} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
-                    <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[#FDF7F2] text-[#B25D23]">
+                    <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[#FFF7ED] text-[#C2410C]">
                       {doc.type === "pdf" ? (
                         <FileText className="size-4" strokeWidth={1.8} />
                       ) : (
@@ -401,11 +516,17 @@ export function PatientSnapshotCard({ patient = DEFAULT_PATIENT }: { patient?: P
           <div className="flex flex-col justify-between rounded-2xl border bg-card p-4 shadow-atelier">
             <div>
               <div className="mb-3 flex items-center justify-between">
-                <span className="font-mono text-[10px] font-bold tracking-widest text-muted-foreground uppercase">Caregiver Concierge</span>
-                <span className="rounded-full bg-[#E1EFE8] px-2 py-0.5 text-[10px] font-bold text-[#22543D]">Verified Guardian</span>
+                <span className="flex items-center gap-2 text-[13px] font-bold tracking-wide">
+                  <User className="size-4 text-[#2563EB]" strokeWidth={2} />
+                  Caregiver / Concierge
+                </span>
+                <span className="flex items-center gap-1 rounded-full bg-[#DCFCE7] px-2 py-0.5 text-[10px] font-bold text-[#16A34A]">
+                  <CircleCheck className="size-3" strokeWidth={2.5} />
+                  Verified Guardian
+                </span>
               </div>
               <div className="flex items-center gap-3">
-                <div className="flex size-10 items-center justify-center rounded-full bg-accent font-heading text-sm font-bold text-primary">
+                <div className="flex size-10 items-center justify-center rounded-full bg-[#EFF6FF] font-heading text-sm font-bold text-[#2563EB]">
                   {p.guardian
                     .split(" ")
                     .slice(0, 2)
@@ -419,21 +540,37 @@ export function PatientSnapshotCard({ patient = DEFAULT_PATIENT }: { patient?: P
               </div>
             </div>
             <div className="mt-4 grid grid-cols-2 gap-2 border-t pt-3">
-              <button className="flex items-center justify-center gap-2 rounded-xl border border-[#C4E1D3] bg-[#F1F7F4] px-3 py-2 text-xs font-bold text-[#22543D] transition-all hover:bg-[#E1EFE8]">
-                <WhatsAppIcon className="size-4" />
-                {t.qaWhatsappParent}
-              </button>
-              <button className="flex items-center justify-center gap-2 rounded-xl border bg-card px-3 py-2 text-xs font-bold hover:bg-muted">
+              <button
+                onClick={() => {
+                  window.location.href = `tel:${p.guardianPhone.replace(/\s+/g, "")}`
+                }}
+                className="flex items-center justify-center gap-2 rounded-xl border border-[#2563EB]/20 bg-[#EFF6FF] px-3 py-2 text-xs font-bold text-[#2563EB] transition-all hover:bg-[#DBEAFE]"
+              >
                 <PhoneCallIcon className="size-4" />
                 {t.qaCallParent}
+              </button>
+              <button
+                onClick={() => {
+                  const phone = p.guardianPhone.replace(/[^\d]/g, "")
+                  window.open(`https://wa.me/${phone}`, "_blank", "noopener,noreferrer")
+                }}
+                className="flex items-center justify-center gap-2 rounded-xl border bg-card px-3 py-2 text-xs font-bold hover:bg-muted"
+              >
+                <WhatsAppIcon className="size-4" />
+                {t.qaWhatsappParent}
               </button>
             </div>
           </div>
 
           <div className="rounded-2xl border bg-card p-4 shadow-atelier">
             <div className="mb-3 flex items-center justify-between">
-              <span className="font-mono text-[10px] font-bold tracking-widest text-muted-foreground uppercase">{t.recentVisitsTitle}</span>
-              <span className="cursor-pointer text-[11px] font-bold text-primary">{t.viewAll} →</span>
+              <span className="flex items-center gap-2 text-[13px] font-bold tracking-wide">
+                <Calendar className="size-4 text-[#F97316]" strokeWidth={2} />
+                {t.recentVisitsTitle}
+              </span>
+              <button onClick={() => setTab("history")} className="cursor-pointer text-[11px] font-bold text-[#2563EB]">
+                {t.viewAll} →
+              </button>
             </div>
             <div className="flex flex-col divide-y">
               {visits.map((visit, i) => (
@@ -442,7 +579,7 @@ export function PatientSnapshotCard({ patient = DEFAULT_PATIENT }: { patient?: P
                     <div className="text-[12.5px] font-bold whitespace-nowrap">{visit.date}</div>
                     <div className="truncate text-[11.5px] text-muted-foreground">{visit.type}</div>
                   </div>
-                  <div className="shrink-0 font-heading text-[11.5px] font-semibold text-primary">{visit.doctor}</div>
+                  <div className="shrink-0 font-heading text-[11.5px] font-semibold text-[#2563EB]">{visit.doctor}</div>
                 </div>
               ))}
             </div>

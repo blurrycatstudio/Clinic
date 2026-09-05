@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { useLang } from "@/lib/i18n"
-import { APPOINTMENTS, PATIENTS, STATUS_COLORS, type AppointmentStatus } from "@/lib/data"
+import { APPOINTMENTS, PATIENTS, STATUS_COLORS, type AppointmentRaw, type AppointmentStatus } from "@/lib/data"
 import { cn } from "@/lib/utils"
+import { useToast } from "@/lib/toast"
 
 type StatusFilter = "all" | AppointmentStatus
 
@@ -18,8 +19,45 @@ const FILTERS: { key: StatusFilter; labelKey: "apptsFilterAll" | "statusConfirme
   { key: "statusCancelled", labelKey: "statusCancelled" },
 ]
 
-function NewAppointmentDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
+type NewApptType = "typeWellchild" | "typeVaccination" | "typeGrowth" | "typeConsultation" | "typeFollowup"
+
+function NewAppointmentDialog({
+  open,
+  onOpenChange,
+  onCreate,
+}: {
+  open: boolean
+  onOpenChange: (v: boolean) => void
+  onCreate: (appt: AppointmentRaw) => void
+}) {
   const { t } = useLang()
+  const [patientId, setPatientId] = useState("")
+  const [type, setType] = useState<NewApptType>("typeWellchild")
+  const [date, setDate] = useState("2026-09-05")
+  const [time, setTime] = useState("09:00")
+  const [duration, setDuration] = useState("30 min")
+
+  function handleSave() {
+    const patient = PATIENTS.find((p) => p.id === patientId) ?? PATIENTS[0]
+    const [h, m] = time.split(":").map(Number)
+    const hour12 = h % 12 || 12
+    const ampm = h >= 12 ? "PM" : "AM"
+    onCreate({
+      id: `a${Date.now()}`,
+      time: `${String(hour12).padStart(2, "0")}:${String(m).padStart(2, "0")} ${ampm}`,
+      duration,
+      child: patient.name,
+      patientId: patient.id,
+      phone: patient.guardianPhone,
+      initials: patient.initials,
+      color: patient.color,
+      type,
+      status: "statusConfirmed",
+    })
+    onOpenChange(false)
+    setPatientId("")
+  }
+
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
@@ -34,7 +72,11 @@ function NewAppointmentDialog({ open, onOpenChange }: { open: boolean; onOpenCha
           <div className="flex flex-col gap-4">
             <div>
               <label className="mb-1.5 block text-xs font-bold">{t.apptsNewModalPatient}</label>
-              <select className="h-9 w-full rounded-lg border border-border bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50">
+              <select
+                value={patientId}
+                onChange={(e) => setPatientId(e.target.value)}
+                className="h-9 w-full rounded-lg border border-border bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+              >
                 <option value="">{t.apptsNewModalSelectPatient}</option>
                 {PATIENTS.map((p) => (
                   <option key={p.id} value={p.id}>
@@ -45,7 +87,11 @@ function NewAppointmentDialog({ open, onOpenChange }: { open: boolean; onOpenCha
             </div>
             <div>
               <label className="mb-1.5 block text-xs font-bold">{t.apptsNewModalType}</label>
-              <select className="h-9 w-full rounded-lg border border-border bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50">
+              <select
+                value={type}
+                onChange={(e) => setType(e.target.value as NewApptType)}
+                className="h-9 w-full rounded-lg border border-border bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+              >
                 {(["typeWellchild", "typeVaccination", "typeGrowth", "typeConsultation", "typeFollowup"] as const).map((key) => (
                   <option key={key} value={key}>
                     {t[key]}
@@ -56,16 +102,20 @@ function NewAppointmentDialog({ open, onOpenChange }: { open: boolean; onOpenCha
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="mb-1.5 block text-xs font-bold">{t.apptsNewModalDate}</label>
-                <Input type="date" className="h-9" defaultValue="2026-09-05" />
+                <Input type="date" className="h-9" value={date} onChange={(e) => setDate(e.target.value)} />
               </div>
               <div>
                 <label className="mb-1.5 block text-xs font-bold">{t.apptsNewModalTime}</label>
-                <Input type="time" className="h-9" defaultValue="09:00" />
+                <Input type="time" className="h-9" value={time} onChange={(e) => setTime(e.target.value)} />
               </div>
             </div>
             <div>
               <label className="mb-1.5 block text-xs font-bold">{t.apptsNewModalDuration}</label>
-              <select className="h-9 w-full rounded-lg border border-border bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50">
+              <select
+                value={duration}
+                onChange={(e) => setDuration(e.target.value)}
+                className="h-9 w-full rounded-lg border border-border bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+              >
                 <option>15 min</option>
                 <option>20 min</option>
                 <option>30 min</option>
@@ -88,7 +138,7 @@ function NewAppointmentDialog({ open, onOpenChange }: { open: boolean; onOpenCha
                 {t.apptsNewModalCancel}
               </Button>
             </Dialog.Close>
-            <Button onClick={() => onOpenChange(false)} className="rounded-lg font-bold">
+            <Button onClick={handleSave} disabled={!patientId} className="rounded-lg font-bold">
               {t.apptsNewModalSave}
             </Button>
           </div>
@@ -100,29 +150,48 @@ function NewAppointmentDialog({ open, onOpenChange }: { open: boolean; onOpenCha
 
 export default function Appointments() {
   const { t } = useLang()
+  const toast = useToast()
+  const [appointments, setAppointments] = useState<AppointmentRaw[]>(APPOINTMENTS)
   const [query, setQuery] = useState("")
   const [status, setStatus] = useState<StatusFilter>("all")
   const [newOpen, setNewOpen] = useState(false)
+  const [dayOffset, setDayOffset] = useState(0)
+
+  const shownDate = new Date()
+  shownDate.setDate(shownDate.getDate() + dayOffset)
+  const dateLabel = dayOffset === 0 ? t.dateLine : shownDate.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })
 
   const filtered = useMemo(
     () =>
-      APPOINTMENTS.filter((a) => status === "all" || a.status === status).filter((a) => {
+      appointments.filter((a) => status === "all" || a.status === status).filter((a) => {
         if (!query.trim()) return true
         const q = query.toLowerCase()
         return a.child.toLowerCase().includes(q) || a.phone.includes(q) || t[a.type].toLowerCase().includes(q)
       }),
-    [query, status, t],
+    [appointments, query, status, t],
   )
 
   const stats = useMemo(
     () => ({
-      total: APPOINTMENTS.length,
-      confirmed: APPOINTMENTS.filter((a) => a.status === "statusConfirmed" || a.status === "statusCheckedIn").length,
-      pending: APPOINTMENTS.filter((a) => a.status === "statusPending").length,
-      completed: APPOINTMENTS.filter((a) => a.status === "statusCompleted").length,
+      total: appointments.length,
+      confirmed: appointments.filter((a) => a.status === "statusConfirmed" || a.status === "statusCheckedIn").length,
+      pending: appointments.filter((a) => a.status === "statusPending").length,
+      completed: appointments.filter((a) => a.status === "statusCompleted").length,
     }),
-    [],
+    [appointments],
   )
+
+  function checkIn(id: string) {
+    setAppointments((prev) => prev.map((a) => (a.id === id ? { ...a, status: "statusCheckedIn" } : a)))
+    toast("Patient checked in")
+  }
+
+  function reschedule(id: string) {
+    const newTime = window.prompt("New time (e.g. 02:30 PM)")?.trim()
+    if (!newTime) return
+    setAppointments((prev) => prev.map((a) => (a.id === id ? { ...a, time: newTime, status: "statusConfirmed" } : a)))
+    toast("Appointment rescheduled")
+  }
 
   return (
     <div>
@@ -156,14 +225,14 @@ export default function Appointments() {
       <Card className="gap-0 rounded-2xl border p-4.5 shadow-none">
         <div className="mb-4 flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-2 rounded-full border border-border px-3.5 py-1.5">
-            <button className="flex size-5 items-center justify-center rounded-full hover:bg-muted">
+            <button onClick={() => setDayOffset((d) => d - 1)} className="flex size-5 items-center justify-center rounded-full hover:bg-muted">
               <ChevronLeft className="size-3.5" strokeWidth={2.2} />
             </button>
             <div className="flex items-center gap-1.5 text-[13px] font-bold whitespace-nowrap">
               <Calendar className="size-3.5 text-primary" strokeWidth={2} />
-              {t.dateLine}
+              {dateLabel}
             </div>
-            <button className="flex size-5 items-center justify-center rounded-full hover:bg-muted">
+            <button onClick={() => setDayOffset((d) => d + 1)} className="flex size-5 items-center justify-center rounded-full hover:bg-muted">
               <ChevronRight className="size-3.5" strokeWidth={2.2} />
             </button>
           </div>
@@ -194,7 +263,7 @@ export default function Appointments() {
           </div>
 
           <div className="ml-auto text-xs font-bold whitespace-nowrap text-muted-foreground">
-            {filtered.length} / {APPOINTMENTS.length}
+            {filtered.length} / {appointments.length}
           </div>
         </div>
 
@@ -248,12 +317,12 @@ export default function Appointments() {
                       </td>
                       <td className="py-3 pr-0 pl-2 text-right whitespace-nowrap">
                         {a.status === "statusPending" ? (
-                          <Button size="sm" className="gap-1 rounded-lg font-semibold">
+                          <Button onClick={() => checkIn(a.id)} size="sm" className="gap-1 rounded-lg font-semibold">
                             <CheckCircle2 className="size-3.5" strokeWidth={2.2} />
                             {t.apptsCheckIn}
                           </Button>
                         ) : (
-                          <Button variant="outline" size="sm" className="rounded-lg font-semibold" disabled={cancelled}>
+                          <Button onClick={() => reschedule(a.id)} variant="outline" size="sm" className="rounded-lg font-semibold" disabled={cancelled}>
                             {t.apptsReschedule}
                           </Button>
                         )}
@@ -267,7 +336,14 @@ export default function Appointments() {
         )}
       </Card>
 
-      <NewAppointmentDialog open={newOpen} onOpenChange={setNewOpen} />
+      <NewAppointmentDialog
+        open={newOpen}
+        onOpenChange={setNewOpen}
+        onCreate={(appt) => {
+          setAppointments((prev) => [...prev, appt])
+          toast(`Appointment created for ${appt.child}`)
+        }}
+      />
     </div>
   )
 }

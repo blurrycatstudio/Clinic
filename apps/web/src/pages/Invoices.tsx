@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input"
 import { useLang } from "@/lib/i18n"
 import { INVOICES, PATIENTS, type Invoice, type InvoiceStatus } from "@/lib/data"
 import { cn } from "@/lib/utils"
+import { useToast } from "@/lib/toast"
+import { downloadTextFile } from "@/lib/download"
 
 type Filter = "all" | InvoiceStatus
 
@@ -18,10 +20,37 @@ const STATUS_META: Record<InvoiceStatus, { icon: React.ElementType; color: strin
 
 const peso = (n: number) => `$${n.toLocaleString("en-US")} MXN`
 
-function InvoiceDetailDialog({ invoice, patientName, onOpenChange }: { invoice: Invoice | null; patientName: string; onOpenChange: (v: boolean) => void }) {
+function InvoiceDetailDialog({
+  invoice,
+  patientName,
+  onOpenChange,
+  onMarkPaid,
+}: {
+  invoice: Invoice | null
+  patientName: string
+  onOpenChange: (v: boolean) => void
+  onMarkPaid: (id: string) => void
+}) {
   const { t } = useLang()
+  const toast = useToast()
   if (!invoice) return null
   const meta = STATUS_META[invoice.status]
+
+  function handleDownload() {
+    if (!invoice) return
+    const lines = [
+      `Invoice ${invoice.id}`,
+      `Bill to: ${patientName}`,
+      `Date: ${invoice.date}  Due: ${invoice.dueDate}`,
+      "",
+      ...invoice.items.map((it) => `${it.desc} x${it.qty} — ${peso(it.price)}`),
+      "",
+      `Total: ${peso(invoice.amount)}`,
+      `Method: ${invoice.method ?? "Not paid"}`,
+    ]
+    downloadTextFile(`${invoice.id}.txt`, lines.join("\n"))
+    toast("Invoice downloaded")
+  }
 
   return (
     <Dialog.Root open={!!invoice} onOpenChange={onOpenChange}>
@@ -89,9 +118,19 @@ function InvoiceDetailDialog({ invoice, patientName, onOpenChange }: { invoice: 
               </Button>
             </Dialog.Close>
             {invoice.status !== "paid" ? (
-              <Button className="rounded-lg font-bold">{t.invDetailMarkPaid}</Button>
+              <Button
+                onClick={() => {
+                  onMarkPaid(invoice.id)
+                  onOpenChange(false)
+                }}
+                className="rounded-lg font-bold"
+              >
+                {t.invDetailMarkPaid}
+              </Button>
             ) : (
-              <Button className="rounded-lg font-bold">{t.invDetailDownload}</Button>
+              <Button onClick={handleDownload} className="rounded-lg font-bold">
+                {t.invDetailDownload}
+              </Button>
             )}
           </div>
         </Dialog.Content>
@@ -102,6 +141,8 @@ function InvoiceDetailDialog({ invoice, patientName, onOpenChange }: { invoice: 
 
 export default function Invoices() {
   const { t } = useLang()
+  const toast = useToast()
+  const [invoices, setInvoices] = useState<Invoice[]>(INVOICES)
   const [query, setQuery] = useState("")
   const [filter, setFilter] = useState<Filter>("all")
   const [viewing, setViewing] = useState<Invoice | null>(null)
@@ -110,22 +151,27 @@ export default function Invoices() {
 
   const filtered = useMemo(
     () =>
-      INVOICES.filter((inv) => filter === "all" || inv.status === filter).filter((inv) => {
+      invoices.filter((inv) => filter === "all" || inv.status === filter).filter((inv) => {
         if (!query.trim()) return true
         const q = query.toLowerCase()
         const patient = patientById.get(inv.patientId)
         return inv.id.toLowerCase().includes(q) || patient?.name.toLowerCase().includes(q)
       }),
-    [query, filter, patientById],
+    [invoices, query, filter, patientById],
   )
 
   const stats = useMemo(() => {
-    const revenue = INVOICES.filter((i) => i.status === "paid").reduce((s, i) => s + i.amount, 0)
-    const outstanding = INVOICES.filter((i) => i.status !== "paid").reduce((s, i) => s + i.amount, 0)
-    const paidCount = INVOICES.filter((i) => i.status === "paid").length
-    const overdueCount = INVOICES.filter((i) => i.status === "overdue").length
+    const revenue = invoices.filter((i) => i.status === "paid").reduce((s, i) => s + i.amount, 0)
+    const outstanding = invoices.filter((i) => i.status !== "paid").reduce((s, i) => s + i.amount, 0)
+    const paidCount = invoices.filter((i) => i.status === "paid").length
+    const overdueCount = invoices.filter((i) => i.status === "overdue").length
     return { revenue, outstanding, paidCount, overdueCount }
-  }, [])
+  }, [invoices])
+
+  function markPaid(id: string) {
+    setInvoices((prev) => prev.map((inv) => (inv.id === id ? { ...inv, status: "paid", method: "Cash" } : inv)))
+    toast("Invoice marked as paid")
+  }
 
   return (
     <div>
@@ -134,7 +180,18 @@ export default function Invoices() {
           <h1 className="font-heading text-2xl font-bold">{t.invoicesPageTitle}</h1>
           <p className="mt-0.5 text-[13.5px] text-muted-foreground">{t.invoicesPageSub}</p>
         </div>
-        <Button className="gap-1.5 rounded-[10px] font-bold">
+        <Button
+          onClick={() => {
+            const patient = PATIENTS[Math.floor(Math.random() * PATIENTS.length)]
+            const id = `INV-${3000 + invoices.length + 30}`
+            setInvoices((prev) => [
+              { id, patientId: patient.id, date: new Date().toLocaleDateString(), dueDate: new Date().toLocaleDateString(), amount: 0, status: "pending", method: null, items: [] },
+              ...prev,
+            ])
+            toast(`Draft invoice ${id} created for ${patient.name}`)
+          }}
+          className="gap-1.5 rounded-[10px] font-bold"
+        >
           <Plus className="size-3.5" strokeWidth={2.4} />
           {t.invoicesNewBtn}
         </Button>
@@ -270,6 +327,7 @@ export default function Invoices() {
         invoice={viewing}
         patientName={viewing ? (patientById.get(viewing.patientId)?.name ?? "") : ""}
         onOpenChange={(open) => !open && setViewing(null)}
+        onMarkPaid={markPaid}
       />
     </div>
   )

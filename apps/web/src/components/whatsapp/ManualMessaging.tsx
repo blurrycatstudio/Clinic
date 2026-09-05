@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { Paperclip, Phone, Search, Send, Video } from "lucide-react"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Card } from "@/components/ui/card"
@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input"
 import { useLang } from "@/lib/i18n"
 import { CONTACTS, type ChatMessage, type Contact } from "@/lib/data"
 import { cn } from "@/lib/utils"
+import { useToast } from "@/lib/toast"
 
 function formatNow() {
   const now = new Date()
@@ -18,9 +19,11 @@ function formatNow() {
 
 export function ManualMessaging() {
   const { t } = useLang()
+  const toast = useToast()
   const [contacts, setContacts] = useState<Contact[]>(CONTACTS)
   const [activeId, setActiveId] = useState(CONTACTS[0].id)
   const [draft, setDraft] = useState("")
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const active = contacts.find((c) => c.id === activeId) ?? contacts[0]
 
@@ -30,6 +33,15 @@ export function ManualMessaging() {
     const msg: ChatMessage = { from: "me", text, time: formatNow() }
     setContacts((prev) => prev.map((c) => (c.id === activeId ? { ...c, msgs: [...c.msgs, msg] } : c)))
     setDraft("")
+  }
+
+  function handleAttach(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const msg: ChatMessage = { from: "me", text: `📎 ${file.name}`, time: formatNow() }
+    setContacts((prev) => prev.map((c) => (c.id === activeId ? { ...c, msgs: [...c.msgs, msg] } : c)))
+    toast(`Attached ${file.name}`)
+    e.target.value = ""
   }
 
   return (
@@ -92,10 +104,16 @@ export function ManualMessaging() {
             <div className="text-[13.5px] font-bold">{active.name}</div>
             <div className="text-[11px] text-muted-foreground">{active.child}</div>
           </div>
-          <button className="flex size-8.5 items-center justify-center rounded-[9px] hover:bg-muted">
+          <button
+            onClick={() => {
+              window.location.href = "tel:"
+              toast(`Calling ${active.name}…`)
+            }}
+            className="flex size-8.5 items-center justify-center rounded-[9px] hover:bg-muted"
+          >
             <Phone className="size-4.5 text-foreground" strokeWidth={1.8} />
           </button>
-          <button className="flex size-8.5 items-center justify-center rounded-[9px] hover:bg-muted">
+          <button onClick={() => toast(`Starting video call with ${active.name}…`)} className="flex size-8.5 items-center justify-center rounded-[9px] hover:bg-muted">
             <Video className="size-4.5 text-foreground" strokeWidth={1.8} />
           </button>
         </div>
@@ -124,9 +142,10 @@ export function ManualMessaging() {
         </div>
 
         <div className="flex items-center gap-2.5 border-t px-4.5 py-3.5">
-          <button className="flex size-9 shrink-0 items-center justify-center rounded-[9px] hover:bg-muted">
+          <button onClick={() => fileInputRef.current?.click()} className="flex size-9 shrink-0 items-center justify-center rounded-[9px] hover:bg-muted">
             <Paperclip className="size-4.5 text-muted-foreground" strokeWidth={1.8} />
           </button>
+          <input ref={fileInputRef} type="file" className="hidden" onChange={handleAttach} />
           <Input
             value={draft}
             onChange={(e) => setDraft(e.target.value)}

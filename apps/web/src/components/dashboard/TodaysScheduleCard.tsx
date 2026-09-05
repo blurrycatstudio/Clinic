@@ -1,35 +1,60 @@
 import { Calendar, ChevronDown, ChevronLeft, ChevronRight, Plus } from "lucide-react"
+import { useState } from "react"
+import { useNavigate } from "react-router-dom"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { useLang } from "@/lib/i18n"
 import { STATUS_COLORS, TODAYS_SCHEDULE } from "@/lib/data"
 import { cn } from "@/lib/utils"
+import { useToast } from "@/lib/toast"
 
 export function TodaysScheduleCard() {
   const { t } = useLang()
+  const navigate = useNavigate()
+  const toast = useToast()
+  const [dayOffset, setDayOffset] = useState(0)
   const checkedInCount = TODAYS_SCHEDULE.filter((item) => item.status === "statusCheckedIn").length
+
+  const shownDate = new Date()
+  shownDate.setDate(shownDate.getDate() + dayOffset)
+  const dateLabel =
+    dayOffset === 0 ? t.scheduleDateValue : shownDate.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })
 
   return (
     <Card className="h-full w-80 shrink-0 gap-0 overflow-hidden rounded-2xl border p-0 shadow-atelier lg:w-[360px]">
-      <div className="flex items-center justify-between gap-3 border-b bg-accent/40 p-4">
+      <div className="flex items-center justify-between gap-3 border-b bg-[#F8FAFC] p-4">
         <div>
           <div className="flex items-center gap-2">
             <Calendar className="size-[15px] text-primary" strokeWidth={2} />
             <h2 className="font-heading text-[15px] font-bold">{t.scheduleTitle}</h2>
           </div>
           <div className="mt-1.5 flex items-center gap-1 text-[12.5px] text-muted-foreground">
-            <button className="flex size-5 items-center justify-center rounded hover:bg-muted" aria-label="Previous day">
+            <button
+              onClick={() => setDayOffset((d) => d - 1)}
+              className="flex size-5 items-center justify-center rounded hover:bg-muted"
+              aria-label="Previous day"
+            >
               <ChevronLeft className="size-3.5" strokeWidth={2} />
             </button>
-            <span className="font-semibold text-foreground">{t.scheduleDateValue}</span>
-            <button className="flex size-5 items-center justify-center rounded hover:bg-muted" aria-label="Next day">
+            <span className="font-semibold text-foreground">{dateLabel}</span>
+            <button
+              onClick={() => setDayOffset((d) => d + 1)}
+              className="flex size-5 items-center justify-center rounded hover:bg-muted"
+              aria-label="Next day"
+            >
               <ChevronRight className="size-3.5" strokeWidth={2} />
             </button>
-            <ChevronDown className="size-3.5" strokeWidth={2} />
+            <button onClick={() => setDayOffset(0)} aria-label="Reset to today">
+              <ChevronDown className="size-3.5" strokeWidth={2} />
+            </button>
           </div>
         </div>
-        <Button size="sm" className="shrink-0 gap-1 rounded-xl font-bold shadow-sm">
+        <Button
+          onClick={() => navigate("/appointments")}
+          size="sm"
+          className="shrink-0 gap-1 rounded-xl bg-[#2563EB] font-bold text-white shadow-sm hover:bg-[#1D4ED8]"
+        >
           <Plus className="size-3.5" strokeWidth={2.4} />
           {t.addBtn}
         </Button>
@@ -42,10 +67,19 @@ export function TodaysScheduleCard() {
           return (
             <div
               key={i}
+              role="button"
+              tabIndex={0}
+              onClick={() => {
+                toast(`Opening ${item.child}'s appointment`)
+                navigate("/appointments")
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") navigate("/appointments")
+              }}
               className={cn(
                 "cursor-pointer rounded-xl p-3 transition-all",
                 active
-                  ? "border border-primary/25 border-l-4 border-l-primary bg-accent/60 shadow-sm"
+                  ? "border border-[#2563EB]/20 border-l-4 border-l-[#2563EB] bg-[#EFF6FF] shadow-sm"
                   : "border border-transparent hover:bg-muted/60",
               )}
             >
@@ -81,12 +115,12 @@ export function TodaysScheduleCard() {
         })}
       </div>
 
-      <div className="flex items-center justify-between gap-2 border-t bg-accent/30 p-3 text-[11px] text-muted-foreground">
+      <div className="flex items-center justify-between gap-2 border-t bg-[#F8FAFC] p-3 text-[11px] text-muted-foreground">
         <span className="font-semibold text-foreground">
           {TODAYS_SCHEDULE.length} {t.scheduleSummaryScheduledSuffix}
         </span>
         <span>•</span>
-        <span className="font-semibold text-primary">
+        <span className="font-semibold text-[#2563EB]">
           {checkedInCount} {t.scheduleSummaryInRoomSuffix}
         </span>
       </div>

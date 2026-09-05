@@ -8,8 +8,63 @@ import { Input } from "@/components/ui/input"
 import { useLang } from "@/lib/i18n"
 import { PATIENTS, type Patient } from "@/lib/data"
 import { cn } from "@/lib/utils"
+import { useToast } from "@/lib/toast"
 
 type StatusFilter = "all" | "active" | "inactive"
+
+function NewPatientDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
+  const toast = useToast()
+  const [name, setName] = useState("")
+
+  return (
+    <Dialog.Root open={open} onOpenChange={onOpenChange}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm" />
+        <Dialog.Content className="fixed top-1/2 left-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-border bg-card p-6 shadow-2xl">
+          <div className="mb-5 flex items-center justify-between">
+            <Dialog.Title className="font-heading text-xl font-bold">New Patient</Dialog.Title>
+            <Dialog.Close className="flex size-8 items-center justify-center rounded-[9px] border border-border hover:bg-muted">
+              <X className="size-4" strokeWidth={2} />
+            </Dialog.Close>
+          </div>
+          <div className="flex flex-col gap-4">
+            <div>
+              <label className="mb-1.5 block text-xs font-bold">Full name</label>
+              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Child's full name" className="h-9" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="mb-1.5 block text-xs font-bold">Date of birth</label>
+                <Input type="date" className="h-9" />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-xs font-bold">Guardian phone</label>
+                <Input type="tel" placeholder="+52 664 000 0000" className="h-9" />
+              </div>
+            </div>
+          </div>
+          <div className="mt-6 flex justify-end gap-2.5">
+            <Dialog.Close asChild>
+              <Button variant="outline" className="rounded-lg font-bold">
+                Cancel
+              </Button>
+            </Dialog.Close>
+            <Button
+              onClick={() => {
+                toast(name.trim() ? `${name.trim()} added to patients` : "New patient added")
+                setName("")
+                onOpenChange(false)
+              }}
+              className="rounded-lg font-bold"
+            >
+              Save
+            </Button>
+          </div>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
+  )
+}
 
 function PatientProfileDialog({ patient, onOpenChange }: { patient: Patient | null; onOpenChange: (v: boolean) => void }) {
   if (!patient) return null
@@ -35,6 +90,7 @@ export default function Patients() {
   const [query, setQuery] = useState("")
   const [status, setStatus] = useState<StatusFilter>("all")
   const [viewing, setViewing] = useState<Patient | null>(null)
+  const [newOpen, setNewOpen] = useState(false)
 
   const filtered = useMemo(
     () =>
@@ -62,7 +118,7 @@ export default function Patients() {
           <h1 className="font-heading text-2xl font-bold">{t.patientsPageTitle}</h1>
           <p className="mt-0.5 text-[13.5px] text-muted-foreground">{t.patientsPageSub}</p>
         </div>
-        <Button className="gap-1.5 rounded-[10px] font-bold">
+        <Button onClick={() => setNewOpen(true)} className="gap-1.5 rounded-[10px] font-bold">
           <Plus className="size-3.5" strokeWidth={2.4} />
           {t.patientsNewBtn}
         </Button>
@@ -193,6 +249,7 @@ export default function Patients() {
       </Card>
 
       <PatientProfileDialog patient={viewing} onOpenChange={(open) => !open && setViewing(null)} />
+      <NewPatientDialog open={newOpen} onOpenChange={setNewOpen} />
     </div>
   )
 }

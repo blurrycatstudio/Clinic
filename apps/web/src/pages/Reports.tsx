@@ -5,6 +5,8 @@ import { Card } from "@/components/ui/card"
 import { useLang } from "@/lib/i18n"
 import { APPT_TYPE_BREAKDOWN, PATIENT_GROWTH, REVENUE_BY_MONTH } from "@/lib/data"
 import { cn } from "@/lib/utils"
+import { useToast } from "@/lib/toast"
+import { downloadTextFile, toCsv } from "@/lib/download"
 
 type Range = "month" | "quarter" | "year"
 
@@ -136,7 +138,14 @@ function TopReasonsList() {
 
 export default function Reports() {
   const { t } = useLang()
+  const toast = useToast()
   const [range, setRange] = useState<Range>("month")
+
+  function handleExport() {
+    const csv = toCsv(REVENUE_BY_MONTH.map((d) => ({ month: d.label, revenue: d.value })))
+    downloadTextFile("revenue_report.csv", csv, "text/csv")
+    toast("Report exported")
+  }
 
   return (
     <div>
@@ -166,7 +175,7 @@ export default function Reports() {
               </button>
             ))}
           </div>
-          <Button variant="outline" className="gap-1.5 rounded-[10px] font-bold">
+          <Button onClick={handleExport} variant="outline" className="gap-1.5 rounded-[10px] font-bold">
             <Download className="size-3.5" strokeWidth={2.2} />
             {t.reportsExportBtn}
           </Button>

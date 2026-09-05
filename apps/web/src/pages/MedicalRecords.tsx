@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react"
+import { useMemo, useRef, useState } from "react"
 import { Dialog } from "radix-ui"
 import { Activity, Download, FileText, Scan, Search, Syringe, Upload, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input"
 import { useLang } from "@/lib/i18n"
 import { MEDICAL_RECORDS, PATIENTS, type MedicalRecord, type RecordType } from "@/lib/data"
 import { cn } from "@/lib/utils"
+import { useToast } from "@/lib/toast"
+import { downloadTextFile } from "@/lib/download"
 
 type Filter = "all" | RecordType
 
@@ -19,8 +21,18 @@ const TYPE_META: Record<RecordType, { icon: React.ElementType; color: string; bg
 
 function RecordDetailDialog({ record, patientName, onOpenChange }: { record: MedicalRecord | null; patientName: string; onOpenChange: (v: boolean) => void }) {
   const { t } = useLang()
+  const toast = useToast()
   if (!record) return null
   const meta = TYPE_META[record.type]
+
+  function handleDownload() {
+    if (!record) return
+    downloadTextFile(
+      `${record.title}.txt`,
+      `${record.title}\nPatient: ${patientName}\nDate: ${record.date}\nDoctor: ${record.doctor}\n\n${record.summary}`,
+    )
+    toast("Record downloaded")
+  }
 
   return (
     <Dialog.Root open={!!record} onOpenChange={onOpenChange}>
@@ -69,7 +81,7 @@ function RecordDetailDialog({ record, patientName, onOpenChange }: { record: Med
                 {t.recordDetailClose}
               </Button>
             </Dialog.Close>
-            <Button className="gap-1.5 rounded-lg font-bold">
+            <Button onClick={handleDownload} className="gap-1.5 rounded-lg font-bold">
               <Download className="size-3.5" strokeWidth={2.2} />
               {t.recordsDownload}
             </Button>
@@ -82,9 +94,17 @@ function RecordDetailDialog({ record, patientName, onOpenChange }: { record: Med
 
 export default function MedicalRecords() {
   const { t } = useLang()
+  const toast = useToast()
   const [query, setQuery] = useState("")
   const [filter, setFilter] = useState<Filter>("all")
   const [viewing, setViewing] = useState<MedicalRecord | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = e.target.files
+    if (files && files.length > 0) toast(`Uploaded ${files.length} record${files.length > 1 ? "s" : ""}`)
+    e.target.value = ""
+  }
 
   const patientById = useMemo(() => new Map(PATIENTS.map((p) => [p.id, p])), [])
 
@@ -106,10 +126,11 @@ export default function MedicalRecords() {
           <h1 className="font-heading text-2xl font-bold">{t.recordsPageTitle}</h1>
           <p className="mt-0.5 text-[13.5px] text-muted-foreground">{t.recordsPageSub}</p>
         </div>
-        <Button className="gap-1.5 rounded-[10px] font-bold">
+        <Button onClick={() => fileInputRef.current?.click()} className="gap-1.5 rounded-[10px] font-bold">
           <Upload className="size-3.5" strokeWidth={2.4} />
           {t.recordsUploadBtn}
         </Button>
+        <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleUpload} />
       </div>
 
       <Card className="gap-0 rounded-2xl border p-4.5 shadow-none">
