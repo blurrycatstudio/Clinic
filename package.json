@@ -1,0 +1,17 @@
+{
+  "name": "vidaclinic-whatsapp-receptionist",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build:shared": "npm run build --workspace=@clinic/shared",
+    "dev:api": "npm run build:shared && npm run dev --workspace=@clinic/api",
+    "dev:web": "npm run dev --workspace=pediatra-clinic",
+    "build:api": "npm run build --workspace=@clinic/api",
+    "build:web": "npm run build --workspace=pediatra-clinic",
+    "typecheck": "npm run build:shared && npm run typecheck --workspace=@clinic/shared && npm run typecheck --workspace=@clinic/api && npx tsc -b apps/web"
+  }
+}
