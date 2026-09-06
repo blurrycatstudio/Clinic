@@ -51,13 +51,13 @@ export const templateService = {
     const languageCode = templates[input.key].language ?? WA_LANGUAGE_CODE[input.language]
 
     try {
-      const { messageId } = await whatsappService.sendTemplateMessage(input.to, templateName, languageCode, input.params)
+      const { messageId, debug } = await whatsappService.sendTemplateMessage(input.to, templateName, languageCode, input.params)
       await messageRepository.log({
         conversationId: input.conversationId,
         direction: "outbound",
         messageType: "template",
         templateName,
-        payload: { params: input.params },
+        payload: { params: input.params, debug },
         waMessageId: messageId,
       })
       await auditLogRepository.record({
@@ -65,7 +65,7 @@ export const templateService = {
         action: "template.sent",
         entityType: "whatsapp_template",
         entityId: templateName,
-        metadata: { to: input.to },
+        metadata: { to: input.to, messageId, debug },
       })
     } catch (err) {
       logger.error({ err, key: input.key }, "Failed to send WhatsApp template")

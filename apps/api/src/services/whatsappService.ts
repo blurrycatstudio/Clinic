@@ -32,10 +32,10 @@ type WhatsappInteractiveButtonsMessage = {
   }
 }
 
-async function callGraphApi(body: unknown): Promise<{ messageId: string | null }> {
+async function callGraphApi(body: unknown): Promise<{ messageId: string | null; debug: Record<string, unknown> }> {
   if (!isWhatsappConfigured) {
     logger.warn({ body }, "WHATSAPP_ACCESS_TOKEN/PHONE_NUMBER_ID not set — simulating send (dev mode)")
-    return { messageId: null }
+    return { messageId: null, debug: { simulated: true } }
   }
 
   const url = `${GRAPH_BASE}/${env.WHATSAPP_API_VERSION}/${env.WHATSAPP_PHONE_NUMBER_ID}/messages`
@@ -48,17 +48,23 @@ async function callGraphApi(body: unknown): Promise<{ messageId: string | null }
     body: JSON.stringify(body),
   })
 
-  const json = (await res.json().catch(() => ({}))) as {
-    messages?: { id: string }[]
-    error?: { message: string; code: number }
+  const rawText = await res.text()
+  let json: { messages?: { id: string }[]; error?: { message: string; code: number } } = {}
+  let parseError: string | null = null
+  try {
+    json = JSON.parse(rawText)
+  } catch (err) {
+    parseError = err instanceof Error ? err.message : String(err)
   }
+
+  const debug = { status: res.status, rawText: rawText.slice(0, 500), parseError }
 
   if (!res.ok) {
     logger.error({ status: res.status, response: json }, "WhatsApp Graph API call failed")
     throw new ExternalServiceError("WhatsApp Cloud API", json.error?.message ?? `HTTP ${res.status}`, json)
   }
 
-  return { messageId: json.messages?.[0]?.id ?? null }
+  return { messageId: json.messages?.[0]?.id ?? null, debug }
 }
 
 export const whatsappService = {
@@ -83,7 +89,7 @@ export const whatsappService = {
     templateName: string,
     languageCode: string,
     params: string[],
-  ): Promise<{ messageId: string | null }> {
+  ): Promise<{ messageId: string | null; debug: Record<string, unknown> }> {
     const payload: WhatsappTemplateMessage = {
       messaging_product: "whatsapp",
       to,
