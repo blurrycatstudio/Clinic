@@ -10,6 +10,7 @@ import { dashboardRouter } from "./dashboard.js"
 import { voiceCallsRouter } from "./voiceCalls.js"
 import { auditLogsRouter } from "./auditLogs.js"
 import { cronRouter } from "./cron.js"
+import { agentRouter } from "./agent.js"
 
 export const apiRouter = Router()
 
@@ -24,3 +25,4 @@ apiRouter.use("/dashboard", dashboardRouter)
 apiRouter.use("/voice-calls", voiceCallsRouter)
 apiRouter.use("/audit-logs", auditLogsRouter)
 apiRouter.use("/cron", cronRouter)
+apiRouter.use("/agent", agentRouter)

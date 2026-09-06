@@ -39,3 +39,21 @@ export const requireStaffAuth = asyncHandler(async (req: Request, _res: Response
   req.staffUser = { id: data.user.id, email: data.user.email ?? null }
   next()
 })
+
+/**
+ * Protects /api/agent/* — the endpoints the n8n voice-call tool handler
+ * calls mid-phone-call, when there is no staff dashboard session at all.
+ * A plain shared secret (not a Supabase user JWT) since the caller is a
+ * trusted automation, not a person. If AGENT_API_KEY isn't configured,
+ * every request is refused rather than silently left open.
+ */
+export const requireAgentAuth = (req: Request, _res: Response, next: NextFunction) => {
+  if (!env.AGENT_API_KEY) {
+    throw new UnauthorizedError("Agent API is not configured")
+  }
+  const key = req.header("x-agent-key")
+  if (key !== env.AGENT_API_KEY) {
+    throw new UnauthorizedError("Invalid or missing x-agent-key")
+  }
+  next()
+}

@@ -58,6 +58,12 @@ const envSchema = z.object({
   // --- Misc ---
   CRON_SECRET: z.string().optional().default(""),
   DASHBOARD_ORIGIN: z.string().default("http://localhost:5173"),
+
+  // --- Voice/automation agent (n8n) machine auth ---
+  // Shared secret for non-staff callers (n8n's Vapi tool-call handler) that
+  // need to book/reschedule/cancel appointments without a Supabase staff
+  // session. If empty, /api/agent/* refuses every request.
+  AGENT_API_KEY: z.string().optional().default(""),
 })
 
 export type Env = z.infer<typeof envSchema>

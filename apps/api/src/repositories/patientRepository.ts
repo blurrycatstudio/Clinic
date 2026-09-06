@@ -19,12 +19,19 @@ export const patientRepository = {
     phoneE164: string
     fullName: string
     language?: "en" | "es"
+    dateOfBirth?: string | null
+    notes?: string | null
   }): Promise<Patient> {
     const existing = await this.findByPhone(input.phoneE164)
     if (existing) {
       const { data, error } = await supabase
         .from("patients")
-        .update({ full_name: input.fullName, ...(input.language ? { language: input.language } : {}) })
+        .update({
+          full_name: input.fullName,
+          ...(input.language ? { language: input.language } : {}),
+          ...(input.dateOfBirth !== undefined ? { date_of_birth: input.dateOfBirth } : {}),
+          ...(input.notes !== undefined ? { notes: input.notes } : {}),
+        })
         .eq("id", existing.id)
         .select("*")
         .single()
@@ -34,7 +41,13 @@ export const patientRepository = {
 
     const { data, error } = await supabase
       .from("patients")
-      .insert({ phone_e164: input.phoneE164, full_name: input.fullName, language: input.language ?? "es" })
+      .insert({
+        phone_e164: input.phoneE164,
+        full_name: input.fullName,
+        language: input.language ?? "es",
+        date_of_birth: input.dateOfBirth ?? null,
+        notes: input.notes ?? null,
+      })
       .select("*")
       .single()
     if (error) throw new AppError(`Failed to create patient: ${error.message}`)
