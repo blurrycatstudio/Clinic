@@ -31,12 +31,13 @@ export async function notifyPatientOfAppointmentChange(
   const time = format(zoned, "h:mm a")
 
   if (kind === "confirmed") {
+    const settings = await clinicSettingsRepository.get()
     await templateService.send({
       key: "appointmentConfirmation",
       to: patient.phone_e164,
       conversationId: conversation.id,
       language: patient.language,
-      params: [patient.full_name, date, time, (await clinicSettingsRepository.get()).doctor_name],
+      params: [patient.full_name, settings.doctor_name, date, time, settings.clinic_name, settings.clinic_name],
       sessionFallbackText:
         patient.language === "es"
           ? `Tu cita fue agendada para el ${date} a las ${time}.`

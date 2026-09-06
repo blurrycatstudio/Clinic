@@ -41,8 +41,8 @@ function envTemplateName(key: string): string {
 export const templates: Record<TemplateKey, TemplateDefinition> = {
   appointmentConfirmation: {
     name: envTemplateName("WHATSAPP_TEMPLATE_APPOINTMENT_CONFIRMATION"),
-    language: "es_MX",
-    params: ["patientName", "date", "time", "doctorName"],
+    language: "en_US",
+    params: ["patientName", "doctorName", "date", "time", "clinicName", "clinicName"],
   },
   appointmentReminder24h: {
     name: envTemplateName("WHATSAPP_TEMPLATE_APPOINTMENT_REMINDER_24H"),
