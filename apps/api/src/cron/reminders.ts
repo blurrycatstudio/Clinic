@@ -4,6 +4,7 @@ import { CLINIC_TIMEZONE } from "@clinic/shared"
 import { appointmentRepository } from "../repositories/appointmentRepository.js"
 import { patientRepository } from "../repositories/patientRepository.js"
 import { conversationRepository } from "../repositories/conversationRepository.js"
+import { clinicSettingsRepository } from "../repositories/clinicSettingsRepository.js"
 import { templateService } from "../services/templateService.js"
 import { logger } from "../config/logger.js"
 
@@ -44,12 +45,13 @@ export async function runReminderJob(which: "24h" | "2h"): Promise<{ sent: numbe
           params: [patient.full_name, date, time],
         })
       } else {
+        const settings = await clinicSettingsRepository.get()
         await templateService.send({
           key: "appointmentReminder2h",
           to: patient.phone_e164,
           conversationId: conversation.id,
           language: patient.language,
-          params: [patient.full_name, time],
+          params: [patient.full_name, settings.doctor_name, date, time, settings.clinic_name, settings.clinic_name],
         })
       }
 

@@ -28,8 +28,8 @@ export type TemplateKey =
 export type TemplateDefinition = {
   /** The approved Meta template name, injected from env. Empty until approved. */
   name: string
-  /** BCP-47-ish language codes this template was submitted in, matching Meta's template language field. */
-  language: "es_MX" | "en_US"
+  /** Language code this template was submitted in, matching Meta's template language field EXACTLY (e.g. "en", not "en_US" — verify per-template in WhatsApp Manager, Meta rejects a mismatched code with error 132001). */
+  language: "es_MX" | "en_US" | "en" | "es"
   /** Ordered list of body variable names, for documentation + type-safe callers. */
   params: readonly string[]
 }
@@ -41,7 +41,7 @@ function envTemplateName(key: string): string {
 export const templates: Record<TemplateKey, TemplateDefinition> = {
   appointmentConfirmation: {
     name: envTemplateName("WHATSAPP_TEMPLATE_APPOINTMENT_CONFIRMATION"),
-    language: "en_US",
+    language: "en",
     params: ["patientName", "doctorName", "date", "time", "clinicName", "clinicName"],
   },
   appointmentReminder24h: {
@@ -51,8 +51,8 @@ export const templates: Record<TemplateKey, TemplateDefinition> = {
   },
   appointmentReminder2h: {
     name: envTemplateName("WHATSAPP_TEMPLATE_APPOINTMENT_REMINDER_2H"),
-    language: "es_MX",
-    params: ["patientName", "time"],
+    language: "en",
+    params: ["patientName", "doctorName", "date", "time", "clinicName", "clinicName"],
   },
   appointmentRescheduled: {
     name: envTemplateName("WHATSAPP_TEMPLATE_APPOINTMENT_RESCHEDULED"),
