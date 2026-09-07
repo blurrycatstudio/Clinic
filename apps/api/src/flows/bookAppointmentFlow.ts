@@ -29,7 +29,11 @@ export const bookAppointmentFlow: FlowHandler = async ({ text, context, settings
       if (isYes) {
         return {
           context: { ...context, state: ConversationState.AWAITING_REASON },
-          reply: { text: t(lang, "askReason") },
+          reply: {
+            text: draft.lastReason
+              ? t(lang, "askReasonWithHint", { lastReason: draft.lastReason })
+              : t(lang, "askReason"),
+          },
         }
       }
 
@@ -77,7 +81,9 @@ export const bookAppointmentFlow: FlowHandler = async ({ text, context, settings
     }
 
     case ConversationState.AWAITING_REASON: {
-      const reason = text.trim()
+      const normalized = text.trim().toLowerCase()
+      const wantsSameReason = ["igual", "same", "mismo"].includes(normalized)
+      const reason = wantsSameReason && draft.lastReason ? draft.lastReason : text.trim()
       const { slots, text: promptText } = await promptForSlots(lang)
       if (slots.length === 0) {
         return {

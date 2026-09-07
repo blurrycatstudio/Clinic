@@ -23,6 +23,19 @@ export const appointmentRepository = {
     return data ?? []
   },
 
+  /** Most recent appointment regardless of status, purely to recall context like the visit reason. */
+  async findMostRecentForPatient(patientId: string): Promise<Appointment | null> {
+    const { data, error } = await supabase
+      .from("appointments")
+      .select("*")
+      .eq("patient_id", patientId)
+      .order("starts_at", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    if (error) throw new AppError(`Failed to load most recent appointment: ${error.message}`)
+    return data
+  },
+
   async listBetween(startIso: string, endIso: string): Promise<Appointment[]> {
     const { data, error } = await supabase
       .from("appointments")

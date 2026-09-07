@@ -6,6 +6,7 @@ import { enterRescheduleFlow } from "./rescheduleFlow.js"
 import { enterCancelFlow } from "./cancelFlow.js"
 import { appointmentService } from "../services/appointmentService.js"
 import { patientRepository } from "../repositories/patientRepository.js"
+import { appointmentRepository } from "../repositories/appointmentRepository.js"
 
 export const mainMenuFlow: FlowHandler = async ({ text, buttonId, context, settings }) => {
   const lang = context.language ?? "es"
@@ -18,17 +19,26 @@ export const mainMenuFlow: FlowHandler = async ({ text, buttonId, context, setti
       // still overwrite the name in the confirmation step if it's wrong/outdated.
       const existingPatient = await patientRepository.findByPhone(context.phoneE164)
       if (existingPatient) {
+        const lastAppointment = await appointmentRepository.findMostRecentForPatient(existingPatient.id)
+        const lastReason = lastAppointment?.reason
+        const reasonLine = lastReason ? t(lang, "lastVisitReasonLine", { reason: lastReason }) : ""
+
         return {
           context: {
             ...context,
             state: ConversationState.AWAITING_RETURNING_PATIENT_CONFIRMATION,
             activeFlow: FlowType.BOOK,
-            booking: { fullName: existingPatient.full_name, phoneE164: existingPatient.phone_e164 },
+            booking: {
+              fullName: existingPatient.full_name,
+              phoneE164: existingPatient.phone_e164,
+              ...(lastReason ? { lastReason } : {}),
+            },
           },
           reply: {
             text: t(lang, "confirmSavedDetails", {
               name: existingPatient.full_name,
               phone: existingPatient.phone_e164,
+              reasonLine,
             }),
           },
         }

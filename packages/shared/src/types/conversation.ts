@@ -56,6 +56,8 @@ export type PendingBookingDraft = {
   selectedSlotIso?: string
   /** Slots shown in the last "choose a slot" prompt, so the numeric reply can be resolved without re-querying. */
   cachedSlots?: CachedSlot[]
+  /** Reason from the patient's most recent appointment, offered as a quick "reuse this" shortcut when booking again. */
+  lastReason?: string
 }
 
 export type CachedAppointmentOption = { appointmentId: string; label: string }
