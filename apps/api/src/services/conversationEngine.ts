@@ -32,6 +32,7 @@ function isGreeting(normalizedText: string): boolean {
 
 const FLOW_BY_STATE: Partial<Record<ConversationState, FlowHandler>> = {
   [ConversationState.AWAITING_MENU_SELECTION]: mainMenuFlow,
+  [ConversationState.AWAITING_RETURNING_PATIENT_CONFIRMATION]: bookAppointmentFlow,
   [ConversationState.AWAITING_NAME]: bookAppointmentFlow,
   [ConversationState.AWAITING_PHONE]: bookAppointmentFlow,
   [ConversationState.AWAITING_REASON]: bookAppointmentFlow,

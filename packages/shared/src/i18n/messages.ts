@@ -18,6 +18,10 @@ export const botMessages = {
     mainMenu:
       "Bienvenido a *{clinicName}*.\n\n1️⃣ Agendar cita\n2️⃣ Reprogramar cita\n3️⃣ Cancelar cita\n4️⃣ Información de la clínica\n5️⃣ Hablar con un humano\n6️⃣ Ver estado de mi cita\n\nResponde con el número de tu opción.",
     menuInvalid: "No entendí esa opción. Responde con un número del 1 al 6.",
+    confirmSavedDetails:
+      "¡Bienvenido de nuevo! Tenemos estos datos guardados:\n\n👤 {name}\n📱 {phone}\n\nResponde *SI* para usarlos, o escribe el nombre completo correcto si necesitas actualizarlo.",
+    confirmSavedDetailsInvalid:
+      "Responde *SI* para usar tus datos guardados, o escribe el nombre completo del paciente para actualizarlo.",
     askName: "Perfecto, vamos a agendar tu cita. ¿Cuál es el nombre completo del paciente?",
     askPhone: "Gracias, {name}. ¿Cuál es tu número de teléfono de contacto?",
     askReason: "¿Cuál es el motivo de la consulta?",
@@ -69,6 +73,10 @@ export const botMessages = {
     mainMenu:
       "Welcome to *{clinicName}*.\n\n1️⃣ Book Appointment\n2️⃣ Reschedule Appointment\n3️⃣ Cancel Appointment\n4️⃣ Clinic Information\n5️⃣ Human Support\n6️⃣ Check Appointment Status\n\nReply with the number of your choice.",
     menuInvalid: "Sorry, I didn't get that. Reply with a number from 1 to 6.",
+    confirmSavedDetails:
+      "Welcome back! We have these details on file:\n\n👤 {name}\n📱 {phone}\n\nReply *YES* to use them, or type the correct full name if you need to update it.",
+    confirmSavedDetailsInvalid:
+      "Reply *YES* to use your saved details, or type the patient's full name to update it.",
     askName: "Great, let's book your appointment. What's the patient's full name?",
     askPhone: "Thanks, {name}. What's the best contact phone number?",
     askReason: "What's the reason for the visit?",

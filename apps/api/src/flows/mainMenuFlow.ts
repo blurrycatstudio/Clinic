@@ -5,17 +5,39 @@ import type { FlowHandler } from "./types.js"
 import { enterRescheduleFlow } from "./rescheduleFlow.js"
 import { enterCancelFlow } from "./cancelFlow.js"
 import { appointmentService } from "../services/appointmentService.js"
+import { patientRepository } from "../repositories/patientRepository.js"
 
 export const mainMenuFlow: FlowHandler = async ({ text, buttonId, context, settings }) => {
   const lang = context.language ?? "es"
   const choice = (buttonId ?? text).trim()
 
   switch (choice) {
-    case "1":
+    case "1": {
+      // Returning patients (recognized by their WhatsApp number) skip straight past
+      // the name/phone questions with their saved details pre-filled — they can
+      // still overwrite the name in the confirmation step if it's wrong/outdated.
+      const existingPatient = await patientRepository.findByPhone(context.phoneE164)
+      if (existingPatient) {
+        return {
+          context: {
+            ...context,
+            state: ConversationState.AWAITING_RETURNING_PATIENT_CONFIRMATION,
+            activeFlow: FlowType.BOOK,
+            booking: { fullName: existingPatient.full_name, phoneE164: existingPatient.phone_e164 },
+          },
+          reply: {
+            text: t(lang, "confirmSavedDetails", {
+              name: existingPatient.full_name,
+              phone: existingPatient.phone_e164,
+            }),
+          },
+        }
+      }
       return {
         context: { ...context, state: ConversationState.AWAITING_NAME, activeFlow: FlowType.BOOK, booking: {} },
         reply: { text: t(lang, "askName") },
       }
+    }
     case "2":
       return enterRescheduleFlow(context)
     case "3":

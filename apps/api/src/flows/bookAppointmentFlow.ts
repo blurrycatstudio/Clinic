@@ -22,6 +22,34 @@ export const bookAppointmentFlow: FlowHandler = async ({ text, context, settings
   const draft = context.booking ?? {}
 
   switch (context.state) {
+    case ConversationState.AWAITING_RETURNING_PATIENT_CONFIRMATION: {
+      const normalized = text.trim().toLowerCase()
+      const isYes = ["si", "sí", "yes", "1"].includes(normalized)
+
+      if (isYes) {
+        return {
+          context: { ...context, state: ConversationState.AWAITING_REASON },
+          reply: { text: t(lang, "askReason") },
+        }
+      }
+
+      // Anything else is treated as a corrected full name rather than a plain
+      // invalid reply — patients naturally just retype their name here instead
+      // of saying "no" first.
+      const fullName = text.trim()
+      if (fullName.length < 2) {
+        return { context, reply: { text: t(lang, "confirmSavedDetailsInvalid") } }
+      }
+      return {
+        context: {
+          ...context,
+          state: ConversationState.AWAITING_PHONE,
+          booking: { ...draft, fullName },
+        },
+        reply: { text: t(lang, "askPhone", { name: fullName }) },
+      }
+    }
+
     case ConversationState.AWAITING_NAME: {
       const fullName = text.trim()
       if (fullName.length < 2) {
