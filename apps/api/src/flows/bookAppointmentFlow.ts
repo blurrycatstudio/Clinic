@@ -47,10 +47,14 @@ export const bookAppointmentFlow: FlowHandler = async ({ text, context, settings
       return {
         context: {
           ...context,
-          state: ConversationState.AWAITING_PHONE,
-          booking: { ...draft, fullName },
+          state: ConversationState.AWAITING_REASON,
+          booking: { ...draft, fullName, phoneE164: context.phoneE164 },
         },
-        reply: { text: t(lang, "askPhone", { name: fullName }) },
+        reply: {
+          text: draft.lastReason
+            ? t(lang, "askReasonWithHint", { lastReason: draft.lastReason })
+            : t(lang, "askReason"),
+        },
       }
     }
 
@@ -59,23 +63,30 @@ export const bookAppointmentFlow: FlowHandler = async ({ text, context, settings
       if (fullName.length < 2) {
         return { context, reply: { text: t(lang, "askName") } }
       }
+      // The patient's WhatsApp number *is* their contact number — asking for it
+      // again as free text let it drift out of sync with context.phoneE164,
+      // which is what every lookup (status/reschedule/cancel) keys off, silently
+      // orphaning the booking. So we just use the verified sender number.
       return {
         context: {
           ...context,
-          state: ConversationState.AWAITING_PHONE,
-          booking: { ...draft, fullName },
+          state: ConversationState.AWAITING_REASON,
+          booking: { ...draft, fullName, phoneE164: context.phoneE164 },
         },
-        reply: { text: t(lang, "askPhone", { name: fullName }) },
+        reply: { text: t(lang, "askReason") },
       }
     }
 
     case ConversationState.AWAITING_PHONE: {
-      const phone = text.trim()
-      if (phone.replace(/\D/g, "").length < 8) {
-        return { context, reply: { text: t(lang, "askPhone", { name: draft.fullName ?? "" }) } }
-      }
+      // No longer reachable from the flows above (kept only so an in-flight
+      // conversation mid-upgrade doesn't hit an unhandled state) -- resolves
+      // straight to the reason question using the WhatsApp sender's number.
       return {
-        context: { ...context, state: ConversationState.AWAITING_REASON, booking: { ...draft, phoneE164: phone } },
+        context: {
+          ...context,
+          state: ConversationState.AWAITING_REASON,
+          booking: { ...draft, phoneE164: context.phoneE164 },
+        },
         reply: { text: t(lang, "askReason") },
       }
     }
