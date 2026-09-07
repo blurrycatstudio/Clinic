@@ -52,6 +52,58 @@ export const openaiService = {
     }
   },
 
+  /**
+   * Combines detectIntent + answerFaq into a single completion for the common
+   * "free-text FAQ-ish message" path — halves the LLM round trips per message
+   * (was two full sequential completions back to back).
+   */
+  async classifyAndAnswer(
+    question: string,
+    language: Language,
+    settings: ClinicSettings,
+  ): Promise<{ intent: Intent; answer: string | null }> {
+    try {
+      const grounding =
+        language === "es"
+          ? `Clínica: ${settings.clinic_name}\nDoctor: ${settings.doctor_name} (${settings.doctor_specialty}, cédula ${settings.doctor_license})\nDirección: ${settings.address}\nHorario: ${settings.hours_summary_es}\nEstacionamiento: ${settings.parking_info_es}\nCostos: ${settings.fees_info_es}\nSeguros: ${settings.insurance_info_es}`
+          : `Clinic: ${settings.clinic_name}\nDoctor: ${settings.doctor_name} (${settings.doctor_specialty}, license ${settings.doctor_license})\nAddress: ${settings.address}\nHours: ${settings.hours_summary_en}\nParking: ${settings.parking_info_en}\nFees: ${settings.fees_info_en}\nInsurance: ${settings.insurance_info_en}`
+
+      const completion = await openai.chat.completions.create({
+        model: OPENAI_MODEL,
+        temperature: 0.2,
+        max_tokens: 260,
+        response_format: { type: "json_object" },
+        messages: [
+          {
+            role: "system",
+            content:
+              `You are the WhatsApp receptionist assistant for a pediatric clinic. First classify the patient's ` +
+              `message into exactly one of these intents: ${INTENT_VALUES.join(", ")}. ` +
+              `Then, ONLY if the intent is not one of ${Intent.BOOK_APPOINTMENT}, ${Intent.RESCHEDULE_APPOINTMENT}, ` +
+              `${Intent.CANCEL_APPOINTMENT}, also answer the patient's question using ONLY the clinic facts below, ` +
+              `in ${language === "es" ? "Spanish" : "English"}, warmly and concisely (max 3 sentences). If the ` +
+              `answer isn't in the facts, say you're not sure and suggest option 5 (human support) — do NOT make ` +
+              `anything up, and do NOT offer to book/cancel/reschedule appointments yourself; tell them to use the ` +
+              `main menu for that. Reply with strict JSON: {"intent": "<ONE_OF_THE_ABOVE>", "answer": <string or null>}.` +
+              `\n\n${grounding}`,
+          },
+          { role: "user", content: question },
+        ],
+      })
+
+      const raw = completion.choices[0]?.message?.content
+      if (!raw) return { intent: Intent.UNKNOWN, answer: null }
+
+      const parsed = JSON.parse(raw) as { intent?: string; answer?: string | null }
+      const intent = INTENT_VALUES.includes(parsed.intent as Intent) ? (parsed.intent as Intent) : Intent.UNKNOWN
+      const answer = typeof parsed.answer === "string" ? parsed.answer.trim() : null
+      return { intent, answer: answer || null }
+    } catch (err) {
+      logger.error({ err }, "OpenAI classifyAndAnswer failed")
+      return { intent: Intent.UNKNOWN, answer: null }
+    }
+  },
+
   async answerFaq(question: string, language: Language, settings: ClinicSettings): Promise<string> {
     try {
       const grounding =

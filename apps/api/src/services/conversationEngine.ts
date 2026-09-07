@@ -47,6 +47,14 @@ const FLOW_BY_STATE: Partial<Record<ConversationState, FlowHandler>> = {
   [ConversationState.ESCALATED_TO_HUMAN]: humanSupportFlow,
 }
 
+// The bot's reply has already reached WhatsApp once sendTextMessage resolves — our
+// own outbound audit log doesn't need to block the handler from returning.
+function logOutboundText(conversationId: string, body: string, waMessageId: string | null): void {
+  messageRepository
+    .log({ conversationId, direction: "outbound", messageType: "text", body, waMessageId })
+    .catch((err) => logger.warn({ err }, "outbound message log failed"))
+}
+
 export type InboundMessage = {
   phoneE164: string
   profileName?: string
@@ -66,16 +74,19 @@ export type InboundMessage = {
  */
 export async function handleInboundMessage(input: InboundMessage): Promise<void> {
   const conversation = await conversationRepository.getOrCreate(input.phoneE164, input.profileName)
-  await conversationRepository.touch(conversation.id)
+  // touch() only bumps last_message_at — doesn't need to block the reply.
+  conversationRepository.touch(conversation.id).catch((err) => logger.warn({ err }, "conversation touch failed"))
 
-  await messageRepository.log({
+  // The inbound log write and audit record are independent of each other and
+  // of everything below — run them together instead of one after another.
+  const inboundLog = messageRepository.log({
     conversationId: conversation.id,
     direction: "inbound",
     messageType: input.buttonId ? "interactive" : "text",
     body: input.text,
     waMessageId: input.waMessageId,
   })
-  await auditLogRepository.record({
+  const inboundAudit = auditLogRepository.record({
     actorType: "patient",
     actorId: conversation.patient_id,
     action: "message.received",
@@ -88,8 +99,12 @@ export async function handleInboundMessage(input: InboundMessage): Promise<void>
     whatsappService.markAsRead(input.waMessageId).catch((err) => logger.warn({ err }, "markAsRead failed"))
   }
 
-  const { context: loaded, isNew } = await redisStateService.get(input.phoneE164, conversation.id)
-  const settings = await clinicSettingsRepository.get()
+  const [{ context: loaded, isNew }, settings] = await Promise.all([
+    redisStateService.get(input.phoneE164, conversation.id),
+    clinicSettingsRepository.get(),
+    inboundLog,
+    inboundAudit,
+  ])
 
   const normalizedText = input.text.trim().toLowerCase()
   let context: ConversationContext = loaded
@@ -99,13 +114,7 @@ export async function handleInboundMessage(input: InboundMessage): Promise<void>
   if (!context.language && (isNew || isGreeting(normalizedText))) {
     const promptText = t("es", "languagePrompt", { clinicName: settings.clinic_name })
     const { messageId } = await whatsappService.sendTextMessage(input.phoneE164, promptText)
-    await messageRepository.log({
-      conversationId: conversation.id,
-      direction: "outbound",
-      messageType: "text",
-      body: promptText,
-      waMessageId: messageId,
-    })
+    logOutboundText(conversation.id, promptText, messageId)
     await redisStateService.save(input.phoneE164, {
       ...context,
       state: ConversationState.AWAITING_LANGUAGE_SELECTION,
@@ -131,13 +140,7 @@ export async function handleInboundMessage(input: InboundMessage): Promise<void>
     const next = { ...context, state: ConversationState.AWAITING_MENU_SELECTION, activeFlow: FlowType.NONE }
     const menuText = t(context.language, "mainMenu", { clinicName: settings.clinic_name })
     const { messageId } = await whatsappService.sendTextMessage(input.phoneE164, menuText)
-    await messageRepository.log({
-      conversationId: conversation.id,
-      direction: "outbound",
-      messageType: "text",
-      body: menuText,
-      waMessageId: messageId,
-    })
+    logOutboundText(conversation.id, menuText, messageId)
     const withHistory = redisStateService.appendTurn(
       redisStateService.appendTurn(next, "user", input.text),
       "assistant",
@@ -171,24 +174,20 @@ export async function handleInboundMessage(input: InboundMessage): Promise<void>
 
   if (result.reply.text) {
     const { messageId } = await whatsappService.sendTextMessage(input.phoneE164, result.reply.text)
-    await messageRepository.log({
-      conversationId: conversation.id,
-      direction: "outbound",
-      messageType: "text",
-      body: result.reply.text,
-      waMessageId: messageId,
-    })
+    logOutboundText(conversation.id, result.reply.text, messageId)
   }
 
   if (result.reply.location) {
     const { messageId } = await whatsappService.sendLocationMessage(input.phoneE164, result.reply.location)
-    await messageRepository.log({
-      conversationId: conversation.id,
-      direction: "outbound",
-      messageType: "location",
-      payload: result.reply.location,
-      waMessageId: messageId,
-    })
+    messageRepository
+      .log({
+        conversationId: conversation.id,
+        direction: "outbound",
+        messageType: "location",
+        payload: result.reply.location,
+        waMessageId: messageId,
+      })
+      .catch((err) => logger.warn({ err }, "outbound location log failed"))
   }
 
   if (result.context.state === ConversationState.ESCALATED_TO_HUMAN) {

@@ -32,7 +32,7 @@ export const clinicInfoFlow: FlowHandler = async ({ text, context, settings }) =
     }
   }
 
-  const { intent } = await openaiService.detectIntent(trimmed, lang)
+  const { intent, answer } = await openaiService.classifyAndAnswer(trimmed, lang, settings)
   if (intent === Intent.BOOK_APPOINTMENT || intent === Intent.RESCHEDULE_APPOINTMENT || intent === Intent.CANCEL_APPOINTMENT) {
     // OpenAI only classifies — it never books. Redirect the patient to the deterministic menu flow.
     return {
@@ -41,9 +41,9 @@ export const clinicInfoFlow: FlowHandler = async ({ text, context, settings }) =
     }
   }
 
-  const answer = await openaiService.answerFaq(trimmed, lang, settings)
+  const faqAnswer = answer ?? (await openaiService.answerFaq(trimmed, lang, settings))
   return {
     context,
-    reply: { text: answer },
+    reply: { text: faqAnswer },
   }
 }

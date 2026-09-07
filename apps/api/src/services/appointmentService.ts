@@ -22,10 +22,19 @@ export const appointmentService = {
 
     const now = new Date()
     const nowInClinic = toZonedTime(now, CLINIC_TIMEZONE)
+    const horizonStart = startOfDay(nowInClinic)
+    const horizonEnd = addDays(horizonStart, daysAhead + 1)
+
+    // Single range query for the whole horizon instead of one Supabase round trip
+    // per active clinic day — with a 60-day horizon that was up to ~50 sequential
+    // network calls before the bot could even list slots.
+    const existing = await appointmentRepository.listBetween(horizonStart.toISOString(), horizonEnd.toISOString())
+    const bookedStarts = new Set(existing.map((a) => new Date(a.starts_at).getTime()))
+
     const slots: AvailableSlot[] = []
 
     for (let dayOffset = 0; dayOffset <= daysAhead && slots.length < maxSlotsReturned * 4; dayOffset++) {
-      const dayInClinic = addDays(startOfDay(nowInClinic), dayOffset)
+      const dayInClinic = addDays(horizonStart, dayOffset)
       const weekday = dayInClinic.getDay()
       const day = scheduleByWeekday.get(weekday)
       if (!day || !day.is_active) continue
@@ -35,9 +44,6 @@ export const appointmentService = {
       const dayEnd = fromZonedTime(`${dayStr}T${day.end_time}`, CLINIC_TIMEZONE)
       const breakStart = day.break_start_time ? fromZonedTime(`${dayStr}T${day.break_start_time}`, CLINIC_TIMEZONE) : null
       const breakEnd = day.break_end_time ? fromZonedTime(`${dayStr}T${day.break_end_time}`, CLINIC_TIMEZONE) : null
-
-      const existing = await appointmentRepository.listBetween(dayStart.toISOString(), dayEnd.toISOString())
-      const bookedStarts = new Set(existing.map((a) => new Date(a.starts_at).getTime()))
 
       let cursor = dayStart
       while (isBefore(addMinutes(cursor, 30), addMinutes(dayEnd, 1))) {
