@@ -17,7 +17,18 @@ import { humanSupportFlow } from "../flows/humanSupportFlow.js"
 import type { FlowHandler } from "../flows/types.js"
 import { logger } from "../config/logger.js"
 
-const GREETING_WORDS = new Set(["hi", "hola", "hello", "menu", "buenas", "buenos dias", "buenos días"])
+/**
+ * Matches common greeting typos/elongations (hii, hiii, heyy, hellooo,
+ * holaaa) in addition to the exact words — patients type these constantly
+ * and each one used to fall through to whatever flow was active, e.g.
+ * "hii" mid-reschedule got parsed as an invalid appointment number instead
+ * of resetting to the main menu.
+ */
+const GREETING_PATTERN = /^(h+i+|h+e+y+|h+e+ll+o+|hola+|buenas|buenos\s*d[ií]as|menu)$/
+
+function isGreeting(normalizedText: string): boolean {
+  return GREETING_PATTERN.test(normalizedText)
+}
 
 const FLOW_BY_STATE: Partial<Record<ConversationState, FlowHandler>> = {
   [ConversationState.AWAITING_MENU_SELECTION]: mainMenuFlow,
@@ -84,7 +95,7 @@ export async function handleInboundMessage(input: InboundMessage): Promise<void>
 
   // Very first turn (or the patient hasn't picked a language yet and just greeted us):
   // show the language picker verbatim instead of trying to parse "Hi" as a 1/2 choice.
-  if (!context.language && (isNew || GREETING_WORDS.has(normalizedText))) {
+  if (!context.language && (isNew || isGreeting(normalizedText))) {
     const promptText = t("es", "languagePrompt", { clinicName: settings.clinic_name })
     const { messageId } = await whatsappService.sendTextMessage(input.phoneE164, promptText)
     await messageRepository.log({
@@ -111,7 +122,7 @@ export async function handleInboundMessage(input: InboundMessage): Promise<void>
     ConversationState.AWAITING_REASON,
   ].includes(context.state)
 
-  if (context.language && GREETING_WORDS.has(normalizedText) && !inFreeTextEntry) {
+  if (context.language && isGreeting(normalizedText) && !inFreeTextEntry) {
     context = { ...context, state: ConversationState.AWAITING_MENU_SELECTION, activeFlow: FlowType.NONE }
   }
 
