@@ -122,15 +122,11 @@ export async function handleInboundMessage(input: InboundMessage): Promise<void>
     ConversationState.AWAITING_REASON,
   ].includes(context.state)
 
-  // Only short-circuit straight to the menu when the patient wasn't already sitting
-  // at the menu — otherwise a plain "hi" while already there would (correctly) fall
-  // through to mainMenuFlow and get treated as an invalid 1-6 choice, which is fine.
-  if (
-    context.language &&
-    isGreeting(normalizedText) &&
-    !inFreeTextEntry &&
-    context.state !== ConversationState.AWAITING_MENU_SELECTION
-  ) {
+  // Always short-circuit straight to the menu on a greeting, even if the patient is
+  // already sitting at AWAITING_MENU_SELECTION — mainMenuFlow has no case for "hi",
+  // so without this a repeated "hi" after one invalid choice would loop on
+  // menuInvalid forever instead of ever re-showing the menu.
+  if (context.language && isGreeting(normalizedText) && !inFreeTextEntry) {
     const next = { ...context, state: ConversationState.AWAITING_MENU_SELECTION, activeFlow: FlowType.NONE }
     const menuText = t(context.language, "mainMenu", { clinicName: settings.clinic_name })
     const { messageId } = await whatsappService.sendTextMessage(input.phoneE164, menuText)
