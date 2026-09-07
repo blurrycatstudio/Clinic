@@ -16,8 +16,8 @@ export const botMessages = {
       "¡Hola! Bienvenido a *{clinicName}* 🏥\nPor favor elige tu idioma / Please choose your language:\n\n1️⃣ Español\n2️⃣ English",
     languageInvalid: "Por favor responde 1 para Español o 2 para English.",
     mainMenu:
-      "Bienvenido a *{clinicName}*.\n\n1️⃣ Agendar cita\n2️⃣ Reprogramar cita\n3️⃣ Cancelar cita\n4️⃣ Información de la clínica\n5️⃣ Hablar con un humano\n\nResponde con el número de tu opción.",
-    menuInvalid: "No entendí esa opción. Responde con un número del 1 al 5.",
+      "Bienvenido a *{clinicName}*.\n\n1️⃣ Agendar cita\n2️⃣ Reprogramar cita\n3️⃣ Cancelar cita\n4️⃣ Información de la clínica\n5️⃣ Hablar con un humano\n6️⃣ Ver estado de mi cita\n\nResponde con el número de tu opción.",
+    menuInvalid: "No entendí esa opción. Responde con un número del 1 al 6.",
     askName: "Perfecto, vamos a agendar tu cita. ¿Cuál es el nombre completo del paciente?",
     askPhone: "Gracias, {name}. ¿Cuál es tu número de teléfono de contacto?",
     askReason: "¿Cuál es el motivo de la consulta?",
@@ -33,6 +33,11 @@ export const botMessages = {
     confirmInvalid: "Por favor responde *SI* o *NO*.",
     noAppointmentsFound:
       "No encontramos citas activas asociadas a tu número. Si crees que es un error, elige la opción 5 para hablar con un humano.",
+    yourAppointmentsStatus:
+      "📋 Estas son tus citas activas:\n\n{appointments}\n\nEscribe *Hola* para volver al menú principal.",
+    appointmentStatusLine: "📅 {date} a las {time} — {status}",
+    statusScheduled: "Agendada",
+    statusConfirmed: "Confirmada",
     chooseAppointmentToReschedule:
       "¿Cuál cita deseas reprogramar? Responde con el número:\n\n{appointments}",
     chooseAppointmentToCancel:
@@ -62,8 +67,8 @@ export const botMessages = {
       "Hi! Welcome to *{clinicName}* 🏥\nPlease choose your language / Por favor elige tu idioma:\n\n1️⃣ Español\n2️⃣ English",
     languageInvalid: "Please reply 1 for Español or 2 for English.",
     mainMenu:
-      "Welcome to *{clinicName}*.\n\n1️⃣ Book Appointment\n2️⃣ Reschedule Appointment\n3️⃣ Cancel Appointment\n4️⃣ Clinic Information\n5️⃣ Human Support\n\nReply with the number of your choice.",
-    menuInvalid: "Sorry, I didn't get that. Reply with a number from 1 to 5.",
+      "Welcome to *{clinicName}*.\n\n1️⃣ Book Appointment\n2️⃣ Reschedule Appointment\n3️⃣ Cancel Appointment\n4️⃣ Clinic Information\n5️⃣ Human Support\n6️⃣ Check Appointment Status\n\nReply with the number of your choice.",
+    menuInvalid: "Sorry, I didn't get that. Reply with a number from 1 to 6.",
     askName: "Great, let's book your appointment. What's the patient's full name?",
     askPhone: "Thanks, {name}. What's the best contact phone number?",
     askReason: "What's the reason for the visit?",
@@ -79,6 +84,10 @@ export const botMessages = {
     confirmInvalid: "Please reply *YES* or *NO*.",
     noAppointmentsFound:
       "We couldn't find any active appointments under your number. If you think this is a mistake, choose option 5 to talk to a human.",
+    yourAppointmentsStatus: "📋 Here are your active appointments:\n\n{appointments}\n\nType *Hi* to go back to the main menu.",
+    appointmentStatusLine: "📅 {date} at {time} — {status}",
+    statusScheduled: "Scheduled",
+    statusConfirmed: "Confirmed",
     chooseAppointmentToReschedule: "Which appointment would you like to reschedule? Reply with the number:\n\n{appointments}",
     chooseAppointmentToCancel: "Which appointment would you like to cancel? Reply with the number:\n\n{appointments}",
     appointmentSelectionInvalid: "That's not a valid option. Please choose one of the listed numbers.",

@@ -44,14 +44,16 @@ type WhatsappWebhookPayload = {
 
 /**
  * Receives both inbound patient messages and outbound delivery-status
- * updates (sent/delivered/read/failed) in the same payload shape. Always
- * responds 200 immediately after acknowledging receipt — Meta retries
- * aggressively on non-200s and we don't want retries doubling up on an
- * already-processed message.
+ * updates (sent/delivered/read/failed) in the same payload shape.
+ *
+ * We await processing fully before responding. We used to ack with 200
+ * immediately and process in the background, but on Vercel's serverless
+ * runtime the function invocation is frozen/torn down as soon as the HTTP
+ * response is sent — nothing after res.sendStatus(200) actually ran, so
+ * inbound messages were silently dropped. Meta's retry timeout is generous
+ * (~20s) so awaiting the (typically sub-second) processing here is safe.
  */
 export async function receiveWebhook(req: Request, res: Response) {
-  res.sendStatus(200)
-
   const payload = req.body as WhatsappWebhookPayload
 
   try {
@@ -90,6 +92,8 @@ export async function receiveWebhook(req: Request, res: Response) {
   } catch (err) {
     logger.error({ err }, "Error processing WhatsApp webhook payload")
   }
+
+  res.sendStatus(200)
 }
 
 function normalizePhone(waFrom: string): string {
