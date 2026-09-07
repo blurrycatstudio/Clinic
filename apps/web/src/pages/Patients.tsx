@@ -1,6 +1,7 @@
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Dialog } from "radix-ui"
 import { Baby, Plus, Search, Syringe, UserRound, X } from "lucide-react"
+import { useLocation } from "react-router-dom"
 import { PatientSnapshotCard } from "@/components/dashboard/PatientSnapshotCard"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -20,7 +21,7 @@ function NewPatientDialog({ open, onOpenChange }: { open: boolean; onOpenChange:
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm" />
-        <Dialog.Content className="fixed top-1/2 left-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-border bg-card p-6 shadow-2xl">
+        <Dialog.Content className="fixed top-1/2 left-1/2 z-50 max-h-[90vh] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl border border-border bg-card p-5 shadow-2xl sm:p-6">
           <div className="mb-5 flex items-center justify-between">
             <Dialog.Title className="font-heading text-xl font-bold">New Patient</Dialog.Title>
             <Dialog.Close className="flex size-8 items-center justify-center rounded-[9px] border border-border hover:bg-muted">
@@ -73,7 +74,7 @@ function PatientProfileDialog({ patient, onOpenChange }: { patient: Patient | nu
     <Dialog.Root open={!!patient} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm" />
-        <Dialog.Content className="fixed top-1/2 left-1/2 z-50 max-h-[90vh] w-full max-w-3xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl">
+        <Dialog.Content className="fixed top-1/2 left-1/2 z-50 max-h-[90vh] w-[calc(100%-2rem)] max-w-3xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl">
           <Dialog.Title className="sr-only">{patient.name}</Dialog.Title>
           <Dialog.Close className="absolute top-3 right-3 z-10 flex size-8 shrink-0 items-center justify-center rounded-[9px] border border-border bg-card hover:bg-muted">
             <X className="size-4" strokeWidth={2} />
@@ -87,17 +88,32 @@ function PatientProfileDialog({ patient, onOpenChange }: { patient: Patient | nu
 
 export default function Patients() {
   const { t } = useLang()
-  const [query, setQuery] = useState("")
+  const location = useLocation()
+  const [query, setQuery] = useState(() => (location.state as { query?: string } | null)?.query ?? "")
   const [status, setStatus] = useState<StatusFilter>("all")
   const [viewing, setViewing] = useState<Patient | null>(null)
   const [newOpen, setNewOpen] = useState(false)
+
+  useEffect(() => {
+    const state = location.state as { openPatientId?: string; query?: string } | null
+    if (state?.openPatientId) {
+      const match = PATIENTS.find((p) => p.id === state.openPatientId)
+      if (match) setViewing(match)
+    }
+    if (state?.query !== undefined) setQuery(state.query)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.state])
 
   const filtered = useMemo(
     () =>
       PATIENTS.filter((p) => status === "all" || p.status === status).filter((p) => {
         if (!query.trim()) return true
         const q = query.toLowerCase()
-        return p.name.toLowerCase().includes(q) || p.guardian.toLowerCase().includes(q)
+        return (
+          p.name.toLowerCase().includes(q) ||
+          p.guardian.toLowerCase().includes(q) ||
+          p.guardianPhone.replace(/\s+/g, "").includes(q.replace(/\s+/g, ""))
+        )
       }),
     [query, status],
   )
@@ -113,18 +129,18 @@ export default function Patients() {
 
   return (
     <div>
-      <div className="mb-5 flex items-start justify-between">
+      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="font-heading text-2xl font-bold">{t.patientsPageTitle}</h1>
           <p className="mt-0.5 text-[13.5px] text-muted-foreground">{t.patientsPageSub}</p>
         </div>
-        <Button onClick={() => setNewOpen(true)} className="gap-1.5 rounded-[10px] font-bold">
+        <Button onClick={() => setNewOpen(true)} className="gap-1.5 self-start rounded-[10px] font-bold">
           <Plus className="size-3.5" strokeWidth={2.4} />
           {t.patientsNewBtn}
         </Button>
       </div>
 
-      <div className="mb-4.5 grid grid-cols-3 gap-4">
+      <div className="mb-4.5 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Card className="gap-0 rounded-2xl border p-4.5 shadow-none">
           <div className="flex items-center gap-2.5">
             <div className="flex size-9.5 items-center justify-center rounded-[10px] bg-accent">
@@ -132,7 +148,7 @@ export default function Patients() {
             </div>
             <div className="text-[13px] font-semibold text-muted-foreground">{t.patientsStatTotal}</div>
           </div>
-          <div className="font-heading mt-2 text-[26px] font-bold">{stats.total}</div>
+          <div className="mt-2 text-[26px] font-bold">{stats.total}</div>
         </Card>
         <Card className="gap-0 rounded-2xl border p-4.5 shadow-none">
           <div className="flex items-center gap-2.5">
@@ -141,7 +157,7 @@ export default function Patients() {
             </div>
             <div className="text-[13px] font-semibold text-muted-foreground">{t.patientsStatActive}</div>
           </div>
-          <div className="font-heading mt-2 text-[26px] font-bold text-[#227a44]">{stats.active}</div>
+          <div className="mt-2 text-[26px] font-bold text-[#227a44]">{stats.active}</div>
         </Card>
         <Card className="gap-0 rounded-2xl border p-4.5 shadow-none">
           <div className="flex items-center gap-2.5">
@@ -150,13 +166,13 @@ export default function Patients() {
             </div>
             <div className="text-[13px] font-semibold text-muted-foreground">{t.patientsStatUpcoming}</div>
           </div>
-          <div className="font-heading mt-2 text-[26px] font-bold text-[#1f5fa8]">{stats.upcoming}</div>
+          <div className="mt-2 text-[26px] font-bold text-[#1f5fa8]">{stats.upcoming}</div>
         </Card>
       </div>
 
       <Card className="gap-0 rounded-2xl border p-4.5 shadow-none">
-        <div className="mb-4 flex items-center gap-3">
-          <div className="relative max-w-90 flex-1">
+        <div className="mb-4 flex flex-wrap items-center gap-3">
+          <div className="relative max-w-90 min-w-0 flex-1">
             <Search className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={query}
@@ -165,7 +181,7 @@ export default function Patients() {
               className="h-9 rounded-full border-border pl-10 text-[13px]"
             />
           </div>
-          <div className="flex items-center gap-1.5 rounded-full border border-border p-[3px]">
+          <div className="flex flex-wrap items-center gap-1.5 rounded-full border border-border p-[3px]">
             {(
               [
                 ["all", t.patientsFilterAll],

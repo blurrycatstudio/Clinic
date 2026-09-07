@@ -118,7 +118,7 @@ function NewAppointmentDialog({
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm" />
-        <Dialog.Content className="fixed top-1/2 left-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-border bg-card p-6 shadow-2xl">
+        <Dialog.Content className="fixed top-1/2 left-1/2 z-50 max-h-[90vh] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl border border-border bg-card p-5 shadow-2xl sm:p-6">
           <div className="mb-5 flex items-center justify-between">
             <Dialog.Title className="font-heading text-xl font-bold">{t.apptsNewModalTitle}</Dialog.Title>
             <Dialog.Close className="flex size-8 items-center justify-center rounded-[9px] border border-border hover:bg-muted">
@@ -255,18 +255,18 @@ export default function Appointments() {
 
   return (
     <div>
-      <div className="mb-5 flex items-start justify-between">
+      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="font-heading text-2xl font-bold">{t.apptsPageTitle}</h1>
           <p className="mt-0.5 text-[13.5px] text-muted-foreground">{t.apptsPageSub}</p>
         </div>
-        <Button onClick={() => setNewOpen(true)} className="gap-1.5 rounded-[10px] font-bold">
+        <Button onClick={() => setNewOpen(true)} className="gap-1.5 self-start rounded-[10px] font-bold">
           <CalendarPlus className="size-3.5" strokeWidth={2.4} />
           {t.apptsNewBtn}
         </Button>
       </div>
 
-      <div className="mb-4.5 grid grid-cols-4 gap-4">
+      <div className="mb-4.5 grid grid-cols-2 gap-4 lg:grid-cols-4">
         {[
           { label: t.apptsStatTotal, value: stats.total, bg: "var(--accent)", color: "var(--primary)" },
           { label: t.apptsStatConfirmed, value: stats.confirmed, bg: "#e5f0fb", color: "#1f5fa8" },
@@ -275,7 +275,7 @@ export default function Appointments() {
         ].map((s) => (
           <Card key={s.label} className="gap-0 rounded-2xl border p-4.5 shadow-none">
             <div className="text-[13px] font-semibold text-muted-foreground">{s.label}</div>
-            <div className="font-heading mt-1.5 text-[26px] font-bold" style={{ color: s.color }}>
+            <div className="mt-1.5 text-[26px] font-bold" style={{ color: s.color }}>
               {s.value}
             </div>
           </Card>

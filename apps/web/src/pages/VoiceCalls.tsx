@@ -70,40 +70,40 @@ export default function VoiceCalls() {
         <p className="mt-0.5 text-[13.5px] text-muted-foreground">{t.callsPageSub}</p>
       </div>
 
-      <div className="mb-4.5 grid grid-cols-4 gap-4">
+      <div className="mb-4.5 grid grid-cols-2 gap-4 lg:grid-cols-4">
         <Card className="gap-0 rounded-2xl border p-4.5 shadow-none">
           <div className="mb-3 flex size-9.5 items-center justify-center rounded-[10px] bg-accent">
             <Phone className="size-[19px] text-primary" strokeWidth={1.8} />
           </div>
           <div className="text-[13px] font-semibold text-muted-foreground">{t.callsStatTotal}</div>
-          <div className="font-heading mt-0.5 text-[26px] font-bold">{stats.total}</div>
+          <div className="mt-0.5 text-[26px] font-bold">{stats.total}</div>
         </Card>
         <Card className="gap-0 rounded-2xl border p-4.5 shadow-none">
           <div className="mb-3 flex size-9.5 items-center justify-center rounded-[10px]" style={{ background: "#fbe7e5" }}>
             <PhoneMissed className="size-[19px]" style={{ color: "#b03a2e" }} strokeWidth={1.8} />
           </div>
           <div className="text-[13px] font-semibold text-muted-foreground">{t.callsStatMissed}</div>
-          <div className="font-heading mt-0.5 text-[26px] font-bold text-[#b03a2e]">{stats.missed}</div>
+          <div className="mt-0.5 text-[26px] font-bold text-[#b03a2e]">{stats.missed}</div>
         </Card>
         <Card className="gap-0 rounded-2xl border p-4.5 shadow-none">
           <div className="mb-3 flex size-9.5 items-center justify-center rounded-[10px]" style={{ background: "#e5f0fb" }}>
             <PhoneCall className="size-[19px]" style={{ color: "#1f5fa8" }} strokeWidth={1.8} />
           </div>
           <div className="text-[13px] font-semibold text-muted-foreground">{t.callsStatAvgDuration}</div>
-          <div className="font-heading mt-0.5 text-[26px] font-bold text-[#1f5fa8]">{stats.avg}</div>
+          <div className="mt-0.5 text-[26px] font-bold text-[#1f5fa8]">{stats.avg}</div>
         </Card>
         <Card className="gap-0 rounded-2xl border p-4.5 shadow-none">
           <div className="mb-3 flex size-9.5 items-center justify-center rounded-[10px]" style={{ background: "#e3f3e6" }}>
             <PhoneIncoming className="size-[19px]" style={{ color: "#227a44" }} strokeWidth={1.8} />
           </div>
           <div className="text-[13px] font-semibold text-muted-foreground">{t.callsStatAnswerRate}</div>
-          <div className="font-heading mt-0.5 text-[26px] font-bold text-[#227a44]">{stats.answerRate}%</div>
+          <div className="mt-0.5 text-[26px] font-bold text-[#227a44]">{stats.answerRate}%</div>
         </Card>
       </div>
 
       <Card className="gap-0 rounded-2xl border p-4.5 shadow-none">
-        <div className="mb-4 flex items-center gap-3">
-          <div className="relative max-w-90 flex-1">
+        <div className="mb-4 flex flex-wrap items-center gap-3">
+          <div className="relative max-w-90 min-w-0 flex-1">
             <Search className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={query}
@@ -112,7 +112,7 @@ export default function VoiceCalls() {
               className="h-9 rounded-full border-border pl-10 text-[13px]"
             />
           </div>
-          <div className="flex items-center gap-1.5 rounded-full border border-border p-[3px]">
+          <div className="flex flex-wrap items-center gap-1.5 rounded-full border border-border p-[3px]">
             {(
               [
                 ["all", t.callsFilterAll],
@@ -144,7 +144,8 @@ export default function VoiceCalls() {
             <p className="text-sm text-muted-foreground">{t.callsEmpty}</p>
           </div>
         ) : (
-          <div className="flex flex-col">
+          <div className="overflow-x-auto">
+          <div className="flex min-w-[640px] flex-col">
             {filtered.map((c, i) => {
               const meta = DIRECTION_META[c.direction]
               return (
@@ -193,6 +194,7 @@ export default function VoiceCalls() {
                 </div>
               )
             })}
+          </div>
           </div>
         )}
       </Card>

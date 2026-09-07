@@ -30,8 +30,8 @@ export default function Login() {
   }
 
   return (
-    <div className="flex h-screen w-full items-center justify-center bg-background px-4">
-      <Card className="w-full max-w-sm rounded-2xl border p-7 shadow-none">
+    <div className="flex min-h-dvh w-full items-center justify-center bg-background px-4 py-8">
+      <Card className="w-full max-w-sm rounded-2xl border p-5 shadow-none sm:p-7">
         <h1 className="font-heading text-xl font-bold">VidaClinic Staff Login</h1>
         <p className="mt-1 text-[13px] text-muted-foreground">Sign in to manage appointments, patients, and WhatsApp conversations.</p>
 

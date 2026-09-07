@@ -11,7 +11,7 @@ export default function Settings() {
         <p className="mt-1 text-sm text-muted-foreground">{t.profilePageSub}</p>
       </div>
 
-      <div className="max-w-100">
+      <div className="w-full max-w-100">
         <DoctorProfileCard />
       </div>
     </div>

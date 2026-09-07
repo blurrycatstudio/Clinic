@@ -149,13 +149,13 @@ export default function Reports() {
 
   return (
     <div>
-      <div className="mb-5 flex items-start justify-between">
+      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="font-heading text-2xl font-bold">{t.reportsPageTitle}</h1>
           <p className="mt-0.5 text-[13.5px] text-muted-foreground">{t.reportsPageSub}</p>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5 rounded-full border border-border p-[3px]">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-1.5 rounded-full border border-border p-[3px]">
             {(
               [
                 ["month", t.reportsRangeMonth],
@@ -182,27 +182,27 @@ export default function Reports() {
         </div>
       </div>
 
-      <div className="mb-4.5 grid grid-cols-4 gap-4">
+      <div className="mb-4.5 grid grid-cols-2 gap-4 lg:grid-cols-4">
         <Card className="gap-0 rounded-2xl border p-4.5 shadow-none">
           <div className="mb-3 flex size-9.5 items-center justify-center rounded-[10px] bg-accent">
             <TrendingUp className="size-[19px] text-primary" strokeWidth={1.8} />
           </div>
           <div className="text-[13px] font-semibold text-muted-foreground">{t.reportsStatRevenue}</div>
-          <div className="font-heading mt-0.5 text-[24px] font-bold">{peso(REVENUE_BY_MONTH.at(-1)!.value)}</div>
+          <div className="mt-0.5 text-[24px] font-bold">{peso(REVENUE_BY_MONTH.at(-1)!.value)}</div>
         </Card>
         <Card className="gap-0 rounded-2xl border p-4.5 shadow-none">
           <div className="mb-3 flex size-9.5 items-center justify-center rounded-[10px]" style={{ background: "#e5f0fb" }}>
             <Users className="size-[19px]" style={{ color: "#1f5fa8" }} strokeWidth={1.8} />
           </div>
           <div className="text-[13px] font-semibold text-muted-foreground">{t.reportsStatPatients}</div>
-          <div className="font-heading mt-0.5 text-[26px] font-bold text-[#1f5fa8]">{PATIENT_GROWTH.at(-1)!.value}</div>
+          <div className="mt-0.5 text-[26px] font-bold text-[#1f5fa8]">{PATIENT_GROWTH.at(-1)!.value}</div>
         </Card>
         <Card className="gap-0 rounded-2xl border p-4.5 shadow-none">
           <div className="mb-3 flex size-9.5 items-center justify-center rounded-[10px]" style={{ background: "#fdf1de" }}>
             <Calendar className="size-[19px]" style={{ color: "#c2882c" }} strokeWidth={1.8} />
           </div>
           <div className="text-[13px] font-semibold text-muted-foreground">{t.reportsStatAppts}</div>
-          <div className="font-heading mt-0.5 text-[26px] font-bold text-[#c2882c]">
+          <div className="mt-0.5 text-[26px] font-bold text-[#c2882c]">
             {APPT_TYPE_BREAKDOWN.reduce((s, d) => s + d.count, 0)}
           </div>
         </Card>
@@ -211,11 +211,11 @@ export default function Reports() {
             <Heart className="size-[19px]" style={{ color: "#d6486b" }} strokeWidth={1.8} />
           </div>
           <div className="text-[13px] font-semibold text-muted-foreground">{t.reportsStatSatisfaction}</div>
-          <div className="font-heading mt-0.5 text-[26px] font-bold text-[#d6486b]">98%</div>
+          <div className="mt-0.5 text-[26px] font-bold text-[#d6486b]">98%</div>
         </Card>
       </div>
 
-      <div className="grid grid-cols-2 gap-4.5">
+      <div className="grid grid-cols-1 gap-4.5 lg:grid-cols-2">
         <Card className="gap-0 rounded-2xl border p-5 shadow-none">
           <h2 className="font-heading text-[15px] font-bold">{t.reportsRevenueTitle}</h2>
           <p className="mt-0.5 mb-4 text-[11.5px] text-muted-foreground">{t.reportsRevenueSub}</p>

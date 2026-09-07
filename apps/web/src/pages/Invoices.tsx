@@ -56,7 +56,7 @@ function InvoiceDetailDialog({
     <Dialog.Root open={!!invoice} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm" />
-        <Dialog.Content className="fixed top-1/2 left-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-border bg-card p-6 shadow-2xl">
+        <Dialog.Content className="fixed top-1/2 left-1/2 z-50 max-h-[90vh] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl border border-border bg-card p-5 shadow-2xl sm:p-6">
           <div className="mb-5 flex items-start justify-between">
             <div>
               <Dialog.Title className="font-heading text-xl font-bold">
@@ -104,7 +104,7 @@ function InvoiceDetailDialog({
 
           <div className="mb-4 flex items-center justify-between rounded-[10px] bg-accent px-3.5 py-3">
             <span className="text-[13px] font-bold text-accent-foreground">{t.invDetailTotal}</span>
-            <span className="font-heading text-[19px] font-bold text-accent-foreground">{peso(invoice.amount)}</span>
+            <span className="text-[19px] font-bold text-accent-foreground">{peso(invoice.amount)}</span>
           </div>
 
           <div className="text-[12.5px] text-muted-foreground">
@@ -175,12 +175,13 @@ export default function Invoices() {
 
   return (
     <div>
-      <div className="mb-5 flex items-start justify-between">
+      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="font-heading text-2xl font-bold">{t.invoicesPageTitle}</h1>
           <p className="mt-0.5 text-[13.5px] text-muted-foreground">{t.invoicesPageSub}</p>
         </div>
         <Button
+          className="self-start gap-1.5 rounded-[10px] font-bold"
           onClick={() => {
             const patient = PATIENTS[Math.floor(Math.random() * PATIENTS.length)]
             const id = `INV-${3000 + invoices.length + 30}`
@@ -190,47 +191,46 @@ export default function Invoices() {
             ])
             toast(`Draft invoice ${id} created for ${patient.name}`)
           }}
-          className="gap-1.5 rounded-[10px] font-bold"
         >
           <Plus className="size-3.5" strokeWidth={2.4} />
           {t.invoicesNewBtn}
         </Button>
       </div>
 
-      <div className="mb-4.5 grid grid-cols-4 gap-4">
+      <div className="mb-4.5 grid grid-cols-2 gap-4 lg:grid-cols-4">
         <Card className="gap-0 rounded-2xl border p-4.5 shadow-none">
           <div className="mb-3 flex size-9.5 items-center justify-center rounded-[10px] bg-accent">
             <CreditCard className="size-[19px] text-primary" strokeWidth={1.8} />
           </div>
           <div className="text-[13px] font-semibold text-muted-foreground">{t.invoicesStatRevenue}</div>
-          <div className="font-heading mt-0.5 text-[22px] font-bold">{peso(stats.revenue)}</div>
+          <div className="mt-0.5 text-[22px] font-bold">{peso(stats.revenue)}</div>
         </Card>
         <Card className="gap-0 rounded-2xl border p-4.5 shadow-none">
           <div className="mb-3 flex size-9.5 items-center justify-center rounded-[10px]" style={{ background: "#fdf1de" }}>
             <Clock className="size-[19px]" style={{ color: "#c2882c" }} strokeWidth={1.8} />
           </div>
           <div className="text-[13px] font-semibold text-muted-foreground">{t.invoicesStatOutstanding}</div>
-          <div className="font-heading mt-0.5 text-[22px] font-bold text-[#c2882c]">{peso(stats.outstanding)}</div>
+          <div className="mt-0.5 text-[22px] font-bold text-[#c2882c]">{peso(stats.outstanding)}</div>
         </Card>
         <Card className="gap-0 rounded-2xl border p-4.5 shadow-none">
           <div className="mb-3 flex size-9.5 items-center justify-center rounded-[10px]" style={{ background: "#e3f3e6" }}>
             <CheckCircle2 className="size-[19px]" style={{ color: "#227a44" }} strokeWidth={1.8} />
           </div>
           <div className="text-[13px] font-semibold text-muted-foreground">{t.invoicesStatPaidCount}</div>
-          <div className="font-heading mt-0.5 text-[26px] font-bold text-[#227a44]">{stats.paidCount}</div>
+          <div className="mt-0.5 text-[26px] font-bold text-[#227a44]">{stats.paidCount}</div>
         </Card>
         <Card className="gap-0 rounded-2xl border p-4.5 shadow-none">
           <div className="mb-3 flex size-9.5 items-center justify-center rounded-[10px]" style={{ background: "#fbe7e5" }}>
             <AlertCircle className="size-[19px]" style={{ color: "#b03a2e" }} strokeWidth={1.8} />
           </div>
           <div className="text-[13px] font-semibold text-muted-foreground">{t.invoicesStatOverdueCount}</div>
-          <div className="font-heading mt-0.5 text-[26px] font-bold text-[#b03a2e]">{stats.overdueCount}</div>
+          <div className="mt-0.5 text-[26px] font-bold text-[#b03a2e]">{stats.overdueCount}</div>
         </Card>
       </div>
 
       <Card className="gap-0 rounded-2xl border p-4.5 shadow-none">
-        <div className="mb-4 flex items-center gap-3">
-          <div className="relative max-w-90 flex-1">
+        <div className="mb-4 flex flex-wrap items-center gap-3">
+          <div className="relative max-w-90 min-w-0 flex-1">
             <Search className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={query}
@@ -239,7 +239,7 @@ export default function Invoices() {
               className="h-9 rounded-full border-border pl-10 text-[13px]"
             />
           </div>
-          <div className="flex items-center gap-1.5 rounded-full border border-border p-[3px]">
+          <div className="flex flex-wrap items-center gap-1.5 rounded-full border border-border p-[3px]">
             {(
               [
                 ["all", t.invoicesFilterAll],

@@ -22,7 +22,7 @@ export function TodaysScheduleCard() {
     dayOffset === 0 ? t.scheduleDateValue : shownDate.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })
 
   return (
-    <Card className="h-full w-80 shrink-0 gap-0 overflow-hidden rounded-2xl border p-0 shadow-atelier lg:w-[360px]">
+    <Card className="h-[480px] w-full shrink-0 gap-0 overflow-hidden rounded-2xl border p-0 shadow-atelier lg:h-full lg:w-80 xl:w-[360px]">
       <div className="flex items-center justify-between gap-3 border-b bg-[#F8FAFC] p-4">
         <div>
           <div className="flex items-center gap-2">

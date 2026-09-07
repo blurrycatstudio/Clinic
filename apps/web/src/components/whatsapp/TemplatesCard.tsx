@@ -13,7 +13,7 @@ export function TemplatesCard() {
   }
 
   return (
-    <Card className="w-95 shrink-0 gap-0 rounded-2xl border p-4.5 shadow-none">
+    <Card className="w-full shrink-0 gap-0 rounded-2xl border p-4.5 shadow-none lg:w-95">
       <h3 className="font-heading mb-3 text-[15px] font-bold">{t.waTemplatesTitle}</h3>
       <div className="flex flex-col gap-2.5">
         {TEMPLATES.map((tpl) => (

@@ -38,7 +38,7 @@ function RecordDetailDialog({ record, patientName, onOpenChange }: { record: Med
     <Dialog.Root open={!!record} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm" />
-        <Dialog.Content className="fixed top-1/2 left-1/2 z-50 w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-border bg-card p-6 shadow-2xl">
+        <Dialog.Content className="fixed top-1/2 left-1/2 z-50 max-h-[90vh] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl border border-border bg-card p-5 shadow-2xl sm:p-6">
           <div className="mb-5 flex items-start justify-between">
             <div className="flex items-center gap-3">
               <div className="flex size-10 items-center justify-center rounded-[10px]" style={{ background: meta.bg }}>
@@ -121,12 +121,12 @@ export default function MedicalRecords() {
 
   return (
     <div>
-      <div className="mb-5 flex items-start justify-between">
+      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="font-heading text-2xl font-bold">{t.recordsPageTitle}</h1>
           <p className="mt-0.5 text-[13.5px] text-muted-foreground">{t.recordsPageSub}</p>
         </div>
-        <Button onClick={() => fileInputRef.current?.click()} className="gap-1.5 rounded-[10px] font-bold">
+        <Button onClick={() => fileInputRef.current?.click()} className="self-start gap-1.5 rounded-[10px] font-bold">
           <Upload className="size-3.5" strokeWidth={2.4} />
           {t.recordsUploadBtn}
         </Button>

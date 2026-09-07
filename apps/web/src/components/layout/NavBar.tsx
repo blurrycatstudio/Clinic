@@ -7,8 +7,8 @@ export function NavBar() {
   const { t } = useLang()
 
   return (
-    <nav className="scrollbar-hide flex h-11 shrink-0 items-center justify-between gap-4 overflow-x-auto border-b border-border/60 bg-white px-6 text-xs">
-      <div className="flex items-center gap-1.5">
+    <nav className="scrollbar-hide flex h-14 shrink-0 items-center justify-between gap-4 overflow-x-auto border-b border-border/60 bg-white px-3 text-[13.5px] sm:px-6">
+      <div className="flex items-center gap-2">
         {NAV_ITEMS.map((item) => (
           <NavLink
             key={item.path}
@@ -16,14 +16,14 @@ export function NavBar() {
             end={item.path === "/"}
             className={({ isActive }) =>
               cn(
-                "flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1 font-semibold transition-colors",
+                "flex shrink-0 items-center gap-2 rounded-full px-4 py-2 font-semibold transition-colors",
                 isActive
                   ? "bg-[#EFF6FF] text-[#2563EB] shadow-sm"
                   : "border border-transparent text-[#64748B] hover:bg-[#F8FAFC] hover:text-foreground",
               )
             }
           >
-            <item.icon className="size-3.5" strokeWidth={2} style={{ color: item.iconColor }} />
+            <item.icon className="size-4" strokeWidth={2} style={{ color: item.iconColor }} />
             <span className="whitespace-nowrap">{t[item.labelKey]}</span>
             {item.badge ? (
               <span

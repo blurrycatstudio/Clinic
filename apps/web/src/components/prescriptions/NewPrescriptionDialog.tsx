@@ -68,7 +68,7 @@ export function NewPrescriptionDialog({
     >
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm" />
-        <Dialog.Content className="fixed top-1/2 left-1/2 z-50 max-h-[88vh] w-full max-w-2xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl border border-border bg-card p-6 shadow-2xl">
+        <Dialog.Content className="fixed top-1/2 left-1/2 z-50 max-h-[90vh] w-[calc(100%-2rem)] max-w-2xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl border border-border bg-card p-5 shadow-2xl sm:p-6">
           <div className="mb-5 flex items-center justify-between">
             <Dialog.Title className="font-heading text-xl font-bold">{t.rxModalTitle}</Dialog.Title>
             <Dialog.Close className="flex size-8 items-center justify-center rounded-[9px] border border-border hover:bg-muted">
@@ -140,7 +140,7 @@ export function NewPrescriptionDialog({
                       />
                     </div>
 
-                    <div className="grid grid-cols-4 gap-2.5">
+                    <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
                       <div>
                         <label className="mb-1 block text-[10.5px] font-bold text-muted-foreground">{t.rxModalDose}</label>
                         <Input value={med.dose} onChange={(e) => updateMed(i, { dose: e.target.value })} placeholder={t.rxModalDosePh} className="h-8.5 text-[13px]" />

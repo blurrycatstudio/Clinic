@@ -38,20 +38,20 @@ export default function Prescriptions() {
 
   return (
     <div>
-      <div className="mb-5 flex items-start justify-between">
+      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="font-heading text-2xl font-bold">{t.rxPageTitle}</h1>
           <p className="mt-0.5 text-[13.5px] text-muted-foreground">{t.rxPageSub}</p>
         </div>
-        <Button onClick={() => setNewOpen(true)} className="gap-1.5 rounded-[10px] font-bold">
+        <Button onClick={() => setNewOpen(true)} className="self-start gap-1.5 rounded-[10px] font-bold">
           <Plus className="size-3.5" strokeWidth={2.4} />
           {t.rxNewBtn}
         </Button>
       </div>
 
       <Card className="gap-0 rounded-2xl border p-4.5 shadow-none">
-        <div className="mb-4 flex items-center gap-3">
-          <div className="relative max-w-90 flex-1">
+        <div className="mb-4 flex flex-wrap items-center gap-3">
+          <div className="relative max-w-90 min-w-0 flex-1">
             <Search className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={query}
@@ -60,7 +60,7 @@ export default function Prescriptions() {
               className="h-9 rounded-full border-border pl-10 text-[13px]"
             />
           </div>
-          <div className="flex items-center gap-1.5 rounded-full border border-border p-[3px]">
+          <div className="flex flex-wrap items-center gap-1.5 rounded-full border border-border p-[3px]">
             {([
               ["all", t.rxAll],
               ["rxStatusActive", t.rxStatusActive],

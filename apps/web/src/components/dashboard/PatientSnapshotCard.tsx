@@ -134,7 +134,7 @@ export function PatientSnapshotCard({ patient = DEFAULT_PATIENT }: { patient?: P
   ]
 
   return (
-    <Card className="h-full min-w-0 flex-1 gap-0 overflow-hidden rounded-2xl border p-0 shadow-atelier-elevated">
+    <Card className="h-[640px] min-w-0 w-full flex-1 gap-0 overflow-hidden rounded-2xl border p-0 shadow-atelier-elevated lg:h-full">
       {/* Dossier header */}
       <div className="flex flex-wrap items-center justify-between gap-4 border-b bg-gradient-to-r from-white via-white to-[#EFF6FF]/50 p-5">
         <div className="flex items-center gap-4">
@@ -178,7 +178,7 @@ export function PatientSnapshotCard({ patient = DEFAULT_PATIENT }: { patient?: P
           <Button
             onClick={() => {
               toast(`Consultation started for ${p.name}`)
-              navigate("/prescriptions")
+              setTab("overview")
             }}
             className="gap-1.5 rounded-xl bg-gradient-to-r from-[#F97316] via-[#EC4899] to-[#8B5CF6] font-bold text-white shadow-md hover:opacity-90"
           >

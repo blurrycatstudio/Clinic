@@ -18,8 +18,8 @@ export function PrescriptionDetailDialog({
     <Dialog.Root open={!!rx} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm print:hidden" />
-        <Dialog.Content className="fixed top-1/2 left-1/2 z-50 max-h-[90vh] w-full max-w-xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl border border-border bg-card p-0 shadow-2xl print:static print:max-h-none print:w-full print:max-w-none print:translate-x-0 print:translate-y-0 print:border-0 print:shadow-none">
-          <div className="flex items-center justify-between border-b border-border px-6 py-4 print:hidden">
+        <Dialog.Content className="fixed top-1/2 left-1/2 z-50 max-h-[90vh] w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl border border-border bg-card p-0 shadow-2xl print:static print:max-h-none print:w-full print:max-w-none print:translate-x-0 print:translate-y-0 print:border-0 print:shadow-none">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-4 sm:px-6 print:hidden">
             <Dialog.Title className="font-heading text-lg font-bold">
               {t.rxDetailRx} · {rx?.id}
             </Dialog.Title>
@@ -35,8 +35,8 @@ export function PrescriptionDetailDialog({
           </div>
 
           {rx ? (
-            <div className="p-7 print:p-0">
-              <div className="mb-5 flex items-center justify-between border-b-2 border-foreground pb-4">
+            <div className="p-5 sm:p-7 print:p-0">
+              <div className="mb-5 flex flex-wrap items-center justify-between gap-3 border-b-2 border-foreground pb-4">
                 <div className="flex items-center gap-2.5">
                   <div className="flex size-10 items-center justify-center rounded-[10px] border border-border bg-accent">
                     <Leaf className="size-5 text-primary" strokeWidth={1.8} />
@@ -49,7 +49,7 @@ export function PrescriptionDetailDialog({
                 <div className="font-heading text-3xl font-bold text-primary">℞</div>
               </div>
 
-              <div className="mb-5 grid grid-cols-3 gap-3 text-[13px]">
+              <div className="mb-5 grid grid-cols-3 gap-3 text-[13px] sm:gap-3">
                 <div>
                   <div className="text-[10.5px] font-bold tracking-wide text-muted-foreground uppercase">{t.rxDetailPatientLabel}</div>
                   <div className="font-bold">{patient?.name}</div>

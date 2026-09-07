@@ -60,9 +60,9 @@ export default function Messages() {
         </Button>
       </div>
 
-      <Card className="flex h-160 flex-row gap-0 overflow-hidden rounded-2xl border p-0 shadow-none">
-        <div className="flex w-72 shrink-0 flex-col border-r">
-          <div className="border-b p-4">
+      <Card className="flex h-[70vh] flex-row gap-0 overflow-hidden rounded-2xl border p-0 shadow-none sm:h-160">
+        <div className="flex w-16 shrink-0 flex-col border-r sm:w-72">
+          <div className="hidden border-b p-4 sm:block">
             <div className="relative">
               <Search className="pointer-events-none absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-muted-foreground" />
               <Input
@@ -81,14 +81,14 @@ export default function Messages() {
                 <button
                   key={c.id}
                   onClick={() => setActiveId(c.id)}
-                  className={cn("flex w-full items-center gap-2.5 px-4 py-3 text-left transition-colors hover:bg-muted/60", selected && "bg-accent")}
+                  className={cn("flex w-full items-center justify-center gap-2.5 px-2.5 py-3 text-left transition-colors hover:bg-muted/60 sm:justify-start sm:px-4", selected && "bg-accent")}
                 >
                   <Avatar className="size-9.5 shrink-0">
                     <AvatarFallback className="text-[12.5px] font-bold text-white" style={{ background: c.bg }}>
                       {c.initials}
                     </AvatarFallback>
                   </Avatar>
-                  <div className="min-w-0 flex-1">
+                  <div className="hidden min-w-0 flex-1 sm:block">
                     <div className="flex items-center justify-between">
                       <div className="text-[13px] font-bold">{c.name}</div>
                       <div className="text-[10.5px] text-muted-foreground">{c.time}</div>
@@ -107,38 +107,38 @@ export default function Messages() {
         <div className="flex min-w-0 flex-1 flex-col">
           {active ? (
             <>
-              <div className="flex items-center gap-3 border-b px-4.5 py-3.5">
+              <div className="flex items-center gap-2 border-b px-3 py-3 sm:gap-3 sm:px-4.5 sm:py-3.5">
                 <Avatar className="size-9.5 shrink-0">
                   <AvatarFallback className="text-[12.5px] font-bold text-white" style={{ background: active.bg }}>
                     {active.initials}
                   </AvatarFallback>
                 </Avatar>
-                <div className="flex-1">
-                  <div className="text-[13.5px] font-bold">{active.name}</div>
-                  <div className="text-[11px] text-muted-foreground">{active.child}</div>
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-[13.5px] font-bold">{active.name}</div>
+                  <div className="truncate text-[11px] text-muted-foreground">{active.child}</div>
                 </div>
                 <button
                   onClick={() => {
                     window.location.href = "tel:"
                     toast(`Calling ${active.name}…`)
                   }}
-                  className="flex size-8.5 items-center justify-center rounded-[9px] hover:bg-muted"
+                  className="flex size-8.5 shrink-0 items-center justify-center rounded-[9px] hover:bg-muted"
                 >
                   <Phone className="size-4.5 text-foreground" strokeWidth={1.8} />
                 </button>
-                <button onClick={() => toast(`Starting video call with ${active.name}…`)} className="flex size-8.5 items-center justify-center rounded-[9px] hover:bg-muted">
+                <button onClick={() => toast(`Starting video call with ${active.name}…`)} className="hidden size-8.5 shrink-0 items-center justify-center rounded-[9px] hover:bg-muted sm:flex">
                   <Video className="size-4.5 text-foreground" strokeWidth={1.8} />
                 </button>
               </div>
 
-              <div className="flex-1 space-y-2.5 overflow-y-auto bg-muted/40 p-4.5">
+              <div className="flex-1 space-y-2.5 overflow-y-auto bg-muted/40 p-3 sm:p-4.5">
                 {active.msgs.map((m, i) => {
                   const mine = m.from === "me"
                   return (
                     <div key={i} className={cn("flex", mine ? "justify-end" : "justify-start")}>
                       <div
                         className={cn(
-                          "max-w-[72%] rounded-2xl px-3.5 py-2.5 text-[13px] leading-relaxed",
+                          "max-w-[85%] rounded-2xl px-3.5 py-2.5 text-[13px] leading-relaxed sm:max-w-[72%]",
                           mine ? "rounded-br-[4px] bg-primary text-primary-foreground" : "rounded-bl-[4px] border bg-card",
                         )}
                       >
@@ -150,7 +150,7 @@ export default function Messages() {
                 })}
               </div>
 
-              <div className="flex items-center gap-2.5 border-t px-4.5 py-3.5">
+              <div className="flex items-center gap-2 border-t px-3 py-3 sm:gap-2.5 sm:px-4.5 sm:py-3.5">
                 <button onClick={() => fileInputRef.current?.click()} className="flex size-9 shrink-0 items-center justify-center rounded-[9px] hover:bg-muted">
                   <Paperclip className="size-4.5 text-muted-foreground" strokeWidth={1.8} />
                 </button>

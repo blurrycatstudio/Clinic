@@ -13,8 +13,8 @@ export default function WhatsAppPage() {
         <p className="mt-0.5 text-[13.5px] text-muted-foreground">{t.waPageSub}</p>
       </div>
 
-      <div className="flex items-start gap-5">
-        <div className="flex flex-col gap-4.5">
+      <div className="flex flex-col items-start gap-5 lg:flex-row">
+        <div className="flex w-full flex-col gap-4.5 lg:w-auto">
           <AutomationPanel />
           <TemplatesCard />
         </div>
