@@ -45,6 +45,10 @@ export const botMessages = {
     appointmentStatusLine: "📅 {date} a las {time} — {status}",
     statusScheduled: "Agendada",
     statusConfirmed: "Confirmada",
+    sharedAvailableSlots: "📅 Aquí tienes los horarios disponibles:\n\n{slots}\n\nEscribe *Hola* para agendar uno de estos horarios.",
+    sharedNoSlotsAvailable: "Por el momento no encontramos horarios disponibles. Un miembro de nuestro equipo te contactará pronto.",
+    sharedAppointmentDetails: "📋 Aquí están los detalles de tu cita:\n\n{appointments}",
+    sharedNoAppointmentsFound: "No encontramos citas activas asociadas a tu número.",
     chooseAppointmentToReschedule:
       "¿Cuál cita deseas reprogramar? Responde con el número:\n\n{appointments}",
     chooseAppointmentToCancel:
@@ -58,8 +62,10 @@ export const botMessages = {
       "¿Confirmas que deseas cancelar tu cita del {date} a las {time}? Responde *SI* o *NO*.",
     cancellationConfirmed: "✅ Tu cita ha sido cancelada. Escribe *Hola* si deseas agendar una nueva.",
     cancellationAborted: "Tu cita se mantiene sin cambios. Escribe *Hola* si necesitas algo más.",
+    clinicOverview:
+      "📍 *Ubicación*\n{address}\n\n🗓️ *Horario*\n{hours}\n\n🅿️ *Estacionamiento*\n{parking}",
     infoPrompt:
-      "Puedes preguntarme sobre horarios, dirección, estacionamiento, costos, seguros o sobre el doctor. ¿Qué te gustaría saber?",
+      "¿Algo más que quieras saber? Puedo darte información sobre costos, seguros o el doctor.",
     infoFallback:
       "Para esa pregunta lo mejor es que hables directo con nuestro equipo. Escribe *5* para que un humano te atienda.",
     humanSupportAck:
@@ -102,6 +108,10 @@ export const botMessages = {
     appointmentStatusLine: "📅 {date} at {time} — {status}",
     statusScheduled: "Scheduled",
     statusConfirmed: "Confirmed",
+    sharedAvailableSlots: "📅 Here are the available time slots:\n\n{slots}\n\nType *Hi* to book one of these.",
+    sharedNoSlotsAvailable: "We couldn't find any available slots right now. A member of our team will reach out soon.",
+    sharedAppointmentDetails: "📋 Here are your appointment details:\n\n{appointments}",
+    sharedNoAppointmentsFound: "We couldn't find any active appointments under your number.",
     chooseAppointmentToReschedule: "Which appointment would you like to reschedule? Reply with the number:\n\n{appointments}",
     chooseAppointmentToCancel: "Which appointment would you like to cancel? Reply with the number:\n\n{appointments}",
     appointmentSelectionInvalid: "That's not a valid option. Please choose one of the listed numbers.",
@@ -112,8 +122,10 @@ export const botMessages = {
     confirmCancellation: "Do you confirm cancelling your appointment on {date} at {time}? Reply *YES* or *NO*.",
     cancellationConfirmed: "✅ Your appointment has been cancelled. Type *Hi* if you'd like to book a new one.",
     cancellationAborted: "Your appointment remains unchanged. Type *Hi* if you need anything else.",
+    clinicOverview:
+      "📍 *Location*\n{address}\n\n🗓️ *Hours*\n{hours}\n\n🅿️ *Parking*\n{parking}",
     infoPrompt:
-      "You can ask me about hours, address, parking, fees, insurance, or the doctor. What would you like to know?",
+      "Anything else you'd like to know? I can tell you about fees, insurance, or the doctor.",
     infoFallback: "For that question it's best to speak with our team directly. Type *5* to reach a human.",
     humanSupportAck:
       "Got it — a member of our team will review your conversation and reach out as soon as possible during business hours.",

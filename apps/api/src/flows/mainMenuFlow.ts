@@ -52,11 +52,28 @@ export const mainMenuFlow: FlowHandler = async ({ text, buttonId, context, setti
       return enterRescheduleFlow(context)
     case "3":
       return enterCancelFlow(context)
-    case "4":
+    case "4": {
+      const hours = lang === "es" ? settings.hours_summary_es : settings.hours_summary_en
+      const parking = lang === "es" ? settings.parking_info_es : settings.parking_info_en
+      const overview = t(lang, "clinicOverview", { address: settings.address, hours, parking })
+
       return {
         context: { ...context, state: ConversationState.AWAITING_FAQ_QUESTION, activeFlow: FlowType.INFO },
-        reply: { text: t(lang, "infoPrompt") },
+        reply: {
+          text: `${overview}\n\n${t(lang, "infoPrompt")}`,
+          ...(settings.latitude != null && settings.longitude != null
+            ? {
+                location: {
+                  latitude: settings.latitude,
+                  longitude: settings.longitude,
+                  name: settings.clinic_name,
+                  address: settings.address,
+                },
+              }
+            : {}),
+        },
       }
+    }
     case "5":
       return {
         context: { ...context, state: ConversationState.ESCALATED_TO_HUMAN, activeFlow: FlowType.HUMAN_SUPPORT },

@@ -17,4 +17,6 @@ agentRouter.patch("/appointments/:id/cancel", asyncHandler(async (req, res) => a
 agentRouter.patch("/appointments/:id/confirm", asyncHandler(async (req, res) => agentController.confirmAttendance(req, res)))
 agentRouter.get("/faq", asyncHandler(async (req, res) => agentController.getFaq(req, res)))
 agentRouter.post("/whatsapp-location", asyncHandler(async (req, res) => agentController.sendLocation(req, res)))
+agentRouter.post("/whatsapp-availability", asyncHandler(async (req, res) => agentController.sendAvailabilityOnWhatsapp(req, res)))
+agentRouter.post("/whatsapp-appointment-details", asyncHandler(async (req, res) => agentController.sendAppointmentDetailsOnWhatsapp(req, res)))
 agentRouter.post("/escalations", asyncHandler(async (req, res) => agentController.escalate(req, res)))

@@ -1,5 +1,8 @@
+import { format } from "date-fns"
+import { toZonedTime } from "date-fns-tz"
 import type { Request, Response } from "express"
 import { z } from "zod"
+import { CLINIC_TIMEZONE, t } from "@clinic/shared"
 import { appointmentService } from "../services/appointmentService.js"
 import { appointmentRepository } from "../repositories/appointmentRepository.js"
 import { patientRepository } from "../repositories/patientRepository.js"
@@ -9,6 +12,25 @@ import { auditLogRepository } from "../repositories/auditLogRepository.js"
 import { notifyPatientOfAppointmentChange } from "../services/notificationService.js"
 import { logger } from "../config/logger.js"
 import { ValidationError } from "../lib/errors.js"
+
+const HOUR_RANGES: Record<string, [number, number]> = {
+  morning: [0, 12],
+  afternoon: [12, 17],
+  evening: [17, 24],
+}
+
+/** Voice-agent tools push messages outside the WhatsApp 24h session window, so a
+ *  send can be rejected by Meta until the patient has an active session — same
+ *  risk already accepted by sendLocation below. We log it but never fail the call. */
+async function pushWhatsappText(phone: string, text: string): Promise<{ sent: boolean; messageId: string | null }> {
+  try {
+    const { messageId } = await whatsappService.sendTextMessage(phone, text)
+    return { sent: true, messageId }
+  } catch (err) {
+    logger.warn({ err, phone }, "Voice-channel WhatsApp push failed (non-fatal)")
+    return { sent: false, messageId: null }
+  }
+}
 
 /**
  * Endpoints for the voice-call tool handler (n8n, driven by Vapi's
@@ -36,15 +58,9 @@ export const agentController = {
       })
       .parse(req.query)
 
-    const hourRanges: Record<string, [number, number]> = {
-      morning: [0, 12],
-      afternoon: [12, 17],
-      evening: [17, 24],
-    }
-
     let slots = await appointmentService.getAvailableSlots(query.days, 30)
 
-    const range = query.timeOfDay ? hourRanges[query.timeOfDay] : undefined
+    const range = query.timeOfDay ? HOUR_RANGES[query.timeOfDay] : undefined
     if (range) {
       const [from, to] = range
       slots = slots.filter((s) => {
@@ -191,6 +207,69 @@ export const agentController = {
       address: settings.address,
     })
     res.json({ sent: true, messageId })
+  },
+
+  /** Voice tool: caller asks "send me the available slots on WhatsApp" mid-call. */
+  async sendAvailabilityOnWhatsapp(req: Request, res: Response) {
+    const body = z
+      .object({
+        phone: z.string().min(4),
+        days: z.coerce.number().min(1).max(60).optional(),
+        timeOfDay: z.enum(["morning", "afternoon", "evening", "any"]).optional(),
+      })
+      .parse(req.body)
+
+    const patient = await patientRepository.findByPhone(body.phone)
+    const lang = patient?.language ?? "es"
+
+    let slots = await appointmentService.getAvailableSlots(body.days, 30)
+    const range = body.timeOfDay ? HOUR_RANGES[body.timeOfDay] : undefined
+    if (range) {
+      const [from, to] = range
+      slots = slots.filter((s) => {
+        const hour = new Date(s.startsAtIso).getUTCHours()
+        return hour >= from && hour < to
+      })
+    }
+    slots = slots.slice(0, 9)
+
+    const text =
+      slots.length === 0
+        ? t(lang, "sharedNoSlotsAvailable")
+        : t(lang, "sharedAvailableSlots", { slots: slots.map((s) => `• ${s.label}`).join("\n") })
+
+    const { sent, messageId } = await pushWhatsappText(body.phone, text)
+    res.json({ sent, messageId, slotsSent: slots.length })
+  },
+
+  /** Voice tool: caller asks "send me my appointment details on WhatsApp" mid-call. */
+  async sendAppointmentDetailsOnWhatsapp(req: Request, res: Response) {
+    const body = z.object({ phone: z.string().min(4) }).parse(req.body)
+
+    const patient = await patientRepository.findByPhone(body.phone)
+    const lang = patient?.language ?? "es"
+
+    const appointments = patient ? await appointmentRepository.listUpcomingForPatient(patient.id) : []
+
+    const text =
+      appointments.length === 0
+        ? t(lang, "sharedNoAppointmentsFound")
+        : t(lang, "sharedAppointmentDetails", {
+            appointments: appointments
+              .map((a) => {
+                const zoned = toZonedTime(new Date(a.starts_at), CLINIC_TIMEZONE)
+                const statusKey = a.status === "confirmed" ? "statusConfirmed" : "statusScheduled"
+                return t(lang, "appointmentStatusLine", {
+                  date: format(zoned, "EEEE d MMMM"),
+                  time: format(zoned, "h:mm a"),
+                  status: t(lang, statusKey),
+                })
+              })
+              .join("\n"),
+          })
+
+    const { sent, messageId } = await pushWhatsappText(body.phone, text)
+    res.json({ sent, messageId, appointmentsSent: appointments.length })
   },
 
   async escalate(req: Request, res: Response) {
