@@ -1,6 +1,7 @@
 import { ConversationState, FlowType, t, type Language } from "@clinic/shared"
 import type { FlowHandler } from "./types.js"
 import { conversationRepository } from "../repositories/conversationRepository.js"
+import { buildMainMenu } from "./mainMenuFlow.js"
 
 export const languageSelectFlow: FlowHandler = async ({ text, context, settings }) => {
   const choice = text.trim()
@@ -18,6 +19,6 @@ export const languageSelectFlow: FlowHandler = async ({ text, context, settings 
   const next = { ...context, language, state: ConversationState.AWAITING_MENU_SELECTION, activeFlow: FlowType.NONE }
   return {
     context: next,
-    reply: { text: t(language, "mainMenu", { clinicName: settings.clinic_name }) },
+    reply: buildMainMenu(language, settings),
   }
 }

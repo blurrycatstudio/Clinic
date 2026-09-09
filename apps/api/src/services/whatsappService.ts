@@ -37,6 +37,19 @@ type WhatsappInteractiveButtonsMessage = {
     action: { buttons: { type: "reply"; reply: { id: string; title: string } }[] }
   }
 }
+type WhatsappInteractiveListMessage = {
+  messaging_product: "whatsapp"
+  to: string
+  type: "interactive"
+  interactive: {
+    type: "list"
+    body: { text: string }
+    action: {
+      button: string
+      sections: { rows: { id: string; title: string }[] }[]
+    }
+  }
+}
 
 async function callGraphApi(body: unknown): Promise<{ messageId: string | null; debug: Record<string, unknown> }> {
   if (!isWhatsappConfigured) {
@@ -140,6 +153,26 @@ export const whatsappService = {
         type: "button",
         body: { text: bodyText },
         action: { buttons: buttons.map((b) => ({ type: "reply", reply: b })) },
+      },
+    }
+    return callGraphApi(payload)
+  },
+
+  /** WhatsApp caps reply buttons at 3 — use this "dropdown" style list for menus with more options (max 10 rows). */
+  async sendInteractiveList(
+    to: string,
+    bodyText: string,
+    buttonLabel: string,
+    rows: { id: string; title: string }[],
+  ): Promise<{ messageId: string | null }> {
+    const payload: WhatsappInteractiveListMessage = {
+      messaging_product: "whatsapp",
+      to,
+      type: "interactive",
+      interactive: {
+        type: "list",
+        body: { text: bodyText },
+        action: { button: buttonLabel, sections: [{ rows }] },
       },
     }
     return callGraphApi(payload)

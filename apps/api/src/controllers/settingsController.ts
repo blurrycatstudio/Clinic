@@ -1,5 +1,6 @@
 import type { Request, Response } from "express"
 import { z } from "zod"
+import { MENU_OPTION_KEYS } from "@clinic/shared"
 import { clinicSettingsRepository } from "../repositories/clinicSettingsRepository.js"
 import { auditLogRepository } from "../repositories/auditLogRepository.js"
 
@@ -23,6 +24,8 @@ const updateSchema = z.object({
   insurance_info_es: z.string().optional(),
   reminder_call_enabled: z.boolean().optional(),
   reminder_call_hours_before: z.number().int().min(1).max(72).optional(),
+  enabled_menu_options: z.array(z.enum(MENU_OPTION_KEYS)).min(1).optional(),
+  featured_menu_options: z.array(z.enum(MENU_OPTION_KEYS)).max(3).optional(),
 })
 
 export const settingsController = {

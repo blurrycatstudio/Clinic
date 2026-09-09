@@ -1,5 +1,6 @@
-import { ConversationState, FlowType, t } from "@clinic/shared"
+import { ConversationState, FlowType } from "@clinic/shared"
 import type { FlowHandler } from "./types.js"
+import { buildMainMenu } from "./mainMenuFlow.js"
 
 const MENU_ESCAPE_WORDS = new Set(["menu", "hola", "hi", "hello"])
 
@@ -16,7 +17,7 @@ export const humanSupportFlow: FlowHandler = async ({ text, context, settings })
   if (MENU_ESCAPE_WORDS.has(trimmed)) {
     return {
       context: { ...context, state: ConversationState.AWAITING_MENU_SELECTION, activeFlow: FlowType.NONE },
-      reply: { text: t(lang, "mainMenu", { clinicName: settings.clinic_name }) },
+      reply: buildMainMenu(lang, settings),
     }
   }
 

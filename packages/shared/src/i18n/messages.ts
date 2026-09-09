@@ -7,17 +7,39 @@
  */
 
 import type { Language } from "../types/database.js"
+import type { MenuOptionKey } from "../types/menu.js"
 
 export type BotMessages = typeof botMessages.es
+
+/** Short labels (WhatsApp list rows cap titles at 24 chars) for the toggleable main-menu options. */
+export const menuOptionLabels: Record<MenuOptionKey, Record<Language, string>> = {
+  book: { es: "Agendar cita", en: "Book Appointment" },
+  reschedule: { es: "Reprogramar cita", en: "Reschedule Appointment" },
+  cancel: { es: "Cancelar cita", en: "Cancel Appointment" },
+  info: { es: "Info de la clínica", en: "Clinic Information" },
+  human: { es: "Hablar con un humano", en: "Human Support" },
+  status: { es: "Ver estado de mi cita", en: "Appointment Status" },
+}
+
+/** Even shorter labels for the "featured" options shown as always-visible reply buttons — WhatsApp caps button titles at 20 chars. */
+export const menuOptionButtonLabels: Record<MenuOptionKey, Record<Language, string>> = {
+  book: { es: "Agendar cita", en: "Book Appointment" },
+  reschedule: { es: "Reprogramar", en: "Reschedule" },
+  cancel: { es: "Cancelar cita", en: "Cancel Appointment" },
+  info: { es: "Info de la clínica", en: "Clinic Information" },
+  human: { es: "Hablar con humano", en: "Human Support" },
+  status: { es: "Ver estado de cita", en: "Appointment Status" },
+}
 
 export const botMessages = {
   es: {
     languagePrompt:
       "¡Hola! Bienvenido a *{clinicName}* 🏥\nPor favor elige tu idioma / Please choose your language:\n\n1️⃣ Español\n2️⃣ English",
     languageInvalid: "Por favor responde 1 para Español o 2 para English.",
-    mainMenu:
-      "Bienvenido a *{clinicName}*.\n\n1️⃣ Agendar cita\n2️⃣ Reprogramar cita\n3️⃣ Cancelar cita\n4️⃣ Información de la clínica\n5️⃣ Hablar con un humano\n6️⃣ Ver estado de mi cita\n\nResponde con el número de tu opción.",
-    menuInvalid: "No entendí esa opción. Responde con un número del 1 al 6.",
+    mainMenuHeader: "Bienvenido a *{clinicName}*.",
+    mainMenuFooter: "Responde con el número de tu opción.",
+    mainMenuFooterWithButtons: "Toca una opción rápida arriba o responde con el número de tu elección.",
+    menuInvalid: "No entendí esa opción. Elige una opción rápida o responde con su número.",
     confirmSavedDetails:
       "¡Bienvenido de nuevo! Tenemos estos datos guardados:\n\n👤 {name}\n📱 {phone}{reasonLine}\n\nResponde *SI* para usarlos, o escribe el nombre completo correcto si necesitas actualizarlo.",
     confirmSavedDetailsInvalid:
@@ -39,7 +61,7 @@ export const botMessages = {
     bookingCancelled: "Entendido, no se agendó la cita. Escribe *Hola* si necesitas algo más.",
     confirmInvalid: "Por favor responde *SI* o *NO*.",
     noAppointmentsFound:
-      "No encontramos citas activas asociadas a tu número. Si crees que es un error, elige la opción 5 para hablar con un humano.",
+      "No encontramos citas activas asociadas a tu número. Si crees que es un error, escribe *Hola* y elige hablar con un humano.",
     yourAppointmentsStatus:
       "📋 Estas son tus citas activas:\n\n{appointments}\n\nEscribe *Hola* para volver al menú principal.",
     appointmentStatusLine: "📅 {date} a las {time} — {status}",
@@ -67,7 +89,7 @@ export const botMessages = {
     infoPrompt:
       "¿Algo más que quieras saber? Puedo darte información sobre costos, seguros o el doctor.",
     infoFallback:
-      "Para esa pregunta lo mejor es que hables directo con nuestro equipo. Escribe *5* para que un humano te atienda.",
+      "Para esa pregunta lo mejor es que hables directo con nuestro equipo. Escribe *Hola* y elige hablar con un humano.",
     humanSupportAck:
       "Entendido, un miembro de nuestro equipo revisará tu conversación y te contactará lo antes posible durante horario de atención.",
     genericFallback:
@@ -79,9 +101,10 @@ export const botMessages = {
     languagePrompt:
       "Hi! Welcome to *{clinicName}* 🏥\nPlease choose your language / Por favor elige tu idioma:\n\n1️⃣ Español\n2️⃣ English",
     languageInvalid: "Please reply 1 for Español or 2 for English.",
-    mainMenu:
-      "Welcome to *{clinicName}*.\n\n1️⃣ Book Appointment\n2️⃣ Reschedule Appointment\n3️⃣ Cancel Appointment\n4️⃣ Clinic Information\n5️⃣ Human Support\n6️⃣ Check Appointment Status\n\nReply with the number of your choice.",
-    menuInvalid: "Sorry, I didn't get that. Reply with a number from 1 to 6.",
+    mainMenuHeader: "Welcome to *{clinicName}*.",
+    mainMenuFooter: "Reply with the number of your choice.",
+    mainMenuFooterWithButtons: "Tap a quick option above or reply with the number of your choice.",
+    menuInvalid: "Sorry, I didn't get that. Choose a quick option or reply with its number.",
     confirmSavedDetails:
       "Welcome back! We have these details on file:\n\n👤 {name}\n📱 {phone}{reasonLine}\n\nReply *YES* to use them, or type the correct full name if you need to update it.",
     confirmSavedDetailsInvalid:
@@ -103,7 +126,7 @@ export const botMessages = {
     bookingCancelled: "No problem, the appointment wasn't booked. Type *Hi* if you need anything else.",
     confirmInvalid: "Please reply *YES* or *NO*.",
     noAppointmentsFound:
-      "We couldn't find any active appointments under your number. If you think this is a mistake, choose option 5 to talk to a human.",
+      "We couldn't find any active appointments under your number. If you think this is a mistake, type *Hi* and choose to talk to a human.",
     yourAppointmentsStatus: "📋 Here are your active appointments:\n\n{appointments}\n\nType *Hi* to go back to the main menu.",
     appointmentStatusLine: "📅 {date} at {time} — {status}",
     statusScheduled: "Scheduled",
@@ -126,7 +149,7 @@ export const botMessages = {
       "📍 *Location*\n{address}\n\n🗓️ *Hours*\n{hours}\n\n🅿️ *Parking*\n{parking}",
     infoPrompt:
       "Anything else you'd like to know? I can tell you about fees, insurance, or the doctor.",
-    infoFallback: "For that question it's best to speak with our team directly. Type *5* to reach a human.",
+    infoFallback: "For that question it's best to speak with our team directly. Type *Hi* and choose to talk to a human.",
     humanSupportAck:
       "Got it — a member of our team will review your conversation and reach out as soon as possible during business hours.",
     genericFallback: "I'm not sure I understood that. Type *Hi* to see the main menu.",

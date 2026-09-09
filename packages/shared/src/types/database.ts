@@ -4,6 +4,8 @@
  * `supabase gen types typescript` output.
  */
 
+import type { MenuOptionKey } from "./menu.js"
+
 export type UUID = string
 export type ISODateString = string // yyyy-mm-dd
 export type ISOTimestamp = string // full ISO 8601
@@ -78,6 +80,10 @@ export type ClinicSettings = {
   appointment_duration_minutes: number
   reminder_call_enabled: boolean
   reminder_call_hours_before: number
+  /** Which WhatsApp main-menu options are shown to patients, and in what canonical order. */
+  enabled_menu_options: MenuOptionKey[]
+  /** Subset of enabled_menu_options (max 3, WhatsApp's reply-button cap) shown as always-visible quick-action buttons. */
+  featured_menu_options: MenuOptionKey[]
   updated_at: ISOTimestamp
 }
 

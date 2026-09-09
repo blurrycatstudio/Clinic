@@ -1,6 +1,7 @@
-import { ConversationState, FlowType, Intent, t } from "@clinic/shared"
+import { ConversationState, FlowType, Intent } from "@clinic/shared"
 import type { FlowHandler } from "./types.js"
 import { openaiService } from "../services/openaiService.js"
+import { buildMainMenu } from "./mainMenuFlow.js"
 
 const MENU_ESCAPE_WORDS = new Set(["menu", "hola", "hi", "hello"])
 const LOCATION_KEYWORDS = ["ubicaci", "direcci", "location", "address", "mapa", "map", "donde", "dónde", "where"]
@@ -12,7 +13,7 @@ export const clinicInfoFlow: FlowHandler = async ({ text, context, settings }) =
   if (MENU_ESCAPE_WORDS.has(trimmed.toLowerCase())) {
     return {
       context: { ...context, state: ConversationState.AWAITING_MENU_SELECTION, activeFlow: FlowType.NONE },
-      reply: { text: t(lang, "mainMenu", { clinicName: settings.clinic_name }) },
+      reply: buildMainMenu(lang, settings),
     }
   }
 
@@ -37,7 +38,7 @@ export const clinicInfoFlow: FlowHandler = async ({ text, context, settings }) =
     // OpenAI only classifies — it never books. Redirect the patient to the deterministic menu flow.
     return {
       context: { ...context, state: ConversationState.AWAITING_MENU_SELECTION, activeFlow: FlowType.NONE },
-      reply: { text: t(lang, "mainMenu", { clinicName: settings.clinic_name }) },
+      reply: buildMainMenu(lang, settings),
     }
   }
 

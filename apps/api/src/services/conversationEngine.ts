@@ -8,7 +8,7 @@ import { redisStateService } from "./redisStateService.js"
 import { whatsappService } from "./whatsappService.js"
 import { openaiService } from "./openaiService.js"
 import { languageSelectFlow } from "../flows/languageSelectFlow.js"
-import { mainMenuFlow } from "../flows/mainMenuFlow.js"
+import { mainMenuFlow, buildMainMenu } from "../flows/mainMenuFlow.js"
 import { bookAppointmentFlow } from "../flows/bookAppointmentFlow.js"
 import { rescheduleFlow } from "../flows/rescheduleFlow.js"
 import { cancelFlow } from "../flows/cancelFlow.js"
@@ -53,6 +53,50 @@ function logOutboundText(conversationId: string, body: string, waMessageId: stri
   messageRepository
     .log({ conversationId, direction: "outbound", messageType: "text", body, waMessageId })
     .catch((err) => logger.warn({ err }, "outbound message log failed"))
+}
+
+function logOutboundInteractive(
+  conversationId: string,
+  body: string,
+  payload: Record<string, unknown>,
+  waMessageId: string | null,
+): void {
+  messageRepository
+    .log({ conversationId, direction: "outbound", messageType: "interactive", body, payload, waMessageId })
+    .catch((err) => logger.warn({ err }, "outbound message log failed"))
+}
+
+/**
+ * Sends a flow's reply as WhatsApp message(s): interactive buttons (always-visible,
+ * WhatsApp caps these at 3) if present, then an interactive list (>2 tappable options
+ * behind a "View options" tap) if present — as two separate messages when both are set,
+ * since WhatsApp doesn't support mixing button and list UI in one message. Falls back
+ * to plain text only when neither is present.
+ */
+async function sendFlowReply(
+  phoneE164: string,
+  conversationId: string,
+  reply: {
+    text?: string
+    list?: { buttonLabel: string; rows: { id: string; title: string }[] }
+    buttons?: { id: string; title: string }[]
+    buttonsText?: string
+  },
+): Promise<void> {
+  if (reply.buttons) {
+    const body = reply.buttonsText ?? reply.text ?? ""
+    const { messageId } = await whatsappService.sendInteractiveButtons(phoneE164, body, reply.buttons)
+    logOutboundInteractive(conversationId, body, { buttons: reply.buttons }, messageId)
+  }
+  if (reply.list) {
+    const { messageId } = await whatsappService.sendInteractiveList(phoneE164, reply.text ?? "", reply.list.buttonLabel, reply.list.rows)
+    logOutboundInteractive(conversationId, reply.text ?? "", reply.list, messageId)
+    return
+  }
+  if (!reply.buttons && reply.text) {
+    const { messageId } = await whatsappService.sendTextMessage(phoneE164, reply.text)
+    logOutboundText(conversationId, reply.text, messageId)
+  }
 }
 
 export type InboundMessage = {
@@ -138,13 +182,12 @@ export async function handleInboundMessage(input: InboundMessage): Promise<void>
   // menuInvalid forever instead of ever re-showing the menu.
   if (context.language && isGreeting(normalizedText) && !inFreeTextEntry) {
     const next = { ...context, state: ConversationState.AWAITING_MENU_SELECTION, activeFlow: FlowType.NONE }
-    const menuText = t(context.language, "mainMenu", { clinicName: settings.clinic_name })
-    const { messageId } = await whatsappService.sendTextMessage(input.phoneE164, menuText)
-    logOutboundText(conversation.id, menuText, messageId)
+    const menuReply = buildMainMenu(context.language, settings)
+    await sendFlowReply(input.phoneE164, conversation.id, menuReply)
     const withHistory = redisStateService.appendTurn(
       redisStateService.appendTurn(next, "user", input.text),
       "assistant",
-      menuText,
+      menuReply.text ?? "",
     )
     await redisStateService.save(input.phoneE164, withHistory)
     return
@@ -172,9 +215,8 @@ export async function handleInboundMessage(input: InboundMessage): Promise<void>
     result.reply.text = fallback || t(context.language, "genericFallback")
   }
 
-  if (result.reply.text) {
-    const { messageId } = await whatsappService.sendTextMessage(input.phoneE164, result.reply.text)
-    logOutboundText(conversation.id, result.reply.text, messageId)
+  if (result.reply.text || result.reply.list || result.reply.buttons) {
+    await sendFlowReply(input.phoneE164, conversation.id, result.reply)
   }
 
   if (result.reply.location) {
