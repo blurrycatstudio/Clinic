@@ -166,11 +166,27 @@ the codebase changes.
 
 ## 11. Optional: Cloudflare R2 / Google Maps
 
-- R2 is provisioned for future use (e.g. storing voice call recordings or
-  patient-uploaded documents) — set `R2_*` vars when you wire that up.
 - `GOOGLE_MAPS_API_KEY` powers the "clinic location" flow if you extend
   `clinicInfoFlow.ts` to call the Places/Geocoding API instead of using the
   static lat/long stored in `clinic_settings`.
+
+### Prescriptions & invoices: PDF delivery over WhatsApp
+
+Staff can always generate and download a prescription/invoice PDF from the
+dashboard, with no setup — but sending it to the patient's WhatsApp needs
+Cloudflare R2 (Meta's document message requires a public URL to fetch):
+
+1. Create an R2 bucket in the Cloudflare dashboard and enable public access
+   on it (or attach a custom domain) to get a public base URL.
+2. Create an R2 API token (Account → R2 → Manage API Tokens) with read/write
+   access to that bucket.
+3. Set `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`,
+   `R2_BUCKET_NAME`, and `R2_PUBLIC_URL` on the `apps/api` Vercel project.
+4. Redeploy. "Send to patient" on a prescription/invoice now uploads the PDF
+   and sends it as a WhatsApp document message.
+
+Until these are set, "Send to patient" fails with a clear error — it never
+silently no-ops or fakes a send.
 
 ## Rollback
 
