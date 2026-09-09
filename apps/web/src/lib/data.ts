@@ -74,15 +74,15 @@ export type RecentVisit = { date: string; type: string; doctor: string }
 export const RECENT_VISITS: Record<"en" | "es", RecentVisit[]> = {
   en: [
     { date: "12 Aug 2026", type: "Well-Child Visit", doctor: "Dr. Gamaliel" },
-    { date: "05 May 2026", type: "Vaccination", doctor: "Dr. Santos" },
+    { date: "05 May 2026", type: "Vaccination", doctor: "Dr. Gamaliel" },
     { date: "10 Feb 2026", type: "Fever & Cold", doctor: "Dr. Gamaliel" },
-    { date: "18 Nov 2025", type: "Growth Check", doctor: "Dr. Ruiz" },
+    { date: "18 Nov 2025", type: "Growth Check", doctor: "Dr. Gamaliel" },
   ],
   es: [
     { date: "12 ago 2026", type: "Consulta de Niño Sano", doctor: "Dr. Gamaliel" },
-    { date: "05 may 2026", type: "Vacunación", doctor: "Dr. Santos" },
+    { date: "05 may 2026", type: "Vacunación", doctor: "Dr. Gamaliel" },
     { date: "10 feb 2026", type: "Fiebre y Resfriado", doctor: "Dr. Gamaliel" },
-    { date: "18 nov 2025", type: "Control de Crecimiento", doctor: "Dr. Ruiz" },
+    { date: "18 nov 2025", type: "Control de Crecimiento", doctor: "Dr. Gamaliel" },
   ],
 }
 

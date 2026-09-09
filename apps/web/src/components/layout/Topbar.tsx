@@ -1,11 +1,12 @@
-import { Bell, Calendar, ChevronDown, Heart, Moon, Search, Sun, User } from "lucide-react"
+import { Bell, Calendar, Moon, Search, Sun, User } from "lucide-react"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Input } from "@/components/ui/input"
 import { useLang } from "@/lib/i18n"
 import { cn } from "@/lib/utils"
 import { APPOINTMENTS, PATIENTS } from "@/lib/data"
+import doctorImg from "@/assests/drgamaliel.png"
 
 type SearchResult =
   | { kind: "patient"; id: string; label: string; sublabel: string }
@@ -126,18 +127,23 @@ export function Topbar() {
   return (
     <header className="flex h-14 shrink-0 items-center justify-between gap-2 border-b border-border/60 bg-white px-3 shadow-sm sm:h-16 sm:gap-4 sm:px-6 md:gap-7">
       <div className="flex min-w-0 items-center gap-2 sm:gap-3">
-        <div className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#F97316] via-[#EC4899] to-[#2563EB] text-white shadow-sm sm:size-9">
-          <Heart className="size-4 sm:size-4.5" strokeWidth={1.8} fill="currentColor" fillOpacity={0.25} />
-        </div>
+        <Avatar className="size-8 shrink-0 shadow-sm sm:size-9">
+          <AvatarImage src={doctorImg} alt="Dr. Gamaliel" className="object-cover" style={{ objectPosition: "50% 15%" }} />
+          <AvatarFallback className="bg-gradient-to-br from-[#F97316] to-[#EA580C] text-[13px] font-bold text-white">
+            DR
+          </AvatarFallback>
+        </Avatar>
         <div className="min-w-0 leading-tight">
           <div className="flex items-center gap-2">
-            <span className="font-heading text-sm font-bold tracking-widest text-foreground uppercase sm:text-base">Pediatra</span>
+            <span className="font-heading text-sm font-bold tracking-widest text-foreground uppercase sm:text-base">
+              Dr. Gamaliel
+            </span>
             <span className="hidden rounded-full border border-[#F97316]/30 bg-[#FFF7ED] px-2 py-0.5 text-[9px] font-bold tracking-wide text-[#EA580C] uppercase sm:inline-block">
               {t.headerBadge}
             </span>
           </div>
           <p className="hidden text-[10.5px] font-medium text-muted-foreground sm:block">
-            {t.brandTagline1} · {t.brandTagline2}
+            {t.doctorSpecialtyShort} · {t.brandTagline1}
           </p>
         </div>
       </div>
@@ -251,21 +257,6 @@ export function Topbar() {
         ))}
       </div>
 
-      <button
-        onClick={() => navigate("/settings")}
-        className="flex shrink-0 items-center gap-2.5 hover:opacity-80"
-      >
-        <Avatar className="size-8.5 sm:size-9.5">
-          <AvatarFallback className="bg-gradient-to-br from-[#F97316] to-[#EA580C] text-[13px] font-bold text-white">
-            DR
-          </AvatarFallback>
-        </Avatar>
-        <div className="hidden leading-tight sm:block">
-          <div className="text-[13.5px] font-bold">Dr. Gamaliel</div>
-          <div className="text-[11.5px] text-muted-foreground">{t.doctorSpecialtyShort}</div>
-        </div>
-        <ChevronDown className="hidden size-3.5 text-foreground sm:block" />
-      </button>
     </header>
   )
 }

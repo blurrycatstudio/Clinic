@@ -181,6 +181,8 @@ export const STR = {
     viewAll: "View All",
     headerBadge: "Concierge Care",
     clinicActiveLabel: "Clinic Active",
+    settingsMenuItem: "Settings",
+    logoutMenuItem: "Log Out",
     scheduleSummaryScheduledSuffix: "Consultations Scheduled",
     scheduleSummaryInRoomSuffix: "In-Room",
     quickGenerateInvoice: "Generate Invoice",
@@ -225,6 +227,11 @@ export const STR = {
     prescribedByLabel: "Prescribed by",
     diagnosisLabel: "Diagnosis",
     noDocumentsUploaded: "No documents uploaded",
+    growthSummaryTitle: "Growth Summary",
+    viewChart: "View Chart",
+    weightLabel: "Weight",
+    heightLabel: "Height",
+    bmiNormal: "Normal",
 
     // Appointments page
     apptsPageTitle: "Appointments",
@@ -582,6 +589,8 @@ export const STR = {
     viewAll: "Ver Todo",
     headerBadge: "Atención Concierge",
     clinicActiveLabel: "Clínica Activa",
+    settingsMenuItem: "Configuración",
+    logoutMenuItem: "Cerrar Sesión",
     scheduleSummaryScheduledSuffix: "Consultas Programadas",
     scheduleSummaryInRoomSuffix: "En Consulta",
     quickGenerateInvoice: "Generar Factura",
@@ -626,6 +635,11 @@ export const STR = {
     prescribedByLabel: "Recetado por",
     diagnosisLabel: "Diagnóstico",
     noDocumentsUploaded: "Sin documentos cargados",
+    growthSummaryTitle: "Resumen de Crecimiento",
+    viewChart: "Ver Gráfica",
+    weightLabel: "Peso",
+    heightLabel: "Talla",
+    bmiNormal: "Normal",
 
     // Appointments page
     apptsPageTitle: "Citas",

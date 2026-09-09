@@ -1,16 +1,24 @@
 import { useState } from "react"
-import { Mail, MapPin, Phone } from "lucide-react"
+import { LogOut, Mail, MapPin, Phone } from "lucide-react"
+import { useNavigate } from "react-router-dom"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Card } from "@/components/ui/card"
 import { useLang } from "@/lib/i18n"
 import { useToast } from "@/lib/toast"
+import { supabase } from "@/lib/supabaseClient"
 
 export function DoctorProfileCard() {
   const { t } = useLang()
   const toast = useToast()
+  const navigate = useNavigate()
   const [editing, setEditing] = useState(false)
   const [phone, setPhone] = useState("+52 664 111 2222")
   const [email, setEmail] = useState("g.rodriguez@pediatraclinic.mx")
+
+  async function handleLogout() {
+    if (supabase) await supabase.auth.signOut()
+    navigate("/login", { replace: true })
+  }
 
   return (
     <Card className="gap-0 rounded-2xl border p-5 shadow-none">
@@ -63,6 +71,13 @@ export function DoctorProfileCard() {
       <div className="mt-3.5 rounded-[10px] bg-accent px-3.5 py-3">
         <p className="font-heading text-[12.5px] leading-relaxed text-accent-foreground italic">{t.doctorQuote}</p>
       </div>
+      <button
+        onClick={handleLogout}
+        className="mt-3.5 flex w-full items-center justify-center gap-2 rounded-lg border border-destructive/30 px-3.5 py-2 text-[12.5px] font-bold text-destructive hover:bg-destructive/10"
+      >
+        <LogOut className="size-3.5" strokeWidth={1.8} />
+        {t.logoutMenuItem}
+      </button>
     </Card>
   )
 }

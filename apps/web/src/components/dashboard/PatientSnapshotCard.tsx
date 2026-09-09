@@ -1,5 +1,6 @@
 import {
   Calendar,
+  ChevronUp,
   CircleCheck,
   ClipboardList,
   Clock,
@@ -23,6 +24,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
+import { Switch } from "@/components/ui/switch"
 import { PhoneCallIcon } from "@/components/icons/PhoneCallIcon"
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon"
 import { getPatientDocuments, HISTORY, PATIENTS, PRESCRIPTIONS, RECENT_VISITS, type Patient, type PatientDocument } from "@/lib/data"
@@ -137,8 +139,9 @@ export function PatientSnapshotCard({ patient = DEFAULT_PATIENT }: { patient?: P
     <Card className="h-[640px] min-w-0 w-full flex-1 gap-0 overflow-hidden rounded-2xl border p-0 shadow-atelier-elevated lg:h-full">
       {/* Dossier header */}
       <div className="flex flex-wrap items-center justify-between gap-4 border-b bg-gradient-to-r from-white via-white to-[#EFF6FF]/50 p-5">
-        <div className="flex items-center gap-4">
-          <div className="relative">
+        <div className="flex min-w-0 flex-1 flex-nowrap items-center justify-between gap-4">
+        <div className="flex min-w-0 items-center gap-4">
+          <div className="relative shrink-0">
             <Avatar className="size-16 ring-2 ring-[#2563EB]/50 shadow-md">
               <AvatarFallback className="text-xl font-bold text-white" style={{ background: p.color }}>
                 {p.initials}
@@ -150,7 +153,7 @@ export function PatientSnapshotCard({ patient = DEFAULT_PATIENT }: { patient?: P
               </span>
             )}
           </div>
-          <div>
+          <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2.5">
               <span className="font-heading text-2xl font-bold tracking-wide">{p.name}</span>
               <span
@@ -174,13 +177,13 @@ export function PatientSnapshotCard({ patient = DEFAULT_PATIENT }: { patient?: P
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-2.5">
+        <div className="flex shrink-0 items-center gap-2.5">
           <Button
             onClick={() => {
               toast(`Consultation started for ${p.name}`)
               setTab("overview")
             }}
-            className="gap-1.5 rounded-xl bg-gradient-to-r from-[#F97316] via-[#EC4899] to-[#8B5CF6] font-bold text-white shadow-md hover:opacity-90"
+            className="shrink-0 gap-1.5 rounded-xl bg-gradient-to-r from-[#F97316] via-[#EC4899] to-[#8B5CF6] font-bold text-white shadow-md hover:opacity-90"
           >
             <Stethoscope className="size-4" strokeWidth={2} />
             {t.startConsultation}
@@ -191,6 +194,15 @@ export function PatientSnapshotCard({ patient = DEFAULT_PATIENT }: { patient?: P
           <Button onClick={handleExportDossier} variant="outline" size="icon" className="rounded-xl" aria-label="Export dossier">
             <FileOutput className="size-4" />
           </Button>
+        </div>
+        </div>
+        <div className="hidden shrink-0 items-end gap-1.5 self-start pl-2 xl:flex">
+          <span className="text-3xl leading-none">🧸</span>
+          <p className="font-heading text-[13px] leading-tight font-semibold text-[#EC4899] italic">
+            Healthy Kids
+            <br />
+            Happier Futures ♡
+          </p>
         </div>
       </div>
 
@@ -313,9 +325,12 @@ export function PatientSnapshotCard({ patient = DEFAULT_PATIENT }: { patient?: P
                   </button>
                 </div>
                 {extraMedications.length === 0 ? (
-                  <div className="flex items-center gap-1.5 rounded-xl bg-[#DCFCE7] px-3.5 py-2.5 text-[13px] font-semibold text-[#16A34A]">
-                    <CircleCheck className="size-4" strokeWidth={2} />
-                    {t.noCurrentMedications}
+                  <div className="flex items-center justify-between gap-1.5 rounded-xl bg-[#DCFCE7] px-3.5 py-2.5 text-[13px] font-semibold text-[#16A34A]">
+                    <span className="flex items-center gap-1.5">
+                      <CircleCheck className="size-4" strokeWidth={2} />
+                      {t.noCurrentMedications}
+                    </span>
+                    <Switch checked disabled className="data-checked:bg-[#16A34A]" />
                   </div>
                 ) : (
                   <div className="rounded-xl bg-[#EFF6FF] px-3.5 py-2.5 text-[13px] font-semibold text-[#2563EB]">
@@ -511,8 +526,8 @@ export function PatientSnapshotCard({ patient = DEFAULT_PATIENT }: { patient?: P
           </div>
         )}
 
-        {/* Bottom split: Caregiver Concierge + Recent Consultations */}
-        <div className="grid grid-cols-1 gap-5 pt-1 md:grid-cols-2">
+        {/* Bottom split: Caregiver Concierge + Recent Consultations + Growth Summary */}
+        <div className="grid grid-cols-1 gap-5 pt-1 md:grid-cols-3">
           <div className="flex flex-col justify-between rounded-2xl border bg-card p-4 shadow-atelier">
             <div>
               <div className="mb-3 flex items-center justify-between">
@@ -582,6 +597,39 @@ export function PatientSnapshotCard({ patient = DEFAULT_PATIENT }: { patient?: P
                   <div className="shrink-0 font-heading text-[11.5px] font-semibold text-[#2563EB]">{visit.doctor}</div>
                 </div>
               ))}
+            </div>
+          </div>
+
+          <div className="rounded-2xl border bg-card p-4 shadow-atelier">
+            <div className="mb-3 flex items-center justify-between">
+              <span className="flex items-center gap-2 text-[13px] font-bold tracking-wide">
+                <LineChart className="size-4 text-[#2563EB]" strokeWidth={2} />
+                {t.growthSummaryTitle}
+              </span>
+              <button onClick={() => setTab("growth")} className="cursor-pointer text-[11px] font-bold text-[#2563EB]">
+                {t.viewChart} →
+              </button>
+            </div>
+            <div className="flex items-center justify-between gap-3">
+              {growth
+                .filter((row) => row.type === "Weight" || row.type === "Peso" || row.type === "Height" || row.type === "Talla")
+                .map((row, i) => (
+                  <div key={i}>
+                    <div className="flex items-center gap-1 font-heading text-[15px] font-bold">
+                      {row.details.split("—")[0].trim()}
+                      <ChevronUp className="size-3.5 text-[#16A34A]" strokeWidth={3} />
+                    </div>
+                    <div className="text-[11px] text-muted-foreground">
+                      {row.type === "Weight" || row.type === "Peso" ? t.weightLabel : t.heightLabel}
+                    </div>
+                  </div>
+                ))}
+              <div className="text-right">
+                <div className="font-heading text-[13px] font-bold">BMI</div>
+                <span className="mt-0.5 inline-block rounded-full bg-[#DCFCE7] px-2 py-0.5 text-[10px] font-bold text-[#16A34A]">
+                  {t.bmiNormal}
+                </span>
+              </div>
             </div>
           </div>
         </div>
