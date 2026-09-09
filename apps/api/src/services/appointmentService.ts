@@ -16,7 +16,9 @@ export type AvailableSlot = { startsAtIso: string; label: string }
  * race between two patients grabbing the same slot at once.
  */
 export const appointmentService = {
-  async getAvailableSlots(daysAhead = BOOKING_HORIZON_DAYS, maxSlotsReturned = 9): Promise<AvailableSlot[]> {
+  /** `offset` skips the earliest N open slots — used for the "See more dates" button, which pages forward instead of re-showing the same first slots. */
+  async getAvailableSlots(daysAhead = BOOKING_HORIZON_DAYS, maxSlotsReturned = 9, offset = 0): Promise<AvailableSlot[]> {
+    const totalNeeded = offset + maxSlotsReturned
     const schedule = await doctorScheduleRepository.getWeeklySchedule()
     const scheduleByWeekday = new Map(schedule.map((d) => [d.weekday, d]))
 
@@ -33,7 +35,7 @@ export const appointmentService = {
 
     const slots: AvailableSlot[] = []
 
-    for (let dayOffset = 0; dayOffset <= daysAhead && slots.length < maxSlotsReturned * 4; dayOffset++) {
+    for (let dayOffset = 0; dayOffset <= daysAhead && slots.length < totalNeeded * 4; dayOffset++) {
       const dayInClinic = addDays(horizonStart, dayOffset)
       const weekday = dayInClinic.getDay()
       const day = scheduleByWeekday.get(weekday)
@@ -59,11 +61,11 @@ export const appointmentService = {
           })
         }
         cursor = slotEnd
-        if (slots.length >= maxSlotsReturned) break
+        if (slots.length >= totalNeeded) break
       }
     }
 
-    return slots.slice(0, maxSlotsReturned)
+    return slots.slice(offset, totalNeeded)
   },
 
   async bookAppointment(input: {

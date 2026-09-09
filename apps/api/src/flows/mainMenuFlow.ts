@@ -112,6 +112,9 @@ export const mainMenuFlow: FlowHandler = async ({ text, buttonId, context, setti
               phone: existingPatient.phone_e164,
               reasonLine,
             }),
+            // No "No" button here — there's no dedicated no-op branch, typing the
+            // corrected name already serves as the "these details are wrong" path.
+            buttons: [{ id: "yes", title: t(lang, "confirmYesButton") }],
           },
         }
       }

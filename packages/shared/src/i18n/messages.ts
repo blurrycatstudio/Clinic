@@ -42,6 +42,9 @@ export const botMessages = {
     menuInvalid: "No entendí esa opción. Elige una opción rápida o responde con su número.",
     confirmSavedDetails:
       "¡Bienvenido de nuevo! Tenemos estos datos guardados:\n\n👤 {name}\n📱 {phone}{reasonLine}\n\nResponde *SI* para usarlos, o escribe el nombre completo correcto si necesitas actualizarlo.",
+    confirmYesButton: "Sí",
+    sameReasonButton: "Igual",
+    moreDatesButton: "Ver más fechas",
     confirmSavedDetailsInvalid:
       "Responde *SI* para usar tus datos guardados, o escribe el nombre completo del paciente para actualizarlo.",
     lastVisitReasonLine: "\n📝 Motivo de tu última visita: {reason}",
@@ -107,6 +110,9 @@ export const botMessages = {
     menuInvalid: "Sorry, I didn't get that. Choose a quick option or reply with its number.",
     confirmSavedDetails:
       "Welcome back! We have these details on file:\n\n👤 {name}\n📱 {phone}{reasonLine}\n\nReply *YES* to use them, or type the correct full name if you need to update it.",
+    confirmYesButton: "Yes",
+    sameReasonButton: "Same",
+    moreDatesButton: "See more dates",
     confirmSavedDetailsInvalid:
       "Reply *YES* to use your saved details, or type the patient's full name to update it.",
     lastVisitReasonLine: "\n📝 Reason from your last visit: {reason}",
