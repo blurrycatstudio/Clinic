@@ -13,14 +13,14 @@ export function TemplatesCard() {
   }
 
   return (
-    <Card className="w-full shrink-0 gap-0 rounded-2xl border p-4.5 shadow-none lg:w-95">
-      <h3 className="font-heading mb-3 text-[15px] font-bold">{t.waTemplatesTitle}</h3>
+    <Card className="w-full shrink-0 gap-0 rounded-2xl border border-black bg-white p-4.5 shadow-none lg:w-95">
+      <h3 className="mb-3 text-[15px] font-bold">{t.waTemplatesTitle}</h3>
       <div className="flex flex-col gap-2.5">
         {TEMPLATES.map((tpl) => (
           <button
             key={tpl.titleKey}
             onClick={() => useTemplate(tpl.body)}
-            className="rounded-xl border p-3 text-left transition-colors hover:border-primary"
+            className="rounded-xl border border-black bg-white p-3 text-left transition-colors hover:border-primary"
           >
             <div className="mb-1.5 flex items-center justify-between">
               <div className="text-[13px] font-bold">{t[tpl.titleKey]}</div>

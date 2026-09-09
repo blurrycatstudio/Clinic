@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react"
-import { Check, CheckCheck, Paperclip, Phone, Search, Send, Video } from "lucide-react"
+import { Check, CheckCheck, MoreVertical, Paperclip, Phone, Plus, Search, Send, Video } from "lucide-react"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Card } from "@/components/ui/card"
 import { useLang } from "@/lib/i18n"
@@ -51,7 +51,28 @@ function toContact(conv: ApiConversation): Contact {
     time: formatTime(conv.last_message_at),
     unread: false,
     msgs: [],
+    unnamed: !conv.wa_profile_name,
   }
+}
+
+/** Colored initials for a saved contact, or a gradient "+" badge for a raw, unsaved phone number. */
+function ContactAvatar({ contact, className }: { contact: Contact; className?: string }) {
+  if (contact.unnamed) {
+    return (
+      <Avatar className={className}>
+        <AvatarFallback className="bg-gradient-to-br from-[#7c6fe8] to-[#4d7ff0] text-white">
+          <Plus className="size-4.5" strokeWidth={2.2} />
+        </AvatarFallback>
+      </Avatar>
+    )
+  }
+  return (
+    <Avatar className={className}>
+      <AvatarFallback className="text-[12.5px] font-bold text-white" style={{ background: contact.bg }}>
+        {contact.initials}
+      </AvatarFallback>
+    </Avatar>
+  )
 }
 
 /** Subtle tiled wallpaper approximating WhatsApp's chat background, as an inline SVG data URI. */
@@ -172,11 +193,7 @@ export function ManualMessaging() {
                   selected && "bg-[#2a3942] hover:bg-[#2a3942]",
                 )}
               >
-                <Avatar className="size-9.5 shrink-0">
-                  <AvatarFallback className="text-[12.5px] font-bold text-white" style={{ background: c.bg }}>
-                    {c.initials}
-                  </AvatarFallback>
-                </Avatar>
+                <ContactAvatar contact={c} className="size-9.5 shrink-0" />
                 <div className="hidden min-w-0 flex-1 sm:block">
                   <div className="flex items-center justify-between">
                     <div className="text-[13px] font-bold text-[#e9edef]">{c.name}</div>
@@ -196,11 +213,7 @@ export function ManualMessaging() {
       {/* Chat */}
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="flex items-center gap-2 border-b border-[#2a3942] bg-[#202c33] px-3 py-3 sm:gap-3 sm:px-4.5 sm:py-3.5">
-          <Avatar className="size-9.5 shrink-0">
-            <AvatarFallback className="text-[12.5px] font-bold text-white" style={{ background: active.bg }}>
-              {active.initials}
-            </AvatarFallback>
-          </Avatar>
+          <ContactAvatar contact={active} className="size-9.5 shrink-0" />
           <div className="min-w-0 flex-1">
             <div className="truncate text-[13.5px] font-bold text-[#e9edef]">{active.name}</div>
             <div className="truncate text-[11px] text-[#8696a0]">{active.child}</div>
@@ -216,6 +229,9 @@ export function ManualMessaging() {
           </button>
           <button onClick={() => toast(`Starting video call with ${active.name}…`)} className="hidden size-8.5 shrink-0 items-center justify-center rounded-full hover:bg-[#2a3942] sm:flex">
             <Video className="size-4.5 text-[#aebac1]" strokeWidth={1.8} />
+          </button>
+          <button onClick={() => toast("More options")} className="flex size-8.5 shrink-0 items-center justify-center rounded-full hover:bg-[#2a3942]">
+            <MoreVertical className="size-4.5 text-[#aebac1]" strokeWidth={1.8} />
           </button>
         </div>
 

@@ -468,6 +468,8 @@ export type Contact = {
   time: string
   unread: boolean
   msgs: ChatMessage[]
+  /** True when this is a raw phone number with no saved WhatsApp profile name — rendered with a "+" avatar instead of initials. */
+  unnamed?: boolean
 }
 
 export const CONTACTS: Contact[] = [
