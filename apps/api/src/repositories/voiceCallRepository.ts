@@ -20,6 +20,7 @@ export const voiceCallRepository = {
     phoneE164: string
     direction: "inbound" | "outbound"
     patientId?: string | null
+    appointmentId?: string | null
   }): Promise<VoiceCall> {
     const { data, error } = await supabase
       .from("voice_calls")
@@ -28,6 +29,7 @@ export const voiceCallRepository = {
         phone_e164: input.phoneE164,
         direction: input.direction,
         patient_id: input.patientId ?? null,
+        appointment_id: input.appointmentId ?? null,
         status: "in_progress",
       })
       .select("*")

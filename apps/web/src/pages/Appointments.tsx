@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { Calendar, CalendarPlus, CheckCircle2, ChevronLeft, ChevronRight, Search, X } from "lucide-react"
+import { Calendar, CalendarPlus, CheckCircle2, ChevronLeft, ChevronRight, Phone, Search, X } from "lucide-react"
 import { Dialog } from "radix-ui"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -214,6 +214,20 @@ export default function Appointments() {
     onError: () => toast("Failed to reschedule — that slot may already be booked"),
   })
 
+  const callMutation = useMutation({
+    mutationFn: (id: string) => api.post(`/appointments/${id}/call`),
+    onSuccess: () => toast("Calling now…"),
+    onError: (err: unknown) => {
+      const message = err instanceof Error ? err.message : "Failed to place call"
+      toast(message)
+    },
+  })
+
+  function callToConfirm(a: DisplayAppointment) {
+    if (!window.confirm(`Call ${a.child} at ${a.phone} now to confirm this appointment?`)) return
+    callMutation.mutate(a.id)
+  }
+
   const createMutation = useMutation({
     mutationFn: (input: { fullName: string; phone: string; reason: string; startsAtIso: string }) =>
       api.post("/appointments", { patientFullName: input.fullName, patientPhoneE164: input.phone, reason: input.reason, startsAtIso: input.startsAtIso }),
@@ -382,27 +396,41 @@ export default function Appointments() {
                         </span>
                       </td>
                       <td className="py-3 pr-0 pl-2 text-right whitespace-nowrap">
-                        {a.status === "statusPending" ? (
-                          <Button
-                            onClick={() => confirmMutation.mutate(a.id)}
-                            disabled={confirmMutation.isPending}
-                            size="sm"
-                            className="gap-1 rounded-lg font-semibold"
-                          >
-                            <CheckCircle2 className="size-3.5" strokeWidth={2.2} />
-                            {t.apptsCheckIn}
-                          </Button>
-                        ) : (
-                          <Button
-                            onClick={() => reschedule(a)}
-                            variant="outline"
-                            size="sm"
-                            className="rounded-lg font-semibold"
-                            disabled={cancelled || rescheduleMutation.isPending}
-                          >
-                            {t.apptsReschedule}
-                          </Button>
-                        )}
+                        <div className="flex items-center justify-end gap-1.5">
+                          {!cancelled && (
+                            <Button
+                              onClick={() => callToConfirm(a)}
+                              disabled={!a.phone || (callMutation.isPending && callMutation.variables === a.id)}
+                              variant="outline"
+                              size="sm"
+                              className="gap-1 rounded-lg font-semibold"
+                              title="Call to confirm"
+                            >
+                              <Phone className="size-3.5" strokeWidth={2.2} />
+                            </Button>
+                          )}
+                          {a.status === "statusPending" ? (
+                            <Button
+                              onClick={() => confirmMutation.mutate(a.id)}
+                              disabled={confirmMutation.isPending}
+                              size="sm"
+                              className="gap-1 rounded-lg font-semibold"
+                            >
+                              <CheckCircle2 className="size-3.5" strokeWidth={2.2} />
+                              {t.apptsCheckIn}
+                            </Button>
+                          ) : (
+                            <Button
+                              onClick={() => reschedule(a)}
+                              variant="outline"
+                              size="sm"
+                              className="rounded-lg font-semibold"
+                              disabled={cancelled || rescheduleMutation.isPending}
+                            >
+                              {t.apptsReschedule}
+                            </Button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   )

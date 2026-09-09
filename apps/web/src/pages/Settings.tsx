@@ -1,4 +1,5 @@
 import { DoctorProfileCard } from "@/components/dashboard/DoctorProfileCard"
+import { ReminderCallsCard } from "@/components/dashboard/ReminderCallsCard"
 import { useLang } from "@/lib/i18n"
 
 export default function Settings() {
@@ -11,8 +12,9 @@ export default function Settings() {
         <p className="mt-1 text-sm text-muted-foreground">{t.profilePageSub}</p>
       </div>
 
-      <div className="w-full max-w-100">
+      <div className="flex w-full max-w-100 flex-col gap-4.5">
         <DoctorProfileCard />
+        <ReminderCallsCard />
       </div>
     </div>
   )

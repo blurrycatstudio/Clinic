@@ -5,7 +5,10 @@ import { appointmentRepository } from "../repositories/appointmentRepository.js"
 import { patientRepository } from "../repositories/patientRepository.js"
 import { conversationRepository } from "../repositories/conversationRepository.js"
 import { clinicSettingsRepository } from "../repositories/clinicSettingsRepository.js"
+import { voiceCallRepository } from "../repositories/voiceCallRepository.js"
 import { templateService } from "../services/templateService.js"
+import { vapiService } from "../services/vapiService.js"
+import { env, isVapiOutboundConfigured } from "../config/env.js"
 import { logger } from "../config/logger.js"
 
 /**
@@ -65,4 +68,56 @@ export async function runReminderJob(which: "24h" | "2h"): Promise<{ sent: numbe
   }
 
   return { sent, failed }
+}
+
+/**
+ * Auto-calls patients to confirm an upcoming appointment, `reminder_call_hours_before`
+ * (a staff-configurable clinic setting) ahead of the appointment time. Same windowed
+ * + already-sent-tracking pattern as the WhatsApp reminder job above, and a no-op
+ * whenever the setting is off or outbound calling isn't configured.
+ */
+export async function runReminderCallJob(): Promise<{ sent: number; failed: number; skipped: boolean }> {
+  const settings = await clinicSettingsRepository.get()
+  if (!settings.reminder_call_enabled || !isVapiOutboundConfigured) {
+    return { sent: 0, failed: 0, skipped: true }
+  }
+
+  const hoursAhead = settings.reminder_call_hours_before
+  const now = new Date()
+  const windowStart = new Date(now.getTime() + (hoursAhead - 0.25) * 60 * 60 * 1000)
+  const windowEnd = new Date(now.getTime() + (hoursAhead + 0.25) * 60 * 60 * 1000)
+
+  const appointments = await appointmentRepository.listNeedingCallReminder(windowStart.toISOString(), windowEnd.toISOString())
+  logger.info({ count: appointments.length }, "Running appointment reminder-call job")
+
+  let sent = 0
+  let failed = 0
+
+  for (const appointment of appointments) {
+    try {
+      const patient = await patientRepository.findById(appointment.patient_id)
+      if (!patient) continue
+
+      const { vapiCallId } = await vapiService.createOutboundCall({
+        phoneE164: patient.phone_e164,
+        assistantId: env.VAPI_REMINDER_ASSISTANT_ID || undefined,
+        metadata: { appointmentId: appointment.id, purpose: "appointment_reminder_call" },
+      })
+      await voiceCallRepository.create({
+        vapiCallId,
+        phoneE164: patient.phone_e164,
+        direction: "outbound",
+        patientId: patient.id,
+        appointmentId: appointment.id,
+      })
+
+      await appointmentRepository.markCallReminderSent(appointment.id)
+      sent++
+    } catch (err) {
+      failed++
+      logger.error({ err, appointmentId: appointment.id }, "Failed to place appointment reminder call")
+    }
+  }
+
+  return { sent, failed, skipped: false }
 }

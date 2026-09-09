@@ -21,6 +21,8 @@ const updateSchema = z.object({
   fees_info_es: z.string().optional(),
   insurance_info_en: z.string().optional(),
   insurance_info_es: z.string().optional(),
+  reminder_call_enabled: z.boolean().optional(),
+  reminder_call_hours_before: z.number().int().min(1).max(72).optional(),
 })
 
 export const settingsController = {

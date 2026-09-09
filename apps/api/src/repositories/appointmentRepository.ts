@@ -169,6 +169,27 @@ export const appointmentRepository = {
     if (error) throw new AppError(`Failed to list appointments needing reminders: ${error.message}`)
     return data ?? []
   },
+
+  async markCallReminderSent(id: string): Promise<void> {
+    const { error } = await supabase
+      .from("appointments")
+      .update({ reminder_call_sent_at: new Date().toISOString() })
+      .eq("id", id)
+    if (error) throw new AppError(`Failed to mark call reminder sent: ${error.message}`)
+  },
+
+  /** Appointments starting within [fromIso, toIso) that haven't had a reminder CALL placed yet. */
+  async listNeedingCallReminder(fromIso: string, toIso: string): Promise<Appointment[]> {
+    const { data, error } = await supabase
+      .from("appointments")
+      .select("*")
+      .in("status", ["scheduled", "confirmed"])
+      .is("reminder_call_sent_at", null)
+      .gte("starts_at", fromIso)
+      .lt("starts_at", toIso)
+    if (error) throw new AppError(`Failed to list appointments needing call reminders: ${error.message}`)
+    return data ?? []
+  },
 }
 
 export const DEFAULT_DOCTOR_ID = DOCTOR_ID

@@ -11,5 +11,10 @@
       "source": "/(.*)",
       "destination": "/api/index"
     }
+  ],
+  "crons": [
+    { "path": "/api/cron/reminders?window=24h", "schedule": "*/15 * * * *" },
+    { "path": "/api/cron/reminders?window=2h", "schedule": "*/15 * * * *" },
+    { "path": "/api/cron/call-reminders", "schedule": "*/15 * * * *" }
   ]
 }

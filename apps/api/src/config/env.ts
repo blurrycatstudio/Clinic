@@ -42,6 +42,13 @@ const envSchema = z.object({
   VAPI_API_KEY: z.string().optional().default(""),
   VAPI_WEBHOOK_SECRET: z.string().optional().default(""),
   VAPI_ASSISTANT_ID: z.string().optional().default(""),
+  // Vapi's phone number resource ID that outbound calls are placed from
+  // (Vapi dashboard -> Phone Numbers). Required for any outbound call.
+  VAPI_PHONE_NUMBER_ID: z.string().optional().default(""),
+  // A second assistant scripted specifically for outbound confirmation/reminder
+  // calls (distinct script from the inbound assistant). Used by both the manual
+  // "call to confirm" action and the automated reminder-call cron job.
+  VAPI_REMINDER_ASSISTANT_ID: z.string().optional().default(""),
   ELEVENLABS_API_KEY: z.string().optional().default(""),
   ELEVENLABS_VOICE_ID: z.string().optional().default(""),
 
@@ -81,3 +88,6 @@ export const env = loadEnv()
 
 export const isWhatsappConfigured =
   env.WHATSAPP_ACCESS_TOKEN.length > 0 && env.WHATSAPP_PHONE_NUMBER_ID.length > 0
+
+export const isVapiOutboundConfigured =
+  env.VAPI_API_KEY.length > 0 && env.VAPI_PHONE_NUMBER_ID.length > 0

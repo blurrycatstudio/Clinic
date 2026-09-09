@@ -81,7 +81,10 @@ vercel --prod
 Note the deployed API's URL (e.g. `https://vidaclinic-api.vercel.app`).
 
 Vercel Cron (configured in `apps/api/vercel.json`) will automatically start
-hitting `/api/cron/reminders` on schedule once deployed — no extra setup.
+hitting `/api/cron/reminders` and `/api/cron/call-reminders` on schedule once
+deployed — no extra setup. Note: on Vercel's Hobby plan, cron jobs are limited
+to once per day regardless of the schedule expression — the `*/15 * * * *`
+schedules here only actually run that often on a Pro plan or above.
 
 ## 7. Deploy apps/web to Vercel
 
@@ -146,6 +149,20 @@ the codebase changes.
 2. Set the assistant's webhook URL to `https://<your-api-domain>/api/webhook/vapi`.
 3. Set `VAPI_API_KEY`, `VAPI_ASSISTANT_ID`, and `VAPI_WEBHOOK_SECRET` on the
    `apps/api` Vercel project.
+
+### Outbound calling (staff "call to confirm" + automated reminder calls)
+
+1. In the Vapi dashboard, under Phone Numbers, copy the id of the number
+   outbound calls should be placed from. Set it as `VAPI_PHONE_NUMBER_ID`.
+2. Optionally create a second assistant scripted for outbound confirmation
+   calls (a natural call-opening script, since — unlike the inbound assistant
+   — it's the one placing the call) and set its id as
+   `VAPI_REMINDER_ASSISTANT_ID`. If left unset, outbound calls fall back to
+   `VAPI_ASSISTANT_ID`.
+3. Redeploy. Staff can now use "Call to confirm" on any appointment.
+4. To also auto-call patients ahead of their appointment, turn on "Reminder
+   Calls" in the dashboard's Settings page and set how many hours before the
+   appointment the call should go out.
 
 ## 11. Optional: Cloudflare R2 / Google Maps
 

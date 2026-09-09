@@ -3,6 +3,11 @@ import { z } from "zod"
 import { appointmentRepository } from "../repositories/appointmentRepository.js"
 import { appointmentService } from "../services/appointmentService.js"
 import { notifyPatientOfAppointmentChange } from "../services/notificationService.js"
+import { patientRepository } from "../repositories/patientRepository.js"
+import { voiceCallRepository } from "../repositories/voiceCallRepository.js"
+import { vapiService } from "../services/vapiService.js"
+import { env } from "../config/env.js"
+import { NotFoundError } from "../lib/errors.js"
 
 export const appointmentsController = {
   async list(req: Request, res: Response) {
@@ -70,5 +75,30 @@ export const appointmentsController = {
 
     const appointment = await appointmentRepository.updateStatus(params.id, body.status)
     res.json({ appointment })
+  },
+
+  /** Staff-triggered "call to confirm" — places a real outbound call to the patient about this appointment. */
+  async callToConfirm(req: Request, res: Response) {
+    const params = z.object({ id: z.string().uuid() }).parse(req.params)
+
+    const appointment = await appointmentRepository.findById(params.id)
+    if (!appointment) throw new NotFoundError("Appointment not found")
+    const patient = await patientRepository.findById(appointment.patient_id)
+    if (!patient) throw new NotFoundError("Patient not found")
+
+    const { vapiCallId } = await vapiService.createOutboundCall({
+      phoneE164: patient.phone_e164,
+      assistantId: env.VAPI_REMINDER_ASSISTANT_ID || undefined,
+      metadata: { appointmentId: appointment.id, purpose: "appointment_confirmation" },
+    })
+    const call = await voiceCallRepository.create({
+      vapiCallId,
+      phoneE164: patient.phone_e164,
+      direction: "outbound",
+      patientId: patient.id,
+      appointmentId: appointment.id,
+    })
+
+    res.status(201).json({ call })
   },
 }

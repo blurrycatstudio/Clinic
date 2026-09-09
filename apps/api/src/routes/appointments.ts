@@ -12,3 +12,4 @@ appointmentsRouter.post("/", asyncHandler(async (req, res) => appointmentsContro
 appointmentsRouter.patch("/:id/reschedule", asyncHandler(async (req, res) => appointmentsController.reschedule(req, res)))
 appointmentsRouter.patch("/:id/cancel", asyncHandler(async (req, res) => appointmentsController.cancel(req, res)))
 appointmentsRouter.patch("/:id/status", asyncHandler(async (req, res) => appointmentsController.updateStatus(req, res)))
+appointmentsRouter.post("/:id/call", asyncHandler(async (req, res) => appointmentsController.callToConfirm(req, res)))

@@ -39,6 +39,7 @@ export type Appointment = {
   source: "whatsapp" | "voice" | "dashboard"
   reminder_24h_sent_at: ISOTimestamp | null
   reminder_2h_sent_at: ISOTimestamp | null
+  reminder_call_sent_at: ISOTimestamp | null
   cancelled_reason: string | null
   created_at: ISOTimestamp
   updated_at: ISOTimestamp
@@ -75,6 +76,8 @@ export type ClinicSettings = {
   insurance_info_en: string
   insurance_info_es: string
   appointment_duration_minutes: number
+  reminder_call_enabled: boolean
+  reminder_call_hours_before: number
   updated_at: ISOTimestamp
 }
 
@@ -123,6 +126,7 @@ export type VoiceCallStatus = "in_progress" | "completed" | "failed" | "no_answe
 export type VoiceCall = {
   id: UUID
   patient_id: UUID | null
+  appointment_id: UUID | null
   vapi_call_id: string
   phone_e164: string
   direction: VoiceCallDirection
@@ -157,6 +161,7 @@ export type AuditAction =
   | "auth.login"
   | "voice_call.started"
   | "voice_call.completed"
+  | "voice_call.outbound_initiated"
 
 export type AuditLog = {
   id: UUID
