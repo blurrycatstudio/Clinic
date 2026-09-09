@@ -176,7 +176,7 @@ export function PatientSnapshotCard({ patient = DEFAULT_PATIENT }: { patient?: P
     <Card className="h-[640px] min-w-0 w-full flex-1 gap-0 overflow-hidden rounded-2xl border p-0 shadow-atelier-elevated lg:h-full">
       {/* Dossier header */}
       <div className="flex flex-wrap items-center justify-between gap-4 border-b bg-gradient-to-r from-white via-white to-[#EFF6FF]/50 p-5">
-        <div className="flex min-w-0 flex-1 flex-nowrap items-center justify-between gap-4">
+        <div className="flex min-w-0 flex-1 flex-wrap items-center justify-between gap-4 sm:flex-nowrap">
         <div className="flex min-w-0 items-center gap-4">
           <div className="relative shrink-0">
             <Avatar className="size-16 ring-2 ring-[#2563EB]/50 shadow-md">

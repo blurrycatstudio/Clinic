@@ -15,7 +15,7 @@ const peso = (n: number) => `$${n.toLocaleString("en-US")}`
 function RevenueBarChart() {
   const max = Math.max(...REVENUE_BY_MONTH.map((d) => d.value))
   return (
-    <div className="flex h-48 items-end gap-3">
+    <div className="flex h-48 gap-3">
       {REVENUE_BY_MONTH.map((d) => (
         <div key={d.label} className="flex flex-1 flex-col items-center gap-2">
           <span className="text-[10.5px] font-bold text-muted-foreground">{Math.round(d.value / 1000)}k</span>

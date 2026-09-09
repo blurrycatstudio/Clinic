@@ -2,7 +2,7 @@ import { useState, type FormEvent } from "react"
 import { useNavigate } from "react-router-dom"
 import { supabase, isSupabaseConfigured } from "@/lib/supabaseClient"
 import { useLang } from "@/lib/i18n"
-import doctorImg from "@/assests/drgamaliel.png"
+import doctorImg from "@/assests/drgamaliel.webp"
 
 /* ─── Inline SVG Icons ─── */
 
@@ -613,6 +613,9 @@ export default function Login() {
           alt="Dr. Gamaliel – Pediatrics"
           className="absolute inset-0 h-full w-full object-cover"
           style={{ objectPosition: "50% 15%" }}
+          fetchPriority="high"
+          decoding="async"
+          loading="eager"
         />
 
         {/* EN Language Selector — top right */}
