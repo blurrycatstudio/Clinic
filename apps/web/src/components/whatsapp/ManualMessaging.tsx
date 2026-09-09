@@ -1,4 +1,4 @@
-import { useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Paperclip, Phone, Search, Send, Video } from "lucide-react"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Card } from "@/components/ui/card"
@@ -7,6 +7,8 @@ import { useLang } from "@/lib/i18n"
 import { CONTACTS, type ChatMessage, type Contact } from "@/lib/data"
 import { cn } from "@/lib/utils"
 import { useToast } from "@/lib/toast"
+import { isSupabaseConfigured } from "@/lib/supabaseClient"
+import { useConversationMessages, useConversations, useSendMessage, type ApiConversation } from "@/hooks/useConversations"
 
 function formatNow() {
   const now = new Date()
@@ -17,31 +19,105 @@ function formatNow() {
   return `${h}:${mm} ${ampm}`
 }
 
+function formatTime(iso: string) {
+  return new Date(iso).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })
+}
+
+function initialsOf(name: string) {
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0]?.toUpperCase())
+    .join("")
+}
+
+const AVATAR_COLORS = ["#DC2626", "#059669", "#2563EB", "#D97706", "#7C3AED", "#DB2777"]
+function colorFor(id: string) {
+  let hash = 0
+  for (let i = 0; i < id.length; i++) hash = (hash * 31 + id.charCodeAt(i)) >>> 0
+  return AVATAR_COLORS[hash % AVATAR_COLORS.length]
+}
+
+function toContact(conv: ApiConversation): Contact {
+  const name = conv.wa_profile_name || conv.wa_phone_e164
+  return {
+    id: conv.id,
+    name,
+    child: conv.patients?.full_name ?? conv.wa_phone_e164,
+    initials: initialsOf(name) || "?",
+    bg: colorFor(conv.id),
+    time: formatTime(conv.last_message_at),
+    unread: false,
+    msgs: [],
+  }
+}
+
+/** Real conversations come from the WhatsApp Cloud API via the backend; falls back to demo data when Supabase isn't configured. */
 export function ManualMessaging() {
   const { t } = useLang()
   const toast = useToast()
-  const [contacts, setContacts] = useState<Contact[]>(CONTACTS)
-  const [activeId, setActiveId] = useState(CONTACTS[0].id)
+  const live = isSupabaseConfigured
+
+  const [demoContacts, setDemoContacts] = useState<Contact[]>(CONTACTS)
+  const [activeId, setActiveId] = useState<string | undefined>(live ? undefined : CONTACTS[0].id)
   const [draft, setDraft] = useState("")
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  const conversationsQuery = useConversations()
+  const conversations = conversationsQuery.data?.rows ?? []
+  const messagesQuery = useConversationMessages(live ? activeId : undefined)
+  const sendMessage = useSendMessage(activeId)
+
+  useEffect(() => {
+    if (live && !activeId && conversations.length > 0) setActiveId(conversations[0].id)
+  }, [live, activeId, conversations])
+
+  const contacts: Contact[] = live ? conversations.map(toContact) : demoContacts
   const active = contacts.find((c) => c.id === activeId) ?? contacts[0]
+
+  const liveMessages: ChatMessage[] = (messagesQuery.data?.messages ?? []).map((m) => ({
+    from: m.direction === "outbound" ? "me" : "them",
+    text: m.body ?? (m.template_name ? `[template: ${m.template_name}]` : `[${m.message_type}]`),
+    time: formatTime(m.created_at),
+  }))
+  const displayMsgs = live ? liveMessages : (active?.msgs ?? [])
 
   function send() {
     const text = draft.trim()
-    if (!text) return
+    if (!text || !active) return
+
+    if (live) {
+      sendMessage.mutate(text, { onError: () => toast("Failed to send message") })
+      setDraft("")
+      return
+    }
+
     const msg: ChatMessage = { from: "me", text, time: formatNow() }
-    setContacts((prev) => prev.map((c) => (c.id === activeId ? { ...c, msgs: [...c.msgs, msg] } : c)))
+    setDemoContacts((prev) => prev.map((c) => (c.id === activeId ? { ...c, msgs: [...c.msgs, msg] } : c)))
     setDraft("")
   }
 
   function handleAttach(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
+    if (live) {
+      toast("File attachments aren't supported yet")
+      e.target.value = ""
+      return
+    }
     const msg: ChatMessage = { from: "me", text: `📎 ${file.name}`, time: formatNow() }
-    setContacts((prev) => prev.map((c) => (c.id === activeId ? { ...c, msgs: [...c.msgs, msg] } : c)))
+    setDemoContacts((prev) => prev.map((c) => (c.id === activeId ? { ...c, msgs: [...c.msgs, msg] } : c)))
     toast(`Attached ${file.name}`)
     e.target.value = ""
+  }
+
+  if (live && !active) {
+    return (
+      <Card className="flex h-[70vh] w-full flex-1 items-center justify-center rounded-2xl border p-6 text-sm text-muted-foreground shadow-none sm:h-160">
+        {conversationsQuery.isLoading ? "Loading conversations…" : "No WhatsApp conversations yet."}
+      </Card>
+    )
   }
 
   return (
@@ -60,7 +136,7 @@ export function ManualMessaging() {
         </div>
         <div className="flex-1 overflow-y-auto">
           {contacts.map((c) => {
-            const last = c.msgs[c.msgs.length - 1]
+            const last = live ? null : c.msgs[c.msgs.length - 1]
             const selected = c.id === activeId
             return (
               <button
@@ -119,7 +195,7 @@ export function ManualMessaging() {
         </div>
 
         <div className="flex-1 space-y-2.5 overflow-y-auto bg-muted/40 p-3 sm:p-4.5">
-          {active.msgs.map((m, i) => {
+          {displayMsgs.map((m, i) => {
             const mine = m.from === "me"
             return (
               <div key={i} className={cn("flex", mine ? "justify-end" : "justify-start")}>
