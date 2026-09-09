@@ -1,0 +1,48 @@
+name: Reminder cron (safety net)
+
+# Vercel Hobby plan caps cron jobs at once per day regardless of the schedule
+# in apps/api/vercel.json, which is too infrequent for time-sensitive
+# appointment reminders. This workflow hits the same endpoints on a tight
+# schedule so reminders/reminder-calls still fire close to on time.
+#
+# Note: GitHub disables scheduled workflows automatically after 60 days with
+# no commits to the repo, and actual run times can drift a few minutes under
+# GitHub's own load — this is a safety net, not a guarantee.
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  trigger-reminders:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call reminder endpoints
+        env:
+          API_BASE: ${{ vars.CLINIC_API_BASE_URL || 'https://clinic-api-beta.vercel.app' }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          set -e
+          auth_header=()
+          if [ -n "$CRON_SECRET" ]; then
+            auth_header=(-H "Authorization: Bearer $CRON_SECRET")
+          fi
+
+          call() {
+            path="$1"
+            echo "→ GET $API_BASE$path"
+            status=$(curl -s -o /tmp/resp.json -w "%{http_code}" "${auth_header[@]}" "$API_BASE$path")
+            body=$(cat /tmp/resp.json)
+            echo "  status=$status body=$body"
+            if [ "$status" -ge 300 ]; then
+              echo "::error::$path returned HTTP $status"
+              return 1
+            fi
+          }
+
+          fail=0
+          call "/api/cron/reminders?window=24h" || fail=1
+          call "/api/cron/reminders?window=2h" || fail=1
+          call "/api/cron/call-reminders" || fail=1
+
+          exit $fail
