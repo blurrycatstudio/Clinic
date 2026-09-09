@@ -1,5 +1,8 @@
 export function downloadTextFile(filename: string, content: string, mime = "text/plain") {
-  const blob = new Blob([content], { type: mime })
+  downloadBlob(filename, new Blob([content], { type: mime }))
+}
+
+export function downloadBlob(filename: string, blob: Blob) {
   const url = URL.createObjectURL(blob)
   const a = document.createElement("a")
   a.href = url

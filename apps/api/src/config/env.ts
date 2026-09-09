@@ -91,3 +91,10 @@ export const isWhatsappConfigured =
 
 export const isVapiOutboundConfigured =
   env.VAPI_API_KEY.length > 0 && env.VAPI_PHONE_NUMBER_ID.length > 0
+
+export const isR2Configured =
+  env.R2_ACCOUNT_ID.length > 0 &&
+  env.R2_ACCESS_KEY_ID.length > 0 &&
+  env.R2_SECRET_ACCESS_KEY.length > 0 &&
+  env.R2_BUCKET_NAME.length > 0 &&
+  env.R2_PUBLIC_URL.length > 0

@@ -173,3 +173,59 @@ export type AuditLog = {
   metadata: Record<string, unknown> | null
   created_at: ISOTimestamp
 }
+
+// ----------------------------------------------------------------------------
+
+export type PrescriptionStatus = "active" | "completed"
+
+export type PrescriptionItem = {
+  id: UUID
+  prescription_id: UUID
+  name: string
+  dose: string
+  frequency: string
+  duration: string
+  route: string
+  sort_order: number
+}
+
+export type Prescription = {
+  id: UUID
+  sequence_number: number
+  patient_id: UUID
+  appointment_id: UUID | null
+  diagnosis: string
+  notes: string
+  status: PrescriptionStatus
+  pdf_url: string | null
+  sent_at: ISOTimestamp | null
+  created_at: ISOTimestamp
+  updated_at: ISOTimestamp
+}
+
+export type InvoiceStatus = "paid" | "pending" | "overdue"
+
+export type InvoiceItem = {
+  id: UUID
+  invoice_id: UUID
+  description: string
+  quantity: number
+  unit_price: number
+  sort_order: number
+}
+
+export type Invoice = {
+  id: UUID
+  sequence_number: number
+  patient_id: UUID
+  appointment_id: UUID | null
+  issue_date: ISODateString
+  due_date: ISODateString | null
+  amount_total: number
+  status: InvoiceStatus
+  payment_method: string | null
+  pdf_url: string | null
+  sent_at: ISOTimestamp | null
+  created_at: ISOTimestamp
+  updated_at: ISOTimestamp
+}

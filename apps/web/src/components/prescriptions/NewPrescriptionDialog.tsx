@@ -1,10 +1,14 @@
 import { useState } from "react"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { Dialog } from "radix-ui"
 import { Plus, Trash2, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useLang } from "@/lib/i18n"
-import { COMMON_MEDICATIONS, RX_PATIENTS, type Medication, type Prescription } from "@/lib/data"
+import { COMMON_MEDICATIONS, type Medication } from "@/lib/data"
+import { api } from "@/lib/api"
+import { usePatientSearch } from "@/hooks/usePatientSearch"
+import { useToast } from "@/lib/toast"
 
 const ROUTES = ["Oral", "Topical", "Inhaled", "Intramuscular", "Ophthalmic", "Otic"]
 
@@ -13,17 +17,21 @@ const emptyMed = (): Medication => ({ name: "", dose: "", frequency: "", duratio
 export function NewPrescriptionDialog({
   open,
   onOpenChange,
-  onCreate,
+  onCreated,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onCreate: (rx: Prescription) => void
+  onCreated: () => void
 }) {
   const { t } = useLang()
+  const toast = useToast()
+  const queryClient = useQueryClient()
   const [patientId, setPatientId] = useState("")
   const [diagnosis, setDiagnosis] = useState("")
   const [notes, setNotes] = useState("")
   const [meds, setMeds] = useState<Medication[]>([emptyMed()])
+
+  const patients = usePatientSearch("")
 
   function reset() {
     setPatientId("")
@@ -42,20 +50,27 @@ export function NewPrescriptionDialog({
 
   const canSave = patientId !== "" && diagnosis.trim() !== "" && meds.every((m) => m.name.trim() && m.dose.trim() && m.frequency.trim() && m.duration.trim())
 
+  const createMutation = useMutation({
+    mutationFn: () =>
+      api.post("/prescriptions", {
+        patientId,
+        diagnosis: diagnosis.trim(),
+        notes: notes.trim(),
+        items: meds.map((m) => ({ name: m.name, dose: m.dose, frequency: m.frequency, duration: m.duration, route: m.route })),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["prescriptions"] })
+      onCreated()
+      reset()
+      onOpenChange(false)
+      toast("Prescription created")
+    },
+    onError: () => toast("Failed to create prescription"),
+  })
+
   function handleSave() {
     if (!canSave) return
-    const rx: Prescription = {
-      id: `RX-${Math.floor(1000 + Math.random() * 9000)}`,
-      patientId,
-      date: new Date().toISOString().slice(0, 10),
-      diagnosis: diagnosis.trim(),
-      medications: meds,
-      notes: notes.trim(),
-      status: "rxStatusActive",
-    }
-    onCreate(rx)
-    reset()
-    onOpenChange(false)
+    createMutation.mutate()
   }
 
   return (
@@ -85,9 +100,9 @@ export function NewPrescriptionDialog({
                 className="h-9 w-full rounded-lg border border-border bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
               >
                 <option value="">{t.rxModalSelectPatient}</option>
-                {RX_PATIENTS.map((p) => (
+                {(patients.data?.rows ?? []).map((p) => (
                   <option key={p.id} value={p.id}>
-                    {p.name} · {p.age}
+                    {p.full_name} · {p.phone_e164}
                   </option>
                 ))}
               </select>
@@ -196,7 +211,7 @@ export function NewPrescriptionDialog({
                 {t.rxModalCancel}
               </Button>
             </Dialog.Close>
-            <Button onClick={handleSave} disabled={!canSave} className="rounded-lg font-bold">
+            <Button onClick={handleSave} disabled={!canSave || createMutation.isPending} className="rounded-lg font-bold">
               {t.rxModalSave}
             </Button>
           </div>

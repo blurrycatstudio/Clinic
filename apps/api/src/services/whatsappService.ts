@@ -21,6 +21,12 @@ type WhatsappLocationMessage = {
   type: "location"
   location: { latitude: number; longitude: number; name?: string; address?: string }
 }
+type WhatsappDocumentMessage = {
+  messaging_product: "whatsapp"
+  to: string
+  type: "document"
+  document: { link: string; filename: string; caption?: string }
+}
 type WhatsappInteractiveButtonsMessage = {
   messaging_product: "whatsapp"
   to: string
@@ -102,6 +108,14 @@ export const whatsappService = {
           : {}),
       },
     }
+    return callGraphApi(payload)
+  },
+
+  async sendDocumentMessage(
+    to: string,
+    document: { link: string; filename: string; caption?: string },
+  ): Promise<{ messageId: string | null }> {
+    const payload: WhatsappDocumentMessage = { messaging_product: "whatsapp", to, type: "document", document }
     return callGraphApi(payload)
   },
 

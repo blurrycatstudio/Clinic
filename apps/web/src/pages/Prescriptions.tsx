@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { Plus, Search, Syringe } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -6,35 +7,63 @@ import { Input } from "@/components/ui/input"
 import { NewPrescriptionDialog } from "@/components/prescriptions/NewPrescriptionDialog"
 import { PrescriptionDetailDialog } from "@/components/prescriptions/PrescriptionDetailDialog"
 import { useLang } from "@/lib/i18n"
-import { PRESCRIPTIONS as INITIAL_PRESCRIPTIONS, RX_PATIENTS, type Prescription } from "@/lib/data"
+import { api } from "@/lib/api"
 import { cn } from "@/lib/utils"
 
-type StatusFilter = "all" | "rxStatusActive" | "rxStatusCompleted"
+export type ApiPrescriptionItem = {
+  id: string
+  name: string
+  dose: string
+  frequency: string
+  duration: string
+  route: string
+}
+
+export type ApiPrescription = {
+  id: string
+  sequence_number: number
+  patient_id: string
+  diagnosis: string
+  notes: string
+  status: "active" | "completed"
+  pdf_url: string | null
+  sent_at: string | null
+  created_at: string
+  prescription_items: ApiPrescriptionItem[]
+  patients: { full_name: string } | null
+}
+
+type StatusFilter = "all" | "active" | "completed"
 
 export default function Prescriptions() {
   const { t } = useLang()
-  const [prescriptions, setPrescriptions] = useState<Prescription[]>(INITIAL_PRESCRIPTIONS)
+  const queryClient = useQueryClient()
   const [query, setQuery] = useState("")
   const [status, setStatus] = useState<StatusFilter>("all")
   const [newOpen, setNewOpen] = useState(false)
-  const [viewing, setViewing] = useState<Prescription | null>(null)
+  const [viewing, setViewing] = useState<ApiPrescription | null>(null)
 
-  const patientById = useMemo(() => new Map(RX_PATIENTS.map((p) => [p.id, p])), [])
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["prescriptions"],
+    queryFn: () => api.get<{ rows: ApiPrescription[]; count: number }>("/prescriptions?limit=200"),
+  })
+  const prescriptions = data?.rows ?? []
 
-  const filtered = prescriptions
-    .filter((rx) => status === "all" || rx.status === status)
-    .filter((rx) => {
-      if (!query.trim()) return true
-      const q = query.toLowerCase()
-      const patient = patientById.get(rx.patientId)
-      return (
-        patient?.name.toLowerCase().includes(q) ||
-        rx.diagnosis.toLowerCase().includes(q) ||
-        rx.medications.some((m) => m.name.toLowerCase().includes(q)) ||
-        rx.id.toLowerCase().includes(q)
-      )
-    })
-    .sort((a, b) => (a.date < b.date ? 1 : -1))
+  const filtered = useMemo(
+    () =>
+      prescriptions
+        .filter((rx) => status === "all" || rx.status === status)
+        .filter((rx) => {
+          if (!query.trim()) return true
+          const q = query.toLowerCase()
+          return (
+            (rx.patients?.full_name ?? "").toLowerCase().includes(q) ||
+            rx.diagnosis.toLowerCase().includes(q) ||
+            rx.prescription_items.some((m) => m.name.toLowerCase().includes(q))
+          )
+        }),
+    [prescriptions, query, status],
+  )
 
   return (
     <div>
@@ -63,8 +92,8 @@ export default function Prescriptions() {
           <div className="flex flex-wrap items-center gap-1.5 rounded-full border border-border p-[3px]">
             {([
               ["all", t.rxAll],
-              ["rxStatusActive", t.rxStatusActive],
-              ["rxStatusCompleted", t.rxStatusCompleted],
+              ["active", t.rxStatusActive],
+              ["completed", t.rxStatusCompleted],
             ] as const).map(([key, label]) => (
               <button
                 key={key}
@@ -83,7 +112,11 @@ export default function Prescriptions() {
           </div>
         </div>
 
-        {filtered.length === 0 ? (
+        {isLoading ? (
+          <div className="py-16 text-center text-sm text-muted-foreground">Loading prescriptions…</div>
+        ) : error ? (
+          <div className="py-16 text-center text-sm text-destructive">Couldn't load prescriptions. Is the API reachable and are you signed in?</div>
+        ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
             <div className="flex size-14 items-center justify-center rounded-2xl border border-border bg-accent">
               <Syringe className="size-6 text-primary" strokeWidth={1.6} />
@@ -109,49 +142,38 @@ export default function Prescriptions() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((rx) => {
-                  const patient = patientById.get(rx.patientId)
-                  return (
-                    <tr key={rx.id} className="border-b border-border last:border-0 hover:bg-muted/60">
-                      <td className="py-3 pr-2 pl-0">
-                        <div className="flex items-center gap-2.5">
-                          <div
-                            className="flex size-8.5 shrink-0 items-center justify-center rounded-full text-[12px] font-bold text-white"
-                            style={{ background: patient?.color }}
-                          >
-                            {patient?.initials}
-                          </div>
-                          <div>
-                            <div className="text-[13.5px] font-bold">{patient?.name}</div>
-                            <div className="text-[11px] text-muted-foreground">{rx.id}</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-2 py-3 text-[13px] whitespace-nowrap">{rx.date}</td>
-                      <td className="px-2 py-3 text-[13px]">{rx.diagnosis}</td>
-                      <td className="px-2 py-3 text-[12.5px]">
-                        {rx.medications.length === 1 ? rx.medications[0].name : `${rx.medications[0].name} +${rx.medications.length - 1}`}
-                      </td>
-                      <td className="px-2 py-3">
-                        <span
-                          className={cn(
-                            "rounded-full border px-2.5 py-1 text-[11.5px] font-bold whitespace-nowrap",
-                            rx.status === "rxStatusActive"
-                              ? "border-primary/30 bg-accent text-primary"
-                              : "border-border bg-muted text-foreground",
-                          )}
-                        >
-                          {t[rx.status]}
-                        </span>
-                      </td>
-                      <td className="py-3 pr-0 pl-2 text-right whitespace-nowrap">
-                        <Button variant="outline" size="sm" className="rounded-lg font-semibold" onClick={() => setViewing(rx)}>
-                          {t.rxView}
-                        </Button>
-                      </td>
-                    </tr>
-                  )
-                })}
+                {filtered.map((rx) => (
+                  <tr key={rx.id} className="border-b border-border last:border-0 hover:bg-muted/60">
+                    <td className="py-3 pr-2 pl-0">
+                      <div className="text-[13.5px] font-bold">{rx.patients?.full_name ?? "—"}</div>
+                      <div className="text-[11px] text-muted-foreground">RX-{1000 + rx.sequence_number}</div>
+                    </td>
+                    <td className="px-2 py-3 text-[13px] whitespace-nowrap">{new Date(rx.created_at).toLocaleDateString()}</td>
+                    <td className="px-2 py-3 text-[13px]">{rx.diagnosis}</td>
+                    <td className="px-2 py-3 text-[12.5px]">
+                      {rx.prescription_items.length === 1
+                        ? rx.prescription_items[0].name
+                        : `${rx.prescription_items[0]?.name ?? ""} +${rx.prescription_items.length - 1}`}
+                    </td>
+                    <td className="px-2 py-3">
+                      <span
+                        className={cn(
+                          "rounded-full border px-2.5 py-1 text-[11.5px] font-bold whitespace-nowrap",
+                          rx.status === "active"
+                            ? "border-primary/30 bg-accent text-primary"
+                            : "border-border bg-muted text-foreground",
+                        )}
+                      >
+                        {rx.status === "active" ? t.rxStatusActive : t.rxStatusCompleted}
+                      </span>
+                    </td>
+                    <td className="py-3 pr-0 pl-2 text-right whitespace-nowrap">
+                      <Button variant="outline" size="sm" className="rounded-lg font-semibold" onClick={() => setViewing(rx)}>
+                        {t.rxView}
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
@@ -161,7 +183,7 @@ export default function Prescriptions() {
       <NewPrescriptionDialog
         open={newOpen}
         onOpenChange={setNewOpen}
-        onCreate={(rx) => setPrescriptions((prev) => [rx, ...prev])}
+        onCreated={() => queryClient.invalidateQueries({ queryKey: ["prescriptions"] })}
       />
       <PrescriptionDetailDialog rx={viewing} onOpenChange={(open) => !open && setViewing(null)} />
     </div>
