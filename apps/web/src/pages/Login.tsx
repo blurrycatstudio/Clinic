@@ -189,7 +189,7 @@ function LoginStyles() {
 
 export default function Login() {
   const navigate = useNavigate()
-  const { lang, setLang } = useLang()
+  const { lang, setLang, t } = useLang()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
@@ -240,7 +240,7 @@ export default function Login() {
                     letterSpacing: "-0.01em",
                   }}
                 >
-                  Dr. Gamaliel's
+                  {t.loginBrandName}
                 </div>
                 <div
                   style={{
@@ -252,7 +252,7 @@ export default function Login() {
                     letterSpacing: "0.03em",
                   }}
                 >
-                  Pediatrics
+                  {t.loginBrandSpecialty}
                 </div>
               </div>
             </div>
@@ -268,7 +268,7 @@ export default function Login() {
                 color: "#6B8DB5",
               }}
             >
-              Healthy Kids. Brighter Tomorrows.
+              {t.loginTagline}
             </div>
 
             {/* Welcome heading block */}
@@ -282,7 +282,7 @@ export default function Login() {
                   color: "#1B3A5C",
                 }}
               >
-                Welcome Back
+                {t.loginWelcomeBack}
               </div>
               <h1
                 style={{
@@ -295,9 +295,9 @@ export default function Login() {
                   fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
                 }}
               >
-                Compassionate Care
+                {t.loginHeadline1}
                 <br />
-                for Brighter Tomorrows
+                {t.loginHeadline2}
               </h1>
               <p
                 style={{
@@ -307,9 +307,9 @@ export default function Login() {
                   color: "#5A6B7F",
                 }}
               >
-                Together for healthier, happier children.
+                {t.loginSubtext1}
                 <br />
-                Sign in to continue.
+                {t.loginSubtext2}
               </p>
             </div>
 
@@ -327,8 +327,7 @@ export default function Login() {
               {/* Supabase warning */}
               {!isSupabaseConfigured && (
                 <p className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-                  Supabase Auth isn't configured yet. Set <code>VITE_SUPABASE_URL</code> and{" "}
-                  <code>VITE_SUPABASE_ANON_KEY</code> in <code>.env.local</code>.
+                  {t.loginSupabaseWarning}
                 </p>
               )}
 
@@ -351,7 +350,7 @@ export default function Login() {
                 <PersonIcon />
                 <input
                   type="text"
-                  placeholder="Username or Email"
+                  placeholder={t.loginEmailPlaceholder}
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -390,7 +389,7 @@ export default function Login() {
                 <LockIcon />
                 <input
                   type={showPassword ? "text" : "password"}
-                  placeholder="Password"
+                  placeholder={t.loginPasswordPlaceholder}
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -438,7 +437,7 @@ export default function Login() {
                     style={{ width: "16px", height: "16px", cursor: "pointer", accentColor: "#1B3A5C" }}
                   />
                   <span style={{ fontSize: "13px", fontWeight: 500, color: "#3B4A5E" }}>
-                    Remember me
+                    {t.loginRememberMe}
                   </span>
                 </label>
                 <button
@@ -453,7 +452,7 @@ export default function Login() {
                     cursor: "pointer",
                   }}
                 >
-                  Forgot password?
+                  {t.loginForgotPassword}
                 </button>
               </div>
 
@@ -488,7 +487,7 @@ export default function Login() {
                 }}
               >
                 {loading && <SpinnerIcon />}
-                {loading ? "Signing in..." : "Sign In"}
+                {loading ? t.loginSigningIn : t.loginSignIn}
                 {!loading && <ArrowRightIcon />}
               </button>
             </form>
@@ -546,8 +545,8 @@ export default function Login() {
                   <HeartOutlineSmall />
                 </div>
                 <div>
-                  <div style={{ fontSize: "13px", fontWeight: 700, color: "#E8546B" }}>Trusted Care</div>
-                  <div style={{ fontSize: "11.5px", color: "#7A8A9E" }}>For every stage</div>
+                  <div style={{ fontSize: "13px", fontWeight: 700, color: "#E8546B" }}>{t.loginTrustedCareTitle}</div>
+                  <div style={{ fontSize: "11.5px", color: "#7A8A9E" }}>{t.loginTrustedCareSub}</div>
                 </div>
               </div>
 
@@ -568,8 +567,8 @@ export default function Login() {
                   <PeopleIcon />
                 </div>
                 <div>
-                  <div style={{ fontSize: "13px", fontWeight: 700, color: "#1B3A5C" }}>Happy Families</div>
-                  <div style={{ fontSize: "11.5px", color: "#7A8A9E" }}>Our greatest success</div>
+                  <div style={{ fontSize: "13px", fontWeight: 700, color: "#1B3A5C" }}>{t.loginHappyFamiliesTitle}</div>
+                  <div style={{ fontSize: "11.5px", color: "#7A8A9E" }}>{t.loginHappyFamiliesSub}</div>
                 </div>
               </div>
 
@@ -590,8 +589,8 @@ export default function Login() {
                   <StarIcon />
                 </div>
                 <div>
-                  <div style={{ fontSize: "13px", fontWeight: 700, color: "#1B3A5C" }}>Brighter Futures</div>
-                  <div style={{ fontSize: "11.5px", color: "#7A8A9E" }}>A healthier tomorrow</div>
+                  <div style={{ fontSize: "13px", fontWeight: 700, color: "#1B3A5C" }}>{t.loginBrighterFuturesTitle}</div>
+                  <div style={{ fontSize: "11.5px", color: "#7A8A9E" }}>{t.loginBrighterFuturesSub}</div>
                 </div>
               </div>
             </div>

@@ -203,6 +203,21 @@ export type Prescription = {
   updated_at: ISOTimestamp
 }
 
+export type Consultation = {
+  id: UUID
+  sequence_number: number
+  patient_id: UUID
+  appointment_id: UUID | null
+  chief_complaint: string
+  diagnosis: string
+  notes: string
+  weight_kg: number | null
+  height_cm: number | null
+  temperature_c: number | null
+  created_at: ISOTimestamp
+  updated_at: ISOTimestamp
+}
+
 export type InvoiceStatus = "paid" | "pending" | "overdue"
 
 export type InvoiceItem = {

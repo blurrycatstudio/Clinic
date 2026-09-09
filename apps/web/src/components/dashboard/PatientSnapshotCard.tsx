@@ -27,6 +27,7 @@ import { Card } from "@/components/ui/card"
 import { Switch } from "@/components/ui/switch"
 import { PhoneCallIcon } from "@/components/icons/PhoneCallIcon"
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon"
+import { StartConsultationDialog, type ConsultationResult } from "@/components/dashboard/StartConsultationDialog"
 import { getPatientDocuments, HISTORY, PATIENTS, PRESCRIPTIONS, RECENT_VISITS, type Patient, type PatientDocument } from "@/lib/data"
 import { useLang } from "@/lib/i18n"
 import type { Strings } from "@/lib/i18n"
@@ -56,6 +57,10 @@ export function PatientSnapshotCard({ patient = DEFAULT_PATIENT }: { patient?: P
   const [extraMedications, setExtraMedications] = useState<string[]>([])
   const [extraDocuments, setExtraDocuments] = useState<PatientDocument[]>([])
   const [editingInfo, setEditingInfo] = useState(false)
+  const [consultOpen, setConsultOpen] = useState(false)
+  const [extraHistory, setExtraHistory] = useState<{ date: string; type: string; details: string }[]>([])
+  const [extraVisits, setExtraVisits] = useState<{ date: string; type: string; doctor: string }[]>([])
+  const [extraGrowth, setExtraGrowth] = useState<{ date: string; type: string; details: string }[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
   const p = patient
 
@@ -65,12 +70,18 @@ export function PatientSnapshotCard({ patient = DEFAULT_PATIENT }: { patient?: P
     setExtraMedications([])
     setExtraDocuments([])
     setEditingInfo(false)
+    setExtraHistory([])
+    setExtraVisits([])
+    setExtraGrowth([])
+    setConsultOpen(false)
   }, [p.id])
 
-  const visits = RECENT_VISITS[lang]
-  const history = HISTORY.history[lang]
+  const visits = [...extraVisits, ...RECENT_VISITS[lang]]
+  const history = [...extraHistory, ...HISTORY.history[lang]]
   const vaccinations = HISTORY.vaccinations[lang]
-  const growth = HISTORY.notes[lang]
+  const growth = [...extraGrowth, ...HISTORY.notes[lang]]
+  const latestWeight = growth.find((row) => row.type === "Weight" || row.type === "Peso")
+  const latestHeight = growth.find((row) => row.type === "Height" || row.type === "Talla")
   const prescriptions = PRESCRIPTIONS.filter((rx) => rx.patientId === p.id)
   const activeRx = prescriptions.find((rx) => rx.status === "rxStatusActive") ?? prescriptions[0]
   const documents = [...getPatientDocuments(p.id), ...extraDocuments]
@@ -89,6 +100,32 @@ export function PatientSnapshotCard({ patient = DEFAULT_PATIENT }: { patient?: P
     if (value) {
       setExtraMedications((prev) => [...prev, value])
       toast(`Added medication: ${value}`)
+    }
+  }
+
+  function handleConsultationComplete(result: ConsultationResult) {
+    const today = new Date().toLocaleDateString(lang === "es" ? "es-MX" : "en-US", { day: "2-digit", month: "short", year: "numeric" })
+
+    setExtraHistory((prev) => [
+      {
+        date: today,
+        type: t.consultHistoryType,
+        details: `${result.diagnosis} — ${result.chiefComplaint}${result.notes ? ". " + result.notes : ""}`,
+      },
+      ...prev,
+    ])
+    setExtraVisits((prev) => [{ date: today, type: result.diagnosis, doctor: "Dr. Gamaliel" }, ...prev])
+
+    const growthEntries: { date: string; type: string; details: string }[] = []
+    if (result.weightKg) growthEntries.push({ date: today, type: t.weightLabel, details: `${result.weightKg} kg` })
+    if (result.heightCm) growthEntries.push({ date: today, type: t.heightLabel, details: `${result.heightCm} cm` })
+    if (growthEntries.length) setExtraGrowth((prev) => [...growthEntries, ...prev])
+
+    setConsultOpen(false)
+    setTab("history")
+    toast(t.consultToastSaved)
+    if (result.addPrescription) {
+      setTimeout(() => navigate("/prescriptions"), 400)
     }
   }
 
@@ -179,10 +216,7 @@ export function PatientSnapshotCard({ patient = DEFAULT_PATIENT }: { patient?: P
         </div>
         <div className="flex shrink-0 items-center gap-2.5">
           <Button
-            onClick={() => {
-              toast(`Consultation started for ${p.name}`)
-              setTab("overview")
-            }}
+            onClick={() => setConsultOpen(true)}
             className="shrink-0 gap-1.5 rounded-xl bg-gradient-to-r from-[#F97316] via-[#EC4899] to-[#8B5CF6] font-bold text-white shadow-md hover:opacity-90"
           >
             <Stethoscope className="size-4" strokeWidth={2} />
@@ -611,17 +645,18 @@ export function PatientSnapshotCard({ patient = DEFAULT_PATIENT }: { patient?: P
               </button>
             </div>
             <div className="flex items-center justify-between gap-3">
-              {growth
-                .filter((row) => row.type === "Weight" || row.type === "Peso" || row.type === "Height" || row.type === "Talla")
+              {[
+                latestWeight && { ...latestWeight, label: t.weightLabel },
+                latestHeight && { ...latestHeight, label: t.heightLabel },
+              ]
+                .filter((row): row is { date: string; type: string; details: string; label: string } => Boolean(row))
                 .map((row, i) => (
                   <div key={i}>
                     <div className="flex items-center gap-1 font-heading text-[15px] font-bold">
                       {row.details.split("—")[0].trim()}
                       <ChevronUp className="size-3.5 text-[#16A34A]" strokeWidth={3} />
                     </div>
-                    <div className="text-[11px] text-muted-foreground">
-                      {row.type === "Weight" || row.type === "Peso" ? t.weightLabel : t.heightLabel}
-                    </div>
+                    <div className="text-[11px] text-muted-foreground">{row.label}</div>
                   </div>
                 ))}
               <div className="text-right">
@@ -634,6 +669,8 @@ export function PatientSnapshotCard({ patient = DEFAULT_PATIENT }: { patient?: P
           </div>
         </div>
       </div>
+
+      <StartConsultationDialog open={consultOpen} onOpenChange={setConsultOpen} patient={p} onComplete={handleConsultationComplete} />
     </Card>
   )
 }

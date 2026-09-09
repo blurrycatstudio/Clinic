@@ -13,6 +13,7 @@ import { cronRouter } from "./cron.js"
 import { agentRouter } from "./agent.js"
 import { prescriptionsRouter } from "./prescriptions.js"
 import { invoicesRouter } from "./invoices.js"
+import { consultationsRouter } from "./consultations.js"
 
 export const apiRouter = Router()
 
@@ -30,3 +31,4 @@ apiRouter.use("/cron", cronRouter)
 apiRouter.use("/agent", agentRouter)
 apiRouter.use("/prescriptions", prescriptionsRouter)
 apiRouter.use("/invoices", invoicesRouter)
+apiRouter.use("/consultations", consultationsRouter)
