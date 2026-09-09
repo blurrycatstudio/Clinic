@@ -157,8 +157,14 @@ export async function handleInboundMessage(input: InboundMessage): Promise<void>
   // show the language picker verbatim instead of trying to parse "Hi" as a 1/2 choice.
   if (!context.language && (isNew || isGreeting(normalizedText))) {
     const promptText = t("es", "languagePrompt", { clinicName: settings.clinic_name })
-    const { messageId } = await whatsappService.sendTextMessage(input.phoneE164, promptText)
-    logOutboundText(conversation.id, promptText, messageId)
+    // Button titles are bilingual on purpose — the patient hasn't picked a language yet.
+    await sendFlowReply(input.phoneE164, conversation.id, {
+      text: promptText,
+      buttons: [
+        { id: "1", title: "Español" },
+        { id: "2", title: "English" },
+      ],
+    })
     await redisStateService.save(input.phoneE164, {
       ...context,
       state: ConversationState.AWAITING_LANGUAGE_SELECTION,

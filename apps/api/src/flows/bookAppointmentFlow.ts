@@ -163,7 +163,13 @@ export const bookAppointmentFlow: FlowHandler = async ({ text, buttonId, context
           state: ConversationState.AWAITING_BOOKING_CONFIRMATION,
           booking: { ...draft, selectedSlotIso: slot.startsAtIso },
         },
-        reply: { text: confirmText },
+        reply: {
+          text: confirmText,
+          buttons: [
+            { id: "yes", title: t(lang, "confirmYesButton") },
+            { id: "no", title: t(lang, "confirmNoButton") },
+          ],
+        },
       }
     }
 

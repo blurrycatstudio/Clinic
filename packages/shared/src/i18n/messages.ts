@@ -43,6 +43,7 @@ export const botMessages = {
     confirmSavedDetails:
       "¡Bienvenido de nuevo! Tenemos estos datos guardados:\n\n👤 {name}\n📱 {phone}{reasonLine}\n\nResponde *SI* para usarlos, o escribe el nombre completo correcto si necesitas actualizarlo.",
     confirmYesButton: "Sí",
+    confirmNoButton: "No",
     sameReasonButton: "Igual",
     moreDatesButton: "Ver más fechas",
     confirmSavedDetailsInvalid:
@@ -111,6 +112,7 @@ export const botMessages = {
     confirmSavedDetails:
       "Welcome back! We have these details on file:\n\n👤 {name}\n📱 {phone}{reasonLine}\n\nReply *YES* to use them, or type the correct full name if you need to update it.",
     confirmYesButton: "Yes",
+    confirmNoButton: "No",
     sameReasonButton: "Same",
     moreDatesButton: "See more dates",
     confirmSavedDetailsInvalid:

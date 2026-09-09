@@ -67,6 +67,10 @@ export const cancelFlow: FlowHandler = async ({ text, context }) => {
         },
         reply: {
           text: t(lang, "confirmCancellation", { date: format(zoned, "EEEE d MMMM"), time: format(zoned, "h:mm a") }),
+          buttons: [
+            { id: "yes", title: t(lang, "confirmYesButton") },
+            { id: "no", title: t(lang, "confirmNoButton") },
+          ],
         },
       }
     }

@@ -3,8 +3,8 @@ import type { FlowHandler } from "./types.js"
 import { conversationRepository } from "../repositories/conversationRepository.js"
 import { buildMainMenu } from "./mainMenuFlow.js"
 
-export const languageSelectFlow: FlowHandler = async ({ text, context, settings }) => {
-  const choice = text.trim()
+export const languageSelectFlow: FlowHandler = async ({ text, buttonId, context, settings }) => {
+  const choice = (buttonId ?? text).trim()
 
   if (choice !== "1" && choice !== "2") {
     return {
