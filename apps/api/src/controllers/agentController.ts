@@ -10,6 +10,7 @@ import { clinicSettingsRepository } from "../repositories/clinicSettingsReposito
 import { whatsappService } from "../services/whatsappService.js"
 import { auditLogRepository } from "../repositories/auditLogRepository.js"
 import { notifyPatientOfAppointmentChange } from "../services/notificationService.js"
+import { triggerVoiceHandoff } from "../services/conversationEngine.js"
 import { logger } from "../config/logger.js"
 import { ValidationError } from "../lib/errors.js"
 
@@ -299,5 +300,25 @@ export const agentController = {
     })
 
     res.status(201).json({ status: "ESCALATED" })
+  },
+
+  /**
+   * Voice tool: the caller stated an intent (book/reschedule/cancel/info/
+   * human/status), and the voice agent hands the rest off to WhatsApp
+   * instead of collecting details itself. Reuses the same flow logic and
+   * conversation state as inbound WhatsApp messages via triggerVoiceHandoff,
+   * so the patient continues in a consistent conversation on WhatsApp.
+   */
+  async whatsappHandoff(req: Request, res: Response) {
+    const body = z
+      .object({
+        phone: z.string().min(4),
+        intent: z.enum(["book", "reschedule", "cancel", "info", "human", "status", "menu"]),
+        language: z.enum(["en", "es"]).optional(),
+      })
+      .parse(req.body)
+
+    const { sent, state } = await triggerVoiceHandoff(body.phone, body.intent, body.language)
+    res.json({ sent, state })
   },
 }
