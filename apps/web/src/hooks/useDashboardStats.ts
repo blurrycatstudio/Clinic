@@ -11,6 +11,7 @@ export type DashboardStats = {
   callsTrend: number
   whatsappMessages: number
   whatsappTrend: number
+  callingEnabled: boolean
 }
 
 const DEMO_STATS: DashboardStats = {
@@ -22,6 +23,7 @@ const DEMO_STATS: DashboardStats = {
   callsTrend: 25,
   whatsappMessages: 3,
   whatsappTrend: 1,
+  callingEnabled: false,
 }
 
 async function fetchDashboardStats(): Promise<DashboardStats> {

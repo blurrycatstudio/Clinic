@@ -19,6 +19,8 @@ export type Patient = {
   language: Language
   date_of_birth: ISODateString | null
   notes: string | null
+  allergies: string[]
+  current_medications: string[]
   created_at: ISOTimestamp
   updated_at: ISOTimestamp
 }

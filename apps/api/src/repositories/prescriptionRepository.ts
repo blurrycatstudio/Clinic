@@ -5,11 +5,12 @@ import { AppError, NotFoundError } from "../lib/errors.js"
 type PrescriptionWithItems = Prescription & { prescription_items: PrescriptionItem[] }
 
 export const prescriptionRepository = {
-  async list(params: { status?: PrescriptionStatus; limit?: number; offset?: number }) {
+  async list(params: { patientId?: string; status?: PrescriptionStatus; limit?: number; offset?: number }) {
     let query = supabase
       .from("prescriptions")
       .select("*, prescription_items(*), patients(full_name)", { count: "exact" })
       .order("created_at", { ascending: false })
+    if (params.patientId) query = query.eq("patient_id", params.patientId)
     if (params.status) query = query.eq("status", params.status)
     const limit = params.limit ?? 50
     const offset = params.offset ?? 0

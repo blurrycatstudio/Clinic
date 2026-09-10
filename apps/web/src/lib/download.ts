@@ -13,6 +13,13 @@ export function downloadBlob(filename: string, blob: Blob) {
   URL.revokeObjectURL(url)
 }
 
+/** Opens a blob in a new tab (e.g. a PDF) instead of forcing a download. */
+export function openBlob(blob: Blob) {
+  const url = URL.createObjectURL(blob)
+  window.open(url, "_blank", "noopener,noreferrer")
+  setTimeout(() => URL.revokeObjectURL(url), 60_000)
+}
+
 export function toCsv(rows: Record<string, string | number>[]): string {
   if (rows.length === 0) return ""
   const headers = Object.keys(rows[0])

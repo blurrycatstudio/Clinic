@@ -54,6 +54,23 @@ export const patientRepository = {
     return data
   },
 
+  async updateClinicalInfo(
+    id: string,
+    input: { allergies?: string[]; currentMedications?: string[] },
+  ): Promise<Patient> {
+    const { data, error } = await supabase
+      .from("patients")
+      .update({
+        ...(input.allergies !== undefined ? { allergies: input.allergies } : {}),
+        ...(input.currentMedications !== undefined ? { current_medications: input.currentMedications } : {}),
+      })
+      .eq("id", id)
+      .select("*")
+      .single()
+    if (error) throw new AppError(`Failed to update patient: ${error.message}`)
+    return data
+  },
+
   async list(params: { search?: string; limit?: number; offset?: number }): Promise<{ rows: Patient[]; count: number }> {
     let query = supabase.from("patients").select("*", { count: "exact" }).order("created_at", { ascending: false })
     if (params.search) {

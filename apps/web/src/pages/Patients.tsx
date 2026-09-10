@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useState } from "react"
 import { Dialog } from "radix-ui"
-import { Baby, Plus, Search, Syringe, UserRound, X } from "lucide-react"
-import { useLocation } from "react-router-dom"
-import { PatientSnapshotCard } from "@/components/dashboard/PatientSnapshotCard"
+import { Baby, Phone, Plus, Search, Syringe, TriangleAlert, UserRound, X } from "lucide-react"
+import { useLocation, useNavigate } from "react-router-dom"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { useLang } from "@/lib/i18n"
-import { PATIENTS, type Patient } from "@/lib/data"
+import { HISTORY, PATIENTS, type Patient } from "@/lib/data"
 import { cn } from "@/lib/utils"
 import { useToast } from "@/lib/toast"
 
@@ -68,18 +68,78 @@ function NewPatientDialog({ open, onOpenChange }: { open: boolean; onOpenChange:
 }
 
 function PatientProfileDialog({ patient, onOpenChange }: { patient: Patient | null; onOpenChange: (v: boolean) => void }) {
+  const { t, lang } = useLang()
+  const navigate = useNavigate()
   if (!patient) return null
+  const history = HISTORY.history[lang]
 
   return (
     <Dialog.Root open={!!patient} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm" />
-        <Dialog.Content className="fixed top-1/2 left-1/2 z-50 max-h-[90vh] w-[calc(100%-2rem)] max-w-3xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl">
+        <Dialog.Content className="fixed top-1/2 left-1/2 z-50 max-h-[90vh] w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl border border-border bg-card p-5 shadow-2xl sm:p-6">
           <Dialog.Title className="sr-only">{patient.name}</Dialog.Title>
-          <Dialog.Close className="absolute top-3 right-3 z-10 flex size-8 shrink-0 items-center justify-center rounded-[9px] border border-border bg-card hover:bg-muted">
-            <X className="size-4" strokeWidth={2} />
-          </Dialog.Close>
-          <PatientSnapshotCard patient={patient} />
+          <div className="mb-4 flex items-start justify-between">
+            <div className="flex items-center gap-3">
+              <Avatar className="size-12">
+                <AvatarFallback className="font-bold text-white" style={{ background: patient.color }}>
+                  {patient.initials}
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <div className="font-heading text-lg font-bold">{patient.name}</div>
+                <div className="text-xs text-muted-foreground">
+                  {patient.ageFull[lang]} · {patient.gender[lang]} · {t.patientDobFullLabel}: {patient.dob}
+                </div>
+              </div>
+            </div>
+            <Dialog.Close className="flex size-8 shrink-0 items-center justify-center rounded-[9px] border border-border hover:bg-muted">
+              <X className="size-4" strokeWidth={2} />
+            </Dialog.Close>
+          </div>
+
+          <div className="mb-4 flex items-center gap-2 rounded-xl bg-muted px-3.5 py-2.5 text-[13px]">
+            <Phone className="size-3.5 text-muted-foreground" strokeWidth={1.8} />
+            <span className="font-semibold">{patient.guardian}</span>
+            <span className="text-muted-foreground">· {patient.guardianPhone}</span>
+          </div>
+
+          <div className="mb-4">
+            <div className="mb-1.5 flex items-center gap-2 text-xs font-bold">
+              <TriangleAlert className="size-3.5 text-[#DC2626]" strokeWidth={2} />
+              {t.allergiesTitle}
+            </div>
+            {patient.allergies.length === 0 ? (
+              <div className="rounded-lg bg-[#DCFCE7] px-3 py-2 text-[12.5px] font-semibold text-[#16A34A]">{t.noKnownAllergies}</div>
+            ) : (
+              <div className="rounded-lg bg-[#FEF2F2] px-3 py-2 text-[12.5px] font-semibold text-[#DC2626]">{patient.allergies.join(", ")}</div>
+            )}
+          </div>
+
+          <div className="mb-5">
+            <div className="mb-1.5 text-xs font-bold">{t.tabMedicalHistory}</div>
+            <div className="flex flex-col divide-y">
+              {history.map((row, i) => (
+                <div key={i} className="py-2 first:pt-0 last:pb-0">
+                  <div className="flex items-center justify-between text-[12.5px]">
+                    <span className="font-bold">{row.type}</span>
+                    <span className="text-muted-foreground">{row.date}</span>
+                  </div>
+                  <div className="mt-0.5 text-[11.5px] text-muted-foreground">{row.details}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <Button
+            onClick={() => {
+              onOpenChange(false)
+              navigate("/appointments")
+            }}
+            className="w-full rounded-lg font-bold"
+          >
+            View live appointments →
+          </Button>
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>

@@ -24,18 +24,27 @@ export function StartConsultationDialog({
   open,
   onOpenChange,
   patient,
+  initialPatientId,
+  initialChiefComplaint,
+  appointmentId,
   onComplete,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   patient: Patient
+  /** Real backend patient id, when known — skips the fuzzy name match below. */
+  initialPatientId?: string
+  /** Prefills the chief complaint from the reason given when the appointment was booked. */
+  initialChiefComplaint?: string
+  /** Links the consultation record back to the appointment it was started from. */
+  appointmentId?: string
   onComplete: (result: ConsultationResult) => void
 }) {
   const { t } = useLang()
   const toast = useToast()
   const queryClient = useQueryClient()
-  const [patientId, setPatientId] = useState("")
-  const [chiefComplaint, setChiefComplaint] = useState("")
+  const [patientId, setPatientId] = useState(initialPatientId ?? "")
+  const [chiefComplaint, setChiefComplaint] = useState(initialChiefComplaint ?? "")
   const [diagnosis, setDiagnosis] = useState("")
   const [notes, setNotes] = useState("")
   const [weightKg, setWeightKg] = useState("")
@@ -45,19 +54,25 @@ export function StartConsultationDialog({
 
   const patients = usePatientSearch("")
 
-  // Best-effort convenience: pre-select the backend record that matches the
-  // demo patient shown on the card, but the doctor can always change it —
-  // the dashboard's patient list and the real patient directory aren't the
-  // same data source yet.
   useEffect(() => {
-    if (!open || patientId || !patients.data) return
-    const match = patients.data.rows.find((row) => row.full_name.toLowerCase() === patient.name.toLowerCase())
-    if (match) setPatientId(match.id)
-  }, [open, patientId, patients.data, patient.name])
+    if (!open) return
+    if (initialPatientId) {
+      setPatientId(initialPatientId)
+    } else if (!patientId && patients.data) {
+      // Best-effort convenience: pre-select the backend record that matches the
+      // demo patient shown on the card, but the doctor can always change it —
+      // the dashboard's patient list and the real patient directory aren't the
+      // same data source yet.
+      const match = patients.data.rows.find((row) => row.full_name.toLowerCase() === patient.name.toLowerCase())
+      if (match) setPatientId(match.id)
+    }
+    if (initialChiefComplaint) setChiefComplaint((prev) => prev || initialChiefComplaint)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, initialPatientId, initialChiefComplaint, patients.data])
 
   function reset() {
-    setPatientId("")
-    setChiefComplaint("")
+    setPatientId(initialPatientId ?? "")
+    setChiefComplaint(initialChiefComplaint ?? "")
     setDiagnosis("")
     setNotes("")
     setWeightKg("")
@@ -72,6 +87,7 @@ export function StartConsultationDialog({
     mutationFn: () =>
       api.post("/consultations", {
         patientId,
+        appointmentId,
         chiefComplaint: chiefComplaint.trim(),
         diagnosis: diagnosis.trim(),
         notes: notes.trim(),

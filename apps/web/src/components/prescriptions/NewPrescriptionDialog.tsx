@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { Dialog } from "radix-ui"
 import { Plus, Trash2, X } from "lucide-react"
@@ -18,24 +18,41 @@ export function NewPrescriptionDialog({
   open,
   onOpenChange,
   onCreated,
+  initialPatientId,
+  initialDiagnosis,
+  lockPatient,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   onCreated: () => void
+  /** Pre-selects the patient when opened from a specific patient's chart. */
+  initialPatientId?: string
+  initialDiagnosis?: string
+  /** Hides the patient picker when the patient is already known (e.g. from a patient's chart). */
+  lockPatient?: boolean
 }) {
   const { t } = useLang()
   const toast = useToast()
   const queryClient = useQueryClient()
-  const [patientId, setPatientId] = useState("")
-  const [diagnosis, setDiagnosis] = useState("")
+  const [patientId, setPatientId] = useState(initialPatientId ?? "")
+  const [diagnosis, setDiagnosis] = useState(initialDiagnosis ?? "")
   const [notes, setNotes] = useState("")
   const [meds, setMeds] = useState<Medication[]>([emptyMed()])
 
   const patients = usePatientSearch("")
+  const lockedPatientName = patients.data?.rows.find((p) => p.id === initialPatientId)?.full_name
+
+  useEffect(() => {
+    if (open) {
+      setPatientId(initialPatientId ?? "")
+      setDiagnosis(initialDiagnosis ?? "")
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, initialPatientId, initialDiagnosis])
 
   function reset() {
-    setPatientId("")
-    setDiagnosis("")
+    setPatientId(initialPatientId ?? "")
+    setDiagnosis(initialDiagnosis ?? "")
     setNotes("")
     setMeds([emptyMed()])
   }
@@ -94,18 +111,24 @@ export function NewPrescriptionDialog({
           <div className="flex flex-col gap-4.5">
             <div>
               <label className="mb-1.5 block text-xs font-bold">{t.rxModalPatient}</label>
-              <select
-                value={patientId}
-                onChange={(e) => setPatientId(e.target.value)}
-                className="h-9 w-full rounded-lg border border-border bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-              >
-                <option value="">{t.rxModalSelectPatient}</option>
-                {(patients.data?.rows ?? []).map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.full_name} · {p.phone_e164}
-                  </option>
-                ))}
-              </select>
+              {lockPatient && patientId ? (
+                <div className="flex h-9 items-center rounded-lg border border-border bg-muted/50 px-2.5 text-sm font-semibold">
+                  {lockedPatientName ?? "Selected patient"}
+                </div>
+              ) : (
+                <select
+                  value={patientId}
+                  onChange={(e) => setPatientId(e.target.value)}
+                  className="h-9 w-full rounded-lg border border-border bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                >
+                  <option value="">{t.rxModalSelectPatient}</option>
+                  {(patients.data?.rows ?? []).map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.full_name} · {p.phone_e164}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
 
             <div>

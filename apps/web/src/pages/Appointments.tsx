@@ -10,31 +10,8 @@ import { STATUS_COLORS, type AppointmentStatus } from "@/lib/data"
 import { api } from "@/lib/api"
 import { cn } from "@/lib/utils"
 import { useToast } from "@/lib/toast"
-
-type ApiAppointment = {
-  id: string
-  patient_id: string
-  starts_at: string
-  ends_at: string
-  reason: string
-  status: "scheduled" | "confirmed" | "cancelled" | "completed" | "no_show"
-  source: "whatsapp" | "voice" | "dashboard"
-  patients: { full_name: string; phone_e164: string } | null
-}
-
-type DisplayAppointment = {
-  id: string
-  startsAt: Date
-  time: string
-  duration: string
-  child: string
-  phone: string
-  initials: string
-  color: string
-  reason: string
-  source: ApiAppointment["source"]
-  status: AppointmentStatus
-}
+import { useDashboardStats } from "@/hooks/useDashboardStats"
+import { toDisplayAppointment, type ApiAppointment, type DisplayAppointment } from "@/lib/appointments"
 
 type StatusFilter = "all" | AppointmentStatus
 
@@ -45,51 +22,6 @@ const FILTERS: { key: StatusFilter; labelKey: "apptsFilterAll" | "statusConfirme
   { key: "statusCompleted", labelKey: "statusCompleted" },
   { key: "statusCancelled", labelKey: "statusCancelled" },
 ]
-
-const AVATAR_COLORS = ["#16A34A", "#2563EB", "#DC2626", "#9333EA", "#0891B2", "#F97316", "#DB2777", "#0D9488"]
-
-function colorFor(seed: string): string {
-  let hash = 0
-  for (let i = 0; i < seed.length; i++) hash = (hash * 31 + seed.charCodeAt(i)) >>> 0
-  return AVATAR_COLORS[hash % AVATAR_COLORS.length]
-}
-
-function initialsFor(name: string): string {
-  const parts = name.trim().split(/\s+/)
-  return ((parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? "")).toUpperCase() || "?"
-}
-
-function mapStatus(status: ApiAppointment["status"]): AppointmentStatus {
-  switch (status) {
-    case "scheduled":
-      return "statusPending"
-    case "confirmed":
-      return "statusConfirmed"
-    case "completed":
-      return "statusCompleted"
-    default:
-      return "statusCancelled"
-  }
-}
-
-function toDisplay(a: ApiAppointment): DisplayAppointment {
-  const startsAt = new Date(a.starts_at)
-  const minutes = Math.round((new Date(a.ends_at).getTime() - startsAt.getTime()) / 60000)
-  const name = a.patients?.full_name ?? "Unknown patient"
-  return {
-    id: a.id,
-    startsAt,
-    time: startsAt.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }),
-    duration: `${minutes} min`,
-    child: name,
-    phone: a.patients?.phone_e164 ?? "",
-    initials: initialsFor(name),
-    color: colorFor(a.patient_id),
-    reason: a.reason,
-    source: a.source,
-    status: mapStatus(a.status),
-  }
-}
 
 function NewAppointmentDialog({
   open,
@@ -190,7 +122,9 @@ export default function Appointments() {
     refetchInterval: 30_000,
   })
 
-  const appointments = useMemo(() => (data?.rows ?? []).map(toDisplay), [data])
+  const appointments = useMemo(() => (data?.rows ?? []).map(toDisplayAppointment), [data])
+  const { data: dashboardStats } = useDashboardStats()
+  const callingEnabled = dashboardStats?.callingEnabled ?? false
 
   function invalidate() {
     queryClient.invalidateQueries({ queryKey: ["appointments"] })
@@ -400,11 +334,11 @@ export default function Appointments() {
                           {!cancelled && (
                             <Button
                               onClick={() => callToConfirm(a)}
-                              disabled={!a.phone || (callMutation.isPending && callMutation.variables === a.id)}
+                              disabled={!callingEnabled || !a.phone || (callMutation.isPending && callMutation.variables === a.id)}
                               variant="outline"
                               size="sm"
                               className="gap-1 rounded-lg font-semibold"
-                              title="Call to confirm"
+                              title={callingEnabled ? "Call to confirm" : "Outbound calling isn't configured yet"}
                             >
                               <Phone className="size-3.5" strokeWidth={2.2} />
                             </Button>

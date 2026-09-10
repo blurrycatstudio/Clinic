@@ -1,6 +1,7 @@
 import type { Request, Response } from "express"
 import { supabase } from "../config/supabase.js"
 import { AppError } from "../lib/errors.js"
+import { isVapiOutboundConfigured } from "../config/env.js"
 
 /**
  * Backs the web dashboard's `useDashboardStats` hook. Kept as a handful of
@@ -60,6 +61,7 @@ export const dashboardController = {
       callsTrend: 0,
       whatsappMessages: todayWaMessages,
       whatsappTrend: 0,
+      callingEnabled: isVapiOutboundConfigured,
     })
   },
 }

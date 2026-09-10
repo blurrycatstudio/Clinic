@@ -28,6 +28,7 @@ export const prescriptionsController = {
   async list(req: Request, res: Response) {
     const query = z
       .object({
+        patientId: z.string().uuid().optional(),
         status: z.enum(["active", "completed"]).optional(),
         limit: z.coerce.number().min(1).max(200).optional(),
         offset: z.coerce.number().min(0).optional(),

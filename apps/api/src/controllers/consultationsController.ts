@@ -29,7 +29,7 @@ export const consultationsController = {
         patientId: z.string().uuid(),
         appointmentId: z.string().uuid().optional(),
         chiefComplaint: z.string().min(1),
-        diagnosis: z.string().min(1),
+        diagnosis: z.string().default(""),
         notes: z.string().default(""),
         weightKg: z.coerce.number().positive().optional(),
         heightCm: z.coerce.number().positive().optional(),
