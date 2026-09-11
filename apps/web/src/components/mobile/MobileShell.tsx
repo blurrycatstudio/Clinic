@@ -26,13 +26,16 @@ export function MobileShell({
   children,
   title,
   onBack,
+  dark,
 }: {
   children: ReactNode
   /** When set (together with onBack), shows a back-arrow header instead of the default doctor identity header. */
   title?: string
   onBack?: () => void
+  /** WhatsApp-style dark header, for the chat thread screen — only meaningful together with onBack. */
+  dark?: boolean
 }) {
-  const { t } = useLang()
+  const { t, lang, setLang } = useLang()
   const navigate = useNavigate()
 
   return (
@@ -41,17 +44,22 @@ export function MobileShell({
     // growing past the viewport and carrying its scroll position between screens.
     <div className="h-dvh overflow-hidden bg-[#F8FAFC]">
       <div className="mx-auto flex h-dvh w-full max-w-[430px] flex-col overflow-hidden bg-[#F8FAFC]">
-        <header className="sticky top-0 z-40 flex h-14 shrink-0 items-center justify-between gap-2 border-b border-border/60 bg-white px-4">
+        <header
+          className={cn(
+            "sticky top-0 z-40 flex h-14 shrink-0 items-center justify-between gap-2 border-b px-4",
+            dark ? "border-[#2a3942] bg-[#202c33]" : "border-border/60 bg-white",
+          )}
+        >
           {onBack ? (
             <>
               <button
                 onClick={() => (onBack ? onBack() : navigate(-1))}
                 aria-label="Back"
-                className="flex size-8 shrink-0 items-center justify-center rounded-full hover:bg-muted"
+                className={cn("flex size-8 shrink-0 items-center justify-center rounded-full", dark ? "hover:bg-[#2a3942]" : "hover:bg-muted")}
               >
-                <ChevronLeft className="size-5" strokeWidth={2.2} />
+                <ChevronLeft className={cn("size-5", dark && "text-[#e9edef]")} strokeWidth={2.2} />
               </button>
-              <h1 className="flex-1 truncate text-center font-heading text-[15px] font-bold">{title}</h1>
+              <h1 className={cn("flex-1 truncate text-center font-heading text-[15px] font-bold", dark && "text-[#e9edef]")}>{title}</h1>
               <div className="size-8 shrink-0" />
             </>
           ) : (
@@ -66,6 +74,20 @@ export function MobileShell({
                   <div className="truncate text-[13px] font-bold">Dr. Gamaliel Rodríguez</div>
                   <div className="truncate text-[11px] text-muted-foreground">{t.doctorSpecialty}</div>
                 </div>
+              </div>
+              <div className="flex shrink-0 items-center gap-1 rounded-full bg-[#F1F5F9] p-[3px]">
+                {(["en", "es"] as const).map((code) => (
+                  <button
+                    key={code}
+                    onClick={() => setLang(code)}
+                    className={cn(
+                      "rounded-full px-2 py-1 text-[10.5px] font-bold transition-colors",
+                      lang === code ? "bg-[#2563EB] text-white shadow-sm" : "text-[#64748B] hover:text-foreground",
+                    )}
+                  >
+                    {code === "en" ? "EN" : "ES"}
+                  </button>
+                ))}
               </div>
               <button aria-label="Notifications" className="flex size-8 shrink-0 items-center justify-center rounded-full hover:bg-muted">
                 <Bell className="size-[18px] text-muted-foreground" strokeWidth={1.8} />

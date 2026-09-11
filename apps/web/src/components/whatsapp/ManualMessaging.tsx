@@ -76,7 +76,7 @@ function ContactAvatar({ contact, className }: { contact: Contact; className?: s
 }
 
 /** Subtle tiled wallpaper approximating WhatsApp's chat background, as an inline SVG data URI. */
-const WA_WALLPAPER =
+export const WA_WALLPAPER =
   "data:image/svg+xml;utf8," +
   encodeURIComponent(`
   <svg xmlns="http://www.w3.org/2000/svg" width="100" height="100">

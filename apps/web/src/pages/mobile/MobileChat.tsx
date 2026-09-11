@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react"
 import { useNavigate, useParams } from "react-router-dom"
 import { Check, CheckCheck, Send } from "lucide-react"
 import { MobileShell } from "@/components/mobile/MobileShell"
+import { WA_WALLPAPER } from "@/components/whatsapp/ManualMessaging"
 import { useLang } from "@/lib/i18n"
 import { useConversationMessages, useConversations, useSendMessage } from "@/hooks/useConversations"
 import { useToast } from "@/lib/toast"
@@ -13,8 +14,8 @@ function formatTime(iso: string) {
 
 function Ticks({ status }: { status?: string | null }) {
   if (status === "read") return <CheckCheck className="size-3.5 text-[#53bdeb]" strokeWidth={2.2} />
-  if (status === "delivered") return <CheckCheck className="size-3.5 text-white/70" strokeWidth={2.2} />
-  if (status === "sent") return <Check className="size-3.5 text-white/70" strokeWidth={2.2} />
+  if (status === "delivered") return <CheckCheck className="size-3.5 text-[#8696a0]" strokeWidth={2.2} />
+  if (status === "sent") return <Check className="size-3.5 text-[#8696a0]" strokeWidth={2.2} />
   return null
 }
 
@@ -64,13 +65,18 @@ export default function MobileChat() {
   }
 
   return (
-    <MobileShell title={title} onBack={() => navigate("/mobile/messages")}>
+    <MobileShell title={title} onBack={() => navigate("/mobile/messages")} dark>
       <div className="flex h-full flex-col">
-        <div ref={scrollRef} onScroll={handleScroll} className="flex-1 space-y-1.5 overflow-y-auto bg-[#F8FAFC] p-3">
+        <div
+          ref={scrollRef}
+          onScroll={handleScroll}
+          className="flex-1 space-y-1.5 overflow-y-auto bg-[#0b141a] p-3"
+          style={{ backgroundImage: `url("${WA_WALLPAPER}")`, backgroundRepeat: "repeat" }}
+        >
           {messagesQuery.isLoading ? (
-            <div className="py-10 text-center text-[13px] text-muted-foreground">{t.mobileMessagesLoading}</div>
+            <div className="py-10 text-center text-[13px] text-[#8696a0]">{t.mobileMessagesLoading}</div>
           ) : messages.length === 0 ? (
-            <div className="py-10 text-center text-[13px] text-muted-foreground">{t.mobileMessagesNoMessages}</div>
+            <div className="py-10 text-center text-[13px] text-[#8696a0]">{t.mobileMessagesNoMessages}</div>
           ) : (
             messages.map((m) => {
               const mine = m.direction === "outbound"
@@ -79,7 +85,7 @@ export default function MobileChat() {
                   <div
                     className={cn(
                       "max-w-[80%] rounded-lg px-2.5 py-1.5 text-[13px] leading-relaxed shadow-sm",
-                      mine ? "rounded-tr-none bg-primary text-primary-foreground" : "rounded-tl-none bg-white text-foreground",
+                      mine ? "rounded-tr-none bg-[#005c4b] text-[#e9edef]" : "rounded-tl-none bg-[#202c33] text-[#e9edef]",
                     )}
                   >
                     <span className="whitespace-pre-wrap">
@@ -88,7 +94,7 @@ export default function MobileChat() {
                     <div
                       className={cn(
                         "mt-0.5 flex items-center justify-end gap-1 text-[10px]",
-                        mine ? "text-primary-foreground/70" : "text-muted-foreground",
+                        mine ? "text-[#e9edef]/60" : "text-[#8696a0]",
                       )}
                     >
                       {formatTime(m.created_at)}
@@ -101,7 +107,7 @@ export default function MobileChat() {
           )}
         </div>
 
-        <div className="flex shrink-0 items-center gap-2 border-t border-border bg-white px-3 py-2.5">
+        <div className="flex shrink-0 items-center gap-2 border-t border-[#2a3942] bg-[#202c33] px-3 py-2.5">
           <input
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
@@ -109,11 +115,11 @@ export default function MobileChat() {
               if (e.key === "Enter") send()
             }}
             placeholder={t.waChatPlaceholder}
-            className="h-10 flex-1 rounded-full border border-border bg-muted/40 px-4 text-[13px] outline-none"
+            className="h-10 flex-1 rounded-full border-none bg-[#2a3942] px-4 text-[13px] text-[#e9edef] placeholder:text-[#8696a0] outline-none"
           />
           <button
             onClick={send}
-            className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground disabled:opacity-50"
+            className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#00a884] text-white disabled:opacity-50"
             disabled={sendMessage.isPending}
           >
             <Send className="size-4" strokeWidth={2} />
