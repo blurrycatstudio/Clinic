@@ -478,6 +478,9 @@ export const STR = {
     mobileApptPhone: "Phone",
     mobileApptCreated: "Appointment created",
     mobileApptCreateFailed: "Failed to create appointment",
+    mobileNotifications: "Notifications",
+    mobileNotificationsEmpty: "No new notifications",
+    mobileNotificationsPending: "Awaiting confirmation",
 
     // ---------- Mobile dashboard ----------
     mobileDashboardGreeting: "Welcome back",
@@ -525,6 +528,8 @@ export const STR = {
     mobileConsultNotFound: "Appointment not found",
     mobileConsultLoading: "Loading consultation…",
     mobileConsultRequiredHint: "Chief complaint and diagnosis are required.",
+    mobileConsultMedRequiredHint: "At least one medication is required to send the prescription.",
+    mobileConsultNoMedMatch: "No medications match",
 
     // ---------- Mobile medical record ----------
     mobileRecordTitle: "Medical Record",
@@ -1034,6 +1039,9 @@ export const STR = {
     mobileApptPhone: "Teléfono",
     mobileApptCreated: "Cita creada",
     mobileApptCreateFailed: "No se pudo crear la cita",
+    mobileNotifications: "Notificaciones",
+    mobileNotificationsEmpty: "No hay notificaciones nuevas",
+    mobileNotificationsPending: "Esperando confirmación",
 
     // ---------- Mobile dashboard ----------
     mobileDashboardGreeting: "Bienvenido de nuevo",
@@ -1081,6 +1089,8 @@ export const STR = {
     mobileConsultNotFound: "Cita no encontrada",
     mobileConsultLoading: "Cargando consulta…",
     mobileConsultRequiredHint: "El motivo de consulta y el diagnóstico son obligatorios.",
+    mobileConsultMedRequiredHint: "Se requiere al menos un medicamento para enviar la receta.",
+    mobileConsultNoMedMatch: "No se encontraron medicamentos",
 
     // ---------- Mobile medical record ----------
     mobileRecordTitle: "Expediente Médico",

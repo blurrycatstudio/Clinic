@@ -1,5 +1,5 @@
-import { useState, type ReactNode } from "react"
-import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { useMemo, useState, type ReactNode } from "react"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { Dialog } from "radix-ui"
 import { ChevronLeft, House, Calendar, Baby, MessageCircle, FileText, Bell, CalendarPlus, X } from "lucide-react"
 import { NavLink, useNavigate } from "react-router-dom"
@@ -10,6 +10,7 @@ import { useLang } from "@/lib/i18n"
 import { api } from "@/lib/api"
 import { useToast } from "@/lib/toast"
 import { cn } from "@/lib/utils"
+import { toDateParam, toDisplayAppointment, type ApiAppointment } from "@/lib/appointments"
 
 // All five point within /mobile/* — tabs used to jump out to the desktop AppShell pages
 // (/patients, /whatsapp, /records), which don't render this bar, so it looked like the
@@ -134,6 +135,23 @@ export function MobileShell({
   const { t, lang, setLang } = useLang()
   const navigate = useNavigate()
   const [newApptOpen, setNewApptOpen] = useState(false)
+  const [notifOpen, setNotifOpen] = useState(false)
+
+  const today = toDateParam(new Date())
+  const { data: todayData } = useQuery({
+    queryKey: ["appointments", "today", today],
+    queryFn: () => api.get<{ rows: ApiAppointment[]; count: number }>(`/appointments?date=${today}&limit=100`),
+    refetchInterval: 10_000,
+  })
+
+  const pendingToday = useMemo(
+    () =>
+      (todayData?.rows ?? [])
+        .map(toDisplayAppointment)
+        .filter((a) => a.status === "statusPending")
+        .sort((a, b) => a.startsAt.getTime() - b.startsAt.getTime()),
+    [todayData],
+  )
 
   return (
     // h-dvh + overflow-hidden (not min-h-dvh) so this is a fixed-height frame — <main> below
@@ -186,9 +204,55 @@ export function MobileShell({
                   </button>
                 ))}
               </div>
-              <button aria-label="Notifications" className="flex size-8 shrink-0 items-center justify-center rounded-full hover:bg-muted">
-                <Bell className="size-[18px] text-muted-foreground" strokeWidth={1.8} />
-              </button>
+              <div className="relative shrink-0">
+                <button
+                  onClick={() => setNotifOpen((v) => !v)}
+                  aria-label={t.mobileNotifications}
+                  className="relative flex size-8 shrink-0 items-center justify-center rounded-full hover:bg-muted"
+                >
+                  <Bell className="size-[18px] text-muted-foreground" strokeWidth={1.8} />
+                  {pendingToday.length > 0 && (
+                    <span className="absolute top-1 right-1 size-2 rounded-full border-2 border-white bg-destructive" />
+                  )}
+                </button>
+                {notifOpen && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setNotifOpen(false)} />
+                    <div className="absolute top-full right-0 z-50 mt-2 max-h-80 w-72 overflow-y-auto rounded-xl border border-border bg-white p-1.5 shadow-atelier-elevated">
+                      <div className="px-2 py-1.5 text-xs font-bold text-muted-foreground uppercase">{t.mobileNotifications}</div>
+                      {pendingToday.length === 0 ? (
+                        <div className="px-2.5 py-4 text-center text-[12.5px] text-muted-foreground">{t.mobileNotificationsEmpty}</div>
+                      ) : (
+                        <div className="flex flex-col divide-y divide-border">
+                          {pendingToday.map((a) => (
+                            <button
+                              key={a.id}
+                              onClick={() => {
+                                setNotifOpen(false)
+                                navigate(`/mobile/consultation/${a.id}`)
+                              }}
+                              className="flex w-full items-center gap-2.5 px-2 py-2.5 text-left hover:bg-muted"
+                            >
+                              <Avatar className="size-8 shrink-0">
+                                <AvatarFallback style={{ background: a.color }} className="text-[10.5px] font-bold text-white">
+                                  {a.initials}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span className="min-w-0 flex-1">
+                                <span className="flex items-center justify-between gap-2">
+                                  <span className="truncate text-[12.5px] font-bold">{a.child}</span>
+                                  <span className="shrink-0 font-mono text-[10.5px] text-muted-foreground">{a.time}</span>
+                                </span>
+                                <span className="block truncate text-[11px] text-muted-foreground">{t.mobileNotificationsPending}</span>
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
             </>
           )}
         </header>

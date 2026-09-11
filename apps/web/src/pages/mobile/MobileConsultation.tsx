@@ -12,6 +12,13 @@ import { api } from "@/lib/api"
 import { COMMON_MEDICATIONS, type Medication } from "@/lib/data"
 import { toDisplayAppointment, type ApiAppointment } from "@/lib/appointments"
 import { useToast } from "@/lib/toast"
+import { cn } from "@/lib/utils"
+
+function medicationsMatching(query: string): string[] {
+  const q = query.trim().toLowerCase()
+  if (!q) return COMMON_MEDICATIONS
+  return COMMON_MEDICATIONS.filter((m) => m.toLowerCase().includes(q))
+}
 
 type ApiPatient = {
   id: string
@@ -73,6 +80,8 @@ export default function MobileConsultation() {
   const [tempC, setTempC] = useState("")
   const [meds, setMeds] = useState<Medication[]>([emptyMed()])
   const [draftSaved, setDraftSaved] = useState(false)
+  const [attempted, setAttempted] = useState(false)
+  const [medDropdownOpen, setMedDropdownOpen] = useState<number | null>(null)
 
   // Prefill the chief complaint from the appointment's booked reason, once.
   const [prefilled, setPrefilled] = useState(false)
@@ -203,7 +212,13 @@ export default function MobileConsultation() {
           <label className="mb-1.5 block text-xs font-bold">
             {t.consultChiefComplaint} <span className="text-destructive">*</span>
           </label>
-          <Input value={chiefComplaint} onChange={(e) => setChiefComplaint(e.target.value)} placeholder={t.consultChiefComplaintPh} className="h-10" />
+          <Input
+            value={chiefComplaint}
+            onChange={(e) => setChiefComplaint(e.target.value)}
+            placeholder={t.consultChiefComplaintPh}
+            aria-invalid={attempted && chiefComplaint.trim() === ""}
+            className={cn("h-10", attempted && chiefComplaint.trim() === "" && "border-destructive")}
+          />
         </div>
 
         <div>
@@ -228,7 +243,13 @@ export default function MobileConsultation() {
           <label className="mb-1.5 block text-xs font-bold">
             {t.consultDiagnosis} <span className="text-destructive">*</span>
           </label>
-          <Input value={diagnosis} onChange={(e) => setDiagnosis(e.target.value)} placeholder={t.consultDiagnosisPh} className="h-10" />
+          <Input
+            value={diagnosis}
+            onChange={(e) => setDiagnosis(e.target.value)}
+            placeholder={t.consultDiagnosisPh}
+            aria-invalid={attempted && diagnosis.trim() === ""}
+            className={cn("h-10", attempted && diagnosis.trim() === "" && "border-destructive")}
+          />
         </div>
 
         <div>
@@ -244,73 +265,120 @@ export default function MobileConsultation() {
 
         <div>
           <div className="mb-2 flex items-center justify-between">
-            <label className="text-xs font-bold">{t.mobileConsultDiagnosisRx}</label>
+            <label className="text-xs font-bold">
+              {t.mobileConsultDiagnosisRx} <span className="text-destructive">*</span>
+            </label>
             <button type="button" onClick={() => setMeds((prev) => [...prev, emptyMed()])} className="flex items-center gap-1 text-xs font-bold text-primary">
               <Plus className="size-3.5" strokeWidth={2.4} />
               {t.mobileConsultAddMed}
             </button>
           </div>
           <div className="flex flex-col gap-3">
-            {meds.map((med, i) => (
-              <div key={i} className="rounded-xl border border-border p-3">
-                <div className="mb-2 flex items-center justify-between">
-                  <span className="text-[11px] font-bold text-muted-foreground">
-                    {t.rxModalMedName} {i + 1}
-                  </span>
-                  {meds.length > 1 ? (
-                    <button type="button" onClick={() => removeMed(i)} className="flex items-center gap-1 text-[11px] font-bold text-destructive">
-                      <Trash2 className="size-3" strokeWidth={2.2} />
-                      {t.rxModalRemoveMed}
-                    </button>
-                  ) : null}
+            {meds.map((med, i) => {
+              const medInvalid = attempted && filledMeds.length === 0 && !med.name.trim()
+              const matches = medicationsMatching(med.name)
+              return (
+                <div key={i} className="rounded-xl border border-border p-3">
+                  <div className="mb-2 flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-muted-foreground">
+                      {t.rxModalMedName} {i + 1}
+                    </span>
+                    {meds.length > 1 ? (
+                      <button type="button" onClick={() => removeMed(i)} className="flex items-center gap-1 text-[11px] font-bold text-destructive">
+                        <Trash2 className="size-3" strokeWidth={2.2} />
+                        {t.rxModalRemoveMed}
+                      </button>
+                    ) : null}
+                  </div>
+                  <div className="relative mb-2.5">
+                    <Input
+                      value={med.name}
+                      onChange={(e) => {
+                        updateMed(i, { name: e.target.value })
+                        setMedDropdownOpen(i)
+                      }}
+                      onFocus={() => setMedDropdownOpen(i)}
+                      placeholder={t.rxModalMedNamePh}
+                      autoComplete="off"
+                      aria-invalid={medInvalid}
+                      className={cn("h-9", medInvalid && "border-destructive")}
+                    />
+                    {medDropdownOpen === i && (
+                      <>
+                        <div className="fixed inset-0 z-30" onClick={() => setMedDropdownOpen(null)} />
+                        <div className="absolute inset-x-0 top-full z-40 mt-1 max-h-48 overflow-y-auto rounded-xl border border-border bg-white shadow-lg">
+                          {matches.length === 0 ? (
+                            <div className="px-3 py-2.5 text-[12.5px] text-muted-foreground">{t.mobileConsultNoMedMatch}</div>
+                          ) : (
+                            matches.map((m) => (
+                              <button
+                                key={m}
+                                type="button"
+                                onClick={() => {
+                                  updateMed(i, { name: m })
+                                  setMedDropdownOpen(null)
+                                }}
+                                className="block w-full truncate px-3 py-2.5 text-left text-[12.5px] hover:bg-muted"
+                              >
+                                {m}
+                              </button>
+                            ))
+                          )}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <div>
+                      <label className="mb-1 block text-[10.5px] font-bold text-muted-foreground">{t.rxModalDose}</label>
+                      <Input value={med.dose} onChange={(e) => updateMed(i, { dose: e.target.value })} placeholder={t.rxModalDosePh} className="h-8.5 text-[13px]" />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-[10.5px] font-bold text-muted-foreground">{t.rxModalFreq}</label>
+                      <Input value={med.frequency} onChange={(e) => updateMed(i, { frequency: e.target.value })} placeholder={t.rxModalFreqPh} className="h-8.5 text-[13px]" />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-[10.5px] font-bold text-muted-foreground">{t.rxModalDuration}</label>
+                      <Input value={med.duration} onChange={(e) => updateMed(i, { duration: e.target.value })} placeholder={t.rxModalDurationPh} className="h-8.5 text-[13px]" />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-[10.5px] font-bold text-muted-foreground">{t.rxModalRoute}</label>
+                      <select
+                        value={med.route}
+                        onChange={(e) => updateMed(i, { route: e.target.value })}
+                        className="h-8.5 w-full rounded-lg border border-border bg-transparent px-2 text-[13px] outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                      >
+                        {ROUTES.map((r) => (
+                          <option key={r} value={r}>
+                            {r}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
                 </div>
-                <div className="mb-2.5">
-                  <Input list="mobile-medication-suggestions" value={med.name} onChange={(e) => updateMed(i, { name: e.target.value })} placeholder={t.rxModalMedNamePh} className="h-9" />
-                </div>
-                <div className="grid grid-cols-2 gap-2.5">
-                  <div>
-                    <label className="mb-1 block text-[10.5px] font-bold text-muted-foreground">{t.rxModalDose}</label>
-                    <Input value={med.dose} onChange={(e) => updateMed(i, { dose: e.target.value })} placeholder={t.rxModalDosePh} className="h-8.5 text-[13px]" />
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-[10.5px] font-bold text-muted-foreground">{t.rxModalFreq}</label>
-                    <Input value={med.frequency} onChange={(e) => updateMed(i, { frequency: e.target.value })} placeholder={t.rxModalFreqPh} className="h-8.5 text-[13px]" />
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-[10.5px] font-bold text-muted-foreground">{t.rxModalDuration}</label>
-                    <Input value={med.duration} onChange={(e) => updateMed(i, { duration: e.target.value })} placeholder={t.rxModalDurationPh} className="h-8.5 text-[13px]" />
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-[10.5px] font-bold text-muted-foreground">{t.rxModalRoute}</label>
-                    <select
-                      value={med.route}
-                      onChange={(e) => updateMed(i, { route: e.target.value })}
-                      className="h-8.5 w-full rounded-lg border border-border bg-transparent px-2 text-[13px] outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-                    >
-                      {ROUTES.map((r) => (
-                        <option key={r} value={r}>
-                          {r}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
-          <datalist id="mobile-medication-suggestions">
-            {COMMON_MEDICATIONS.map((m) => (
-              <option key={m} value={m} />
-            ))}
-          </datalist>
         </div>
 
-        {!canSaveConsult && (chiefComplaint || diagnosis) && <p className="text-[11.5px] text-muted-foreground">{t.mobileConsultRequiredHint}</p>}
+        {attempted && (chiefComplaint.trim() === "" || diagnosis.trim() === "") && (
+          <p className="text-[11.5px] font-semibold text-destructive">{t.mobileConsultRequiredHint}</p>
+        )}
+        {attempted && chiefComplaint.trim() !== "" && diagnosis.trim() !== "" && filledMeds.length === 0 && (
+          <p className="text-[11.5px] font-semibold text-destructive">{t.mobileConsultMedRequiredHint}</p>
+        )}
 
         <div className="flex gap-2.5 pb-2">
           <Button
-            onClick={() => draftMutation.mutate()}
-            disabled={!canSaveConsult || draftMutation.isPending}
+            onClick={() => {
+              if (!canSaveConsult) {
+                setAttempted(true)
+                return
+              }
+              draftMutation.mutate()
+            }}
+            disabled={draftMutation.isPending}
             variant="outline"
             className="flex-1 gap-1.5 rounded-xl font-bold"
           >
@@ -318,8 +386,14 @@ export default function MobileConsultation() {
             {draftMutation.isPending ? t.mobileConsultSaving : t.mobileConsultSaveDraft}
           </Button>
           <Button
-            onClick={() => completeMutation.mutate()}
-            disabled={!canSend || completeMutation.isPending}
+            onClick={() => {
+              if (!canSend) {
+                setAttempted(true)
+                return
+              }
+              completeMutation.mutate()
+            }}
+            disabled={completeMutation.isPending}
             className="flex-1 gap-1.5 rounded-xl bg-gradient-to-r from-[#2563EB] to-[#16A34A] font-bold text-white hover:opacity-90"
           >
             <MessageCircle className="size-4" strokeWidth={2.2} />
