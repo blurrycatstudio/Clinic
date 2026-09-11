@@ -57,6 +57,7 @@ export const botMessages = {
     noSlotsAvailable:
       "Lo sentimos, no encontramos horarios disponibles en los próximos días. Un miembro del equipo te contactará pronto.",
     requestedDayUnavailable: "No tenemos horarios disponibles ese día. Estos son los próximos horarios disponibles:",
+    slotConflict: "Uy, alguien más acaba de reservar ese horario. Aquí tienes los próximos horarios disponibles:",
     chooseSlot: "Estos son los horarios disponibles. Responde con el número de tu opción:\n\n{slots}",
     chooseSlotPrompt: "Estos son los horarios disponibles. Toca uno para elegirlo, o responde con su número:",
     viewTimesButton: "Ver horarios",
@@ -129,6 +130,7 @@ export const botMessages = {
     noSlotsAvailable:
       "Sorry, we couldn't find any open slots in the coming days. A team member will reach out shortly.",
     requestedDayUnavailable: "We don't have any open slots that day. Here are the next available times:",
+    slotConflict: "Oops, someone else just booked that time. Here are the next available slots:",
     chooseSlot: "Here are the available time slots. Reply with the number of your choice:\n\n{slots}",
     chooseSlotPrompt: "Here are the available time slots. Tap one to select it, or reply with its number:",
     viewTimesButton: "View times",

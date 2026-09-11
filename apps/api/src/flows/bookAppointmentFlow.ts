@@ -1,10 +1,11 @@
-import { BOOKING_HORIZON_DAYS, CLINIC_TIMEZONE, ConversationState, FlowType, t, type ConversationContext, type Language, type PendingBookingDraft } from "@clinic/shared"
+import { BOOKING_HORIZON_DAYS, CLINIC_TIMEZONE, ConversationState, FlowType, t, type Appointment, type ConversationContext, type Language, type PendingBookingDraft } from "@clinic/shared"
 import type { FlowHandler, FlowReply, FlowResult } from "./types.js"
 import { appointmentService, type AvailableSlot } from "../services/appointmentService.js"
 import { patientRepository } from "../repositories/patientRepository.js"
 import { appointmentRepository } from "../repositories/appointmentRepository.js"
 import { parseBookingRequest } from "../lib/parseBookingRequest.js"
 import { tryAnswerOffScript } from "../lib/offScript.js"
+import { ConflictError } from "../lib/errors.js"
 import { format } from "date-fns"
 import { toZonedTime } from "date-fns-tz"
 
@@ -450,14 +451,38 @@ export const bookAppointmentFlow: FlowHandler = async ({ text, buttonId, context
         }
       }
 
-      const { appointment, patientId } = await appointmentService.bookAppointment({
-        patientFullName: draft.fullName ?? "",
-        patientPhoneE164: draft.phoneE164 ?? context.phoneE164,
-        reason: draft.reason ?? "",
-        startsAtIso: draft.selectedSlotIso ?? new Date().toISOString(),
-        source: "whatsapp",
-        language: lang,
-      })
+      let appointment: Appointment
+      let patientId: string
+      try {
+        ;({ appointment, patientId } = await appointmentService.bookAppointment({
+          patientFullName: draft.fullName ?? "",
+          patientPhoneE164: draft.phoneE164 ?? context.phoneE164,
+          reason: draft.reason ?? "",
+          startsAtIso: draft.selectedSlotIso ?? new Date().toISOString(),
+          source: "whatsapp",
+          language: lang,
+        }))
+      } catch (err) {
+        // Two patients grabbing the same slot at once is rare but real (the DB's
+        // partial unique index is the final guard) — re-offer fresh availability
+        // instead of a generic "I don't understand" error.
+        if (err instanceof ConflictError) {
+          const fallback = await fallbackToGeneralSlots(lang)
+          const conflictReply: FlowReply = { ...fallback.reply, text: `${t(lang, "slotConflict")}\n\n${fallback.reply.text ?? ""}` }
+          if (fallback.slots.length === 0) {
+            return { context: { ...context, state: ConversationState.AWAITING_MENU_SELECTION, activeFlow: FlowType.NONE, booking: undefined }, reply: conflictReply }
+          }
+          return {
+            context: {
+              ...context,
+              state: ConversationState.AWAITING_SLOT_SELECTION,
+              booking: { ...draft, selectedSlotIso: undefined, cachedSlots: fallback.slots, slotOffset: fallback.slots.length },
+            },
+            reply: conflictReply,
+          }
+        }
+        throw err
+      }
 
       const zoned = toZonedTime(new Date(appointment.starts_at), CLINIC_TIMEZONE)
       const confirmedText = t(lang, "bookingConfirmed", {

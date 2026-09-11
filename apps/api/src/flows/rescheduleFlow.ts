@@ -1,16 +1,24 @@
 import { format } from "date-fns"
 import { toZonedTime } from "date-fns-tz"
-import { CLINIC_TIMEZONE, ConversationState, FlowType, t, type ConversationContext } from "@clinic/shared"
-import type { FlowHandler, FlowResult } from "./types.js"
+import { CLINIC_TIMEZONE, ConversationState, FlowType, t, type ConversationContext, type Language } from "@clinic/shared"
+import type { FlowHandler, FlowReply, FlowResult } from "./types.js"
 import { appointmentService, type AvailableSlot } from "../services/appointmentService.js"
 import { tryAnswerOffScript } from "../lib/offScript.js"
 
-function renderAppointmentList(options: { label: string }[]): string {
-  return options.map((o, i) => `${i + 1}️⃣ ${o.label}`).join("\n")
+/** Each appointment/slot is a tappable WhatsApp list row — the patient selects with one tap; a typed number still works too. */
+function appointmentListReply(lang: Language, promptKey: "chooseAppointmentToReschedule", options: { label: string }[]): FlowReply {
+  return {
+    text: t(lang, promptKey, { appointments: options.map((o, i) => `${i + 1}️⃣ ${o.label}`).join("\n") }),
+    list: { buttonLabel: t(lang, "viewTimesButton"), rows: options.map((o, i) => ({ id: String(i + 1), title: o.label })) },
+  }
 }
 
-function renderSlotList(slots: AvailableSlot[]): string {
-  return slots.map((s, i) => `${i + 1}️⃣ ${s.label}`).join("\n")
+function slotListReply(lang: Language, slots: AvailableSlot[]): FlowReply {
+  if (slots.length === 0) return { text: t(lang, "noSlotsAvailable") }
+  return {
+    text: t(lang, "chooseSlotPrompt"),
+    list: { buttonLabel: t(lang, "viewTimesButton"), rows: slots.map((s, i) => ({ id: String(i + 1), title: s.label })) },
+  }
 }
 
 /** Called by mainMenuFlow when the patient picks option 2 — needs a DB lookup, so it can't be a plain switch branch. */
@@ -37,23 +45,23 @@ export async function enterRescheduleFlow(context: ConversationContext): Promise
       activeFlow: FlowType.RESCHEDULE,
       reschedule: { cachedAppointments: options },
     },
-    reply: { text: t(lang, "chooseAppointmentToReschedule", { appointments: renderAppointmentList(options) }) },
+    reply: appointmentListReply(lang, "chooseAppointmentToReschedule", options),
   }
 }
 
-export const rescheduleFlow: FlowHandler = async ({ text, context, settings }) => {
+export const rescheduleFlow: FlowHandler = async ({ text, buttonId, context, settings }) => {
   const lang = context.language ?? "es"
   const draft = context.reschedule ?? {}
 
   switch (context.state) {
     case ConversationState.AWAITING_RESCHEDULE_TARGET_SELECTION: {
       const options = draft.cachedAppointments ?? []
-      const index = Number.parseInt(text.trim(), 10) - 1
+      const index = Number.parseInt((buttonId ?? text).trim(), 10) - 1
       const chosen = options[index]
       if (!chosen) {
         const offScript = await tryAnswerOffScript(text, lang, settings)
         if (offScript) {
-          return { context, reply: { text: `${offScript.text}\n\n${t(lang, "chooseAppointmentToReschedule", { appointments: renderAppointmentList(options) })}` } }
+          return { context, reply: { text: `${offScript.text}\n\n${t(lang, "chooseAppointmentToReschedule", { appointments: options.map((o, i) => `${i + 1}️⃣ ${o.label}`).join("\n") })}` } }
         }
         return { context, reply: { text: t(lang, "appointmentSelectionInvalid") } }
       }
@@ -72,18 +80,18 @@ export const rescheduleFlow: FlowHandler = async ({ text, context, settings }) =
           state: ConversationState.AWAITING_RESCHEDULE_SLOT_SELECTION,
           reschedule: { ...draft, targetAppointmentId: chosen.appointmentId, cachedSlots: slots },
         },
-        reply: { text: t(lang, "chooseSlot", { slots: renderSlotList(slots) }) },
+        reply: slotListReply(lang, slots),
       }
     }
 
     case ConversationState.AWAITING_RESCHEDULE_SLOT_SELECTION: {
       const slots = draft.cachedSlots ?? []
-      const index = Number.parseInt(text.trim(), 10) - 1
+      const index = Number.parseInt((buttonId ?? text).trim(), 10) - 1
       const slot = slots[index]
       if (!slot) {
         const offScript = await tryAnswerOffScript(text, lang, settings)
         if (offScript) {
-          return { context, reply: { text: `${offScript.text}\n\n${t(lang, "chooseSlot", { slots: renderSlotList(slots) })}` } }
+          return { context, reply: { text: `${offScript.text}\n\n${t(lang, "chooseSlotPrompt")}` } }
         }
         return { context, reply: { text: t(lang, "slotInvalid") } }
       }
