@@ -1,5 +1,5 @@
 import { ConversationState, FlowType, t } from "@clinic/shared"
-import type { ConversationContext } from "@clinic/shared"
+import type { ConversationContext, MenuOptionKey } from "@clinic/shared"
 import { conversationRepository } from "../repositories/conversationRepository.js"
 import { messageRepository } from "../repositories/messageRepository.js"
 import { clinicSettingsRepository } from "../repositories/clinicSettingsRepository.js"
@@ -106,6 +106,74 @@ export type InboundMessage = {
   text: string
   buttonId?: string | null
   waMessageId?: string | null
+}
+
+/**
+ * Entry point for the voice channel handing a call off to WhatsApp. The voice
+ * agent no longer collects booking details itself — it identifies intent,
+ * then calls this to push the patient straight into the matching WhatsApp
+ * flow, reusing the exact same mainMenuFlow/buildMainMenu logic (and Redis
+ * state) that inbound WhatsApp messages use, so a patient who continues on
+ * WhatsApp lands in a consistent conversation regardless of which channel
+ * started it.
+ */
+export async function triggerVoiceHandoff(
+  phoneE164: string,
+  intent: MenuOptionKey | "menu",
+  language?: "en" | "es",
+): Promise<{ sent: boolean; state: ConversationState }> {
+  const conversation = await conversationRepository.getOrCreate(phoneE164)
+  conversationRepository.touch(conversation.id).catch((err) => logger.warn({ err }, "conversation touch failed"))
+
+  const [{ context: loaded }, settings] = await Promise.all([
+    redisStateService.get(phoneE164, conversation.id),
+    clinicSettingsRepository.get(),
+  ])
+
+  const lang = language ?? loaded.language ?? "es"
+  const context: ConversationContext = { ...loaded, language: lang }
+
+  const result =
+    intent === "menu"
+      ? {
+          context: { ...context, state: ConversationState.AWAITING_MENU_SELECTION, activeFlow: FlowType.NONE },
+          reply: buildMainMenu(lang, settings),
+        }
+      : await mainMenuFlow({
+          text: "",
+          buttonId: intent,
+          context: { ...context, state: ConversationState.AWAITING_MENU_SELECTION },
+          settings,
+        })
+
+  if (result.reply.text || result.reply.list || result.reply.buttons) {
+    await sendFlowReply(phoneE164, conversation.id, result.reply)
+  }
+  if (result.reply.location) {
+    const { messageId } = await whatsappService.sendLocationMessage(phoneE164, result.reply.location)
+    messageRepository
+      .log({
+        conversationId: conversation.id,
+        direction: "outbound",
+        messageType: "location",
+        payload: result.reply.location,
+        waMessageId: messageId,
+      })
+      .catch((err) => logger.warn({ err }, "outbound location log failed"))
+  }
+
+  await auditLogRepository.record({
+    actorType: "system",
+    action: "voice.whatsapp_handoff",
+    entityType: "whatsapp_conversation",
+    entityId: conversation.id,
+    metadata: { intent, language: lang },
+  })
+
+  const withHistory = redisStateService.appendTurn(result.context, "assistant", result.reply.text ?? "")
+  await redisStateService.save(phoneE164, withHistory)
+
+  return { sent: true, state: result.context.state }
 }
 
 /**

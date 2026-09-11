@@ -20,3 +20,4 @@ agentRouter.post("/whatsapp-location", asyncHandler(async (req, res) => agentCon
 agentRouter.post("/whatsapp-availability", asyncHandler(async (req, res) => agentController.sendAvailabilityOnWhatsapp(req, res)))
 agentRouter.post("/whatsapp-appointment-details", asyncHandler(async (req, res) => agentController.sendAppointmentDetailsOnWhatsapp(req, res)))
 agentRouter.post("/escalations", asyncHandler(async (req, res) => agentController.escalate(req, res)))
+agentRouter.post("/whatsapp-handoff", asyncHandler(async (req, res) => agentController.whatsappHandoff(req, res)))
