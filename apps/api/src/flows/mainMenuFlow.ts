@@ -21,7 +21,7 @@ import { startBookingFromFreeText, extractReasonIfPresent } from "./bookAppointm
 import { appointmentService } from "../services/appointmentService.js"
 import { patientRepository } from "../repositories/patientRepository.js"
 import { appointmentRepository } from "../repositories/appointmentRepository.js"
-import { locationReply, LOCATION_KEYWORDS, isGratitudeMessage } from "../lib/offScript.js"
+import { locationReply, LOCATION_KEYWORDS, isGratitudeMessage, buildMapsUrl } from "../lib/offScript.js"
 import { openaiService } from "../services/openaiService.js"
 
 const NUMBER_EMOJI = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟"]
@@ -150,20 +150,22 @@ export const mainMenuFlow: FlowHandler = async ({ text, buttonId, context, setti
       const parking = lang === "es" ? settings.parking_info_es : settings.parking_info_en
       const { latitude, longitude } = settings
       const hasCoordinates = latitude != null && longitude != null
-      // With coordinates, the native location pin sent alongside this message already
-      // shows the address and a tap-to-open-in-Maps action — so the text only adds
+      const mapsUrl = settings.google_maps_url || buildMapsUrl(settings.address)
+      // The "Get Directions" button carries the address, so the text below only adds
       // Hours/Parking on top of it instead of repeating the address a second time.
-      // Without coordinates there's no pin, so the text carries the full address (plus
-      // a raw maps link, if one is configured) as the only way to share the location.
-      const overview = hasCoordinates
-        ? t(lang, "clinicOverviewNoLocation", { hours, parking })
-        : t(lang, "clinicOverview", { address: settings.address, hours, parking }) +
-          (settings.google_maps_url ? `\n${settings.google_maps_url}` : "")
+      const overview = t(lang, "clinicOverviewNoLocation", { hours, parking })
 
       return {
         context: { ...context, state: ConversationState.AWAITING_FAQ_QUESTION, activeFlow: FlowType.INFO },
         reply: {
           text: `${overview}\n\n${t(lang, "infoPrompt")}`,
+          ctaUrl: {
+            bodyText: `📍 *${t(lang, "locationLabel")}*\n${settings.address}`,
+            displayText: t(lang, "getDirectionsButton"),
+            url: mapsUrl,
+          },
+          // Coordinates are optional and there's no admin UI for them yet — when set,
+          // this sends WhatsApp's native drop-a-pin card too, as a bonus alongside the button.
           ...(hasCoordinates
             ? {
                 location: {

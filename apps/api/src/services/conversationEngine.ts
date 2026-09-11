@@ -69,6 +69,17 @@ function logOutboundInteractive(
     .catch((err) => logger.warn({ err }, "outbound message log failed"))
 }
 
+/** Sends a "Get Directions" CTA-URL button, when a flow's reply carries one — a real tappable button that works off just a maps link, no lat/long needed. */
+async function sendCtaUrlIfPresent(
+  phoneE164: string,
+  conversationId: string,
+  ctaUrl: { bodyText: string; displayText: string; url: string } | undefined,
+): Promise<void> {
+  if (!ctaUrl) return
+  const { messageId } = await whatsappService.sendCtaUrlButton(phoneE164, ctaUrl.bodyText, ctaUrl.displayText, ctaUrl.url)
+  logOutboundInteractive(conversationId, ctaUrl.bodyText, { ctaUrl }, messageId)
+}
+
 /**
  * Sends a flow's reply as WhatsApp message(s): interactive buttons (always-visible,
  * WhatsApp caps these at 3) if present, then an interactive list (>2 tappable options
@@ -148,8 +159,9 @@ export async function triggerVoiceHandoff(
           settings,
         })
 
-  // Sent first, ahead of the text, so the native pin (with its own tap-to-open-in-Maps
-  // "Get Directions" action) leads the reply instead of trailing behind the Hours/Parking text.
+  // Sent first, ahead of the text, so the "Get Directions" button (or native pin, if
+  // coordinates exist) leads the reply instead of trailing behind the Hours/Parking text.
+  await sendCtaUrlIfPresent(phoneE164, conversation.id, result.reply.ctaUrl)
   if (result.reply.location) {
     const { messageId } = await whatsappService.sendLocationMessage(phoneE164, result.reply.location)
     messageRepository
@@ -319,8 +331,9 @@ export async function handleInboundMessage(input: InboundMessage): Promise<void>
     result.reply.text = fallback || t(context.language, "genericFallback")
   }
 
-  // Sent first, ahead of the text, so the native pin (with its own tap-to-open-in-Maps
-  // "Get Directions" action) leads the reply instead of trailing behind the Hours/Parking text.
+  // Sent first, ahead of the text, so the "Get Directions" button (or native pin, if
+  // coordinates exist) leads the reply instead of trailing behind the Hours/Parking text.
+  await sendCtaUrlIfPresent(input.phoneE164, conversation.id, result.reply.ctaUrl)
   if (result.reply.location) {
     const { messageId } = await whatsappService.sendLocationMessage(input.phoneE164, result.reply.location)
     messageRepository

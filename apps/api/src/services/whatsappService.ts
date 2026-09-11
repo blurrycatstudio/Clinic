@@ -50,6 +50,16 @@ type WhatsappInteractiveListMessage = {
     }
   }
 }
+type WhatsappCtaUrlMessage = {
+  messaging_product: "whatsapp"
+  to: string
+  type: "interactive"
+  interactive: {
+    type: "cta_url"
+    body: { text: string }
+    action: { name: "cta_url"; parameters: { display_text: string; url: string } }
+  }
+}
 
 async function callGraphApi(body: unknown): Promise<{ messageId: string | null; debug: Record<string, unknown> }> {
   if (!isWhatsappConfigured) {
@@ -173,6 +183,21 @@ export const whatsappService = {
         type: "list",
         body: { text: bodyText },
         action: { button: buttonLabel, sections: [{ rows }] },
+      },
+    }
+    return callGraphApi(payload)
+  },
+
+  /** A real tappable button that opens `url` — works with just a maps link, no lat/long pin required. */
+  async sendCtaUrlButton(to: string, bodyText: string, displayText: string, url: string): Promise<{ messageId: string | null }> {
+    const payload: WhatsappCtaUrlMessage = {
+      messaging_product: "whatsapp",
+      to,
+      type: "interactive",
+      interactive: {
+        type: "cta_url",
+        body: { text: bodyText },
+        action: { name: "cta_url", parameters: { display_text: displayText, url } },
       },
     }
     return callGraphApi(payload)

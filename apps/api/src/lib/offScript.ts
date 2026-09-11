@@ -27,17 +27,17 @@ export function isGratitudeMessage(rawText: string): boolean {
   return GRATITUDE_KEYWORDS.includes(normalized)
 }
 
-function buildMapsUrl(address: string): string {
+export function buildMapsUrl(address: string): string {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`
 }
 
 /**
- * When we have coordinates, WhatsApp's native location message already renders a pin
- * with a tap-to-open-in-Maps action (and shows the name/address under it) — sending a
- * second text message with the address and a raw maps link on top of that is redundant.
- * So `text` here is kept only for conversation history (suppressTextSend: true tells
- * conversationEngine not to send it as its own message) whenever we have a pin to send;
- * without coordinates there's no pin, so the text+link is the only way to share it.
+ * The "Get Directions" CTA-URL button carries the address and a real tappable button —
+ * that's the primary way we share the location, and it works off just a maps link, no
+ * coordinates needed. `text` here is kept only for conversation history (suppressTextSend
+ * tells conversationEngine not to send it as its own message, since the button already
+ * covers it). When coordinates ARE set, we also send WhatsApp's native location pin
+ * alongside the button, as a bonus (drop-a-pin apps some patients prefer).
  */
 export function locationReply(lang: Language, settings: ClinicSettings): FlowReply {
   const mapsUrl = settings.google_maps_url || buildMapsUrl(settings.address)
@@ -45,7 +45,8 @@ export function locationReply(lang: Language, settings: ClinicSettings): FlowRep
   const { latitude, longitude } = settings
   return {
     text,
-    suppressTextSend: latitude != null && longitude != null,
+    suppressTextSend: true,
+    ctaUrl: { bodyText: `📍 ${settings.address}`, displayText: t(lang, "getDirectionsButton"), url: mapsUrl },
     ...(latitude != null && longitude != null
       ? { location: { latitude, longitude, name: settings.clinic_name, address: settings.address } }
       : {}),

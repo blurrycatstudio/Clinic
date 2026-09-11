@@ -77,6 +77,9 @@ export const appointmentsController = {
       .parse(req.body)
 
     const appointment = await appointmentRepository.updateStatus(params.id, body.status)
+    if (body.status === "confirmed") {
+      await notifyPatientOfAppointmentChange(appointment.id, "confirmed")
+    }
     res.json({ appointment })
   },
 

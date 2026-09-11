@@ -1,4 +1,6 @@
 import type { Appointment, AppointmentStatus } from "@clinic/shared"
+import { CLINIC_TIMEZONE } from "@clinic/shared"
+import { fromZonedTime } from "date-fns-tz"
 import { supabase } from "../config/supabase.js"
 import { AppError, ConflictError, NotFoundError } from "../lib/errors.js"
 
@@ -61,8 +63,8 @@ export const appointmentRepository = {
       .order("starts_at", { ascending: true })
 
     if (params.date) {
-      const dayStart = new Date(`${params.date}T00:00:00.000Z`).toISOString()
-      const dayEnd = new Date(`${params.date}T23:59:59.999Z`).toISOString()
+      const dayStart = fromZonedTime(`${params.date}T00:00:00.000`, CLINIC_TIMEZONE).toISOString()
+      const dayEnd = fromZonedTime(`${params.date}T23:59:59.999`, CLINIC_TIMEZONE).toISOString()
       query = query.gte("starts_at", dayStart).lte("starts_at", dayEnd)
     }
     if (params.status) {

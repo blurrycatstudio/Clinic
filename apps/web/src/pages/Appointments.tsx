@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { Calendar, CalendarPlus, CheckCircle2, ChevronLeft, ChevronRight, Phone, Search, X } from "lucide-react"
+import { Calendar, CalendarPlus, CheckCircle2, ChevronLeft, ChevronRight, Phone, Search, XCircle, X } from "lucide-react"
 import { Dialog } from "radix-ui"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -103,6 +103,81 @@ function NewAppointmentDialog({
   )
 }
 
+function AppointmentActionsDialog({
+  appointment,
+  onOpenChange,
+  onConfirm,
+  onReschedule,
+  onCancel,
+  confirmPending,
+  cancelPending,
+}: {
+  appointment: DisplayAppointment | null
+  onOpenChange: (v: boolean) => void
+  onConfirm: (a: DisplayAppointment) => void
+  onReschedule: (a: DisplayAppointment) => void
+  onCancel: (a: DisplayAppointment) => void
+  confirmPending: boolean
+  cancelPending: boolean
+}) {
+  const { t } = useLang()
+  const cancelled = appointment?.status === "statusCancelled"
+
+  return (
+    <Dialog.Root open={appointment !== null} onOpenChange={onOpenChange}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm" />
+        <Dialog.Content className="fixed top-1/2 left-1/2 z-50 w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-border bg-card p-5 shadow-2xl sm:p-6">
+          {appointment && (
+            <>
+              <div className="mb-5 flex items-center justify-between">
+                <div>
+                  <Dialog.Title className="font-heading text-lg font-bold">{appointment.child}</Dialog.Title>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    {appointment.time} · {appointment.phone}
+                  </p>
+                </div>
+                <Dialog.Close className="flex size-8 items-center justify-center rounded-[9px] border border-border hover:bg-muted">
+                  <X className="size-4" strokeWidth={2} />
+                </Dialog.Close>
+              </div>
+              <div className="flex flex-col gap-2">
+                {appointment.status === "statusPending" && (
+                  <Button
+                    onClick={() => onConfirm(appointment)}
+                    disabled={confirmPending}
+                    className="w-full justify-center gap-1.5 rounded-lg font-bold"
+                  >
+                    <CheckCircle2 className="size-3.5" strokeWidth={2.2} />
+                    {t.apptsCheckIn}
+                  </Button>
+                )}
+                <Button
+                  onClick={() => onReschedule(appointment)}
+                  variant="outline"
+                  disabled={cancelled}
+                  className="w-full justify-center rounded-lg font-bold"
+                >
+                  {t.apptsReschedule}
+                </Button>
+                <Button
+                  onClick={() => onCancel(appointment)}
+                  variant="outline"
+                  disabled={cancelled || cancelPending}
+                  className="w-full justify-center gap-1.5 rounded-lg font-bold text-destructive hover:bg-destructive/10"
+                >
+                  <XCircle className="size-3.5" strokeWidth={2.2} />
+                  {t.apptsCancel}
+                </Button>
+              </div>
+            </>
+          )}
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
+  )
+}
+
 export default function Appointments() {
   const { t } = useLang()
   const toast = useToast()
@@ -111,14 +186,16 @@ export default function Appointments() {
   const [status, setStatus] = useState<StatusFilter>("all")
   const [newOpen, setNewOpen] = useState(false)
   const [dayOffset, setDayOffset] = useState(0)
+  const [selectedAppointment, setSelectedAppointment] = useState<DisplayAppointment | null>(null)
 
   const shownDate = new Date()
   shownDate.setDate(shownDate.getDate() + dayOffset)
   const dateLabel = dayOffset === 0 ? t.dateLine : shownDate.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })
+  const dateParam = `${shownDate.getFullYear()}-${String(shownDate.getMonth() + 1).padStart(2, "0")}-${String(shownDate.getDate()).padStart(2, "0")}`
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ["appointments"],
-    queryFn: () => api.get<{ rows: ApiAppointment[]; count: number }>("/appointments?limit=200"),
+    queryKey: ["appointments", dateParam],
+    queryFn: () => api.get<{ rows: ApiAppointment[]; count: number }>(`/appointments?limit=200&date=${dateParam}`),
     refetchInterval: 30_000,
   })
 
@@ -134,6 +211,7 @@ export default function Appointments() {
     mutationFn: (id: string) => api.patch(`/appointments/${id}/status`, { status: "confirmed" }),
     onSuccess: () => {
       invalidate()
+      setSelectedAppointment(null)
       toast("Patient checked in")
     },
     onError: () => toast("Failed to check in patient"),
@@ -143,9 +221,20 @@ export default function Appointments() {
     mutationFn: ({ id, startsAtIso }: { id: string; startsAtIso: string }) => api.patch(`/appointments/${id}/reschedule`, { startsAtIso }),
     onSuccess: () => {
       invalidate()
+      setSelectedAppointment(null)
       toast("Appointment rescheduled")
     },
     onError: () => toast("Failed to reschedule — that slot may already be booked"),
+  })
+
+  const cancelMutation = useMutation({
+    mutationFn: (id: string) => api.patch(`/appointments/${id}/cancel`, {}),
+    onSuccess: () => {
+      invalidate()
+      setSelectedAppointment(null)
+      toast("Appointment cancelled")
+    },
+    onError: () => toast("Failed to cancel appointment"),
   })
 
   const callMutation = useMutation({
@@ -199,6 +288,11 @@ export default function Appointments() {
     const newTime = window.prompt("New time (HH:mm, 24h)", a.startsAt.toTimeString().slice(0, 5))?.trim()
     if (!newTime) return
     rescheduleMutation.mutate({ id: a.id, startsAtIso: new Date(`${newDate}T${newTime}:00`).toISOString() })
+  }
+
+  function cancelAppointment(a: DisplayAppointment) {
+    if (!window.confirm(`Cancel ${a.child}'s appointment at ${a.time}?`)) return
+    cancelMutation.mutate(a.id)
   }
 
   return (
@@ -307,7 +401,10 @@ export default function Appointments() {
                     <tr key={a.id} className={cn("border-b border-border last:border-0 hover:bg-muted/60", cancelled && "opacity-60")}>
                       <td className="py-3 pr-2 pl-0 text-[13px] font-bold whitespace-nowrap">{a.time}</td>
                       <td className="px-2 py-3">
-                        <div className="flex items-center gap-2.5">
+                        <button
+                          onClick={() => setSelectedAppointment(a)}
+                          className="flex items-center gap-2.5 rounded-lg text-left hover:underline"
+                        >
                           <div
                             className="flex size-8.5 shrink-0 items-center justify-center rounded-full text-[12px] font-bold text-white"
                             style={{ background: a.color }}
@@ -320,7 +417,7 @@ export default function Appointments() {
                               {a.phone} · <span className="uppercase">{a.source}</span>
                             </div>
                           </div>
-                        </div>
+                        </button>
                       </td>
                       <td className="px-2 py-3 text-[13px]">{a.reason || "—"}</td>
                       <td className="px-2 py-3 text-[13px] text-muted-foreground whitespace-nowrap">{a.duration}</td>
@@ -380,6 +477,22 @@ export default function Appointments() {
         onOpenChange={setNewOpen}
         onSubmit={(input) => createMutation.mutate(input)}
         pending={createMutation.isPending}
+      />
+
+      <AppointmentActionsDialog
+        appointment={selectedAppointment}
+        onOpenChange={(v) => !v && setSelectedAppointment(null)}
+        onConfirm={(a) => confirmMutation.mutate(a.id)}
+        onReschedule={(a) => {
+          setSelectedAppointment(null)
+          reschedule(a)
+        }}
+        onCancel={(a) => {
+          setSelectedAppointment(null)
+          cancelAppointment(a)
+        }}
+        confirmPending={confirmMutation.isPending}
+        cancelPending={cancelMutation.isPending}
       />
     </div>
   )
