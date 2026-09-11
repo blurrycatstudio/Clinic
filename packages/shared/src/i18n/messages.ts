@@ -56,6 +56,7 @@ export const botMessages = {
       "¿Cuál es el motivo de la consulta? Tu última visita fue por: *{lastReason}*.\nResponde *IGUAL* para usar el mismo motivo, o escribe uno nuevo.",
     noSlotsAvailable:
       "Lo sentimos, no encontramos horarios disponibles en los próximos días. Un miembro del equipo te contactará pronto.",
+    requestedDayUnavailable: "No tenemos horarios disponibles ese día. Estos son los próximos horarios disponibles:",
     chooseSlot: "Estos son los horarios disponibles. Responde con el número de tu opción:\n\n{slots}",
     slotInvalid: "Esa opción no es válida. Elige uno de los números de la lista.",
     confirmBooking:
@@ -125,6 +126,7 @@ export const botMessages = {
       "What's the reason for the visit? Your last visit was for: *{lastReason}*.\nReply *SAME* to use the same reason, or type a new one.",
     noSlotsAvailable:
       "Sorry, we couldn't find any open slots in the coming days. A team member will reach out shortly.",
+    requestedDayUnavailable: "We don't have any open slots that day. Here are the next available times:",
     chooseSlot: "Here are the available time slots. Reply with the number of your choice:\n\n{slots}",
     slotInvalid: "That's not a valid option. Please choose one of the listed numbers.",
     confirmBooking:

@@ -31,6 +31,20 @@ function slotListReply(lang: Language, slots: AvailableSlot[]) {
   return { text: t(lang, "chooseSlot", { slots: renderSlotList(slots) }) }
 }
 
+/**
+ * A specific day/instant the patient asked for turned out to have nothing open
+ * (closed day, fully booked, etc). Rather than a flat "no slots at all" — which
+ * reads as the whole clinic being unavailable — fall back to the clinic's next
+ * actually-open slots so the patient can still book something in this turn.
+ */
+async function fallbackToGeneralSlots(lang: Language) {
+  const { slots, hasMore, text: promptText } = await promptForSlots(lang)
+  if (slots.length === 0) {
+    return { slots, hasMore: false, text: t(lang, "noSlotsAvailable") }
+  }
+  return { slots, hasMore, text: `${t(lang, "requestedDayUnavailable")}\n\n${promptText}` }
+}
+
 function buildConfirmText(lang: Language, draft: PendingBookingDraft, slot: AvailableSlot) {
   const zoned = toZonedTime(new Date(slot.startsAtIso), CLINIC_TIMEZONE)
   return t(lang, "confirmBooking", {
@@ -122,14 +136,30 @@ async function resolveBookingContinuation(
       ? await appointmentService.getAvailableSlots(BOOKING_HORIZON_DAYS, 1, 0)
       : await appointmentService.getSlotsOnDate(parsed.date)
   const exact = parsed.kind === "exact" ? dayMatches.find((s) => Math.abs(new Date(s.startsAtIso).getTime() - parsed.date.getTime()) < 60_000) : null
-  const slots = exact ? [exact] : dayMatches
+  const requestedSlots = exact ? [exact] : dayMatches
 
-  if (slots.length === 0) {
+  if (requestedSlots.length === 0) {
+    const fallback = await fallbackToGeneralSlots(lang)
+    if (fallback.slots.length === 0) {
+      return {
+        context: { ...context, state: ConversationState.AWAITING_MENU_SELECTION, activeFlow: FlowType.NONE },
+        reply: { text: fallback.text },
+      }
+    }
     return {
-      context: { ...context, state: ConversationState.AWAITING_MENU_SELECTION, activeFlow: FlowType.NONE },
-      reply: { text: t(lang, "noSlotsAvailable") },
+      context: {
+        ...context,
+        state: ConversationState.AWAITING_SLOT_SELECTION,
+        activeFlow: FlowType.BOOK,
+        booking: { ...withReason, cachedSlots: fallback.slots, slotOffset: fallback.slots.length },
+      },
+      reply: {
+        text: fallback.text,
+        ...(fallback.hasMore ? { buttons: [{ id: "more_slots", title: t(lang, "moreDatesButton") }] } : {}),
+      },
     }
   }
+  const slots = requestedSlots
 
   // A single matched slot (ASAP, or an exact date+time that's actually free) can go
   // straight to confirmation; several open slots (or a bare-day query) still need the
@@ -185,25 +215,30 @@ export async function startBookingFromFreeText(
   // New patient: still need their name before we can confirm/list anything meaningfully.
   // Resolve the slot(s) now so AWAITING_NAME can jump straight to confirmation/listing.
   const reason = inferReason(rawText, undefined, lang)
-  let slots: AvailableSlot[]
+  let requestedSlots: AvailableSlot[]
   if (parsed.kind === "asap") {
-    slots = await appointmentService.getAvailableSlots(BOOKING_HORIZON_DAYS, 1, 0)
+    requestedSlots = await appointmentService.getAvailableSlots(BOOKING_HORIZON_DAYS, 1, 0)
   } else if (parsed.kind === "exact") {
     const dayMatches = await appointmentService.getSlotsOnDate(parsed.date)
     const exact = dayMatches.find((s) => Math.abs(new Date(s.startsAtIso).getTime() - parsed.date.getTime()) < 60_000)
-    slots = exact ? [exact] : dayMatches
+    requestedSlots = exact ? [exact] : dayMatches
   } else {
-    slots = await appointmentService.getSlotsOnDate(parsed.date)
+    requestedSlots = await appointmentService.getSlotsOnDate(parsed.date)
   }
 
+  let slots = requestedSlots
   if (slots.length === 0) {
-    return {
-      context: { ...context, state: ConversationState.AWAITING_MENU_SELECTION, activeFlow: FlowType.NONE },
-      reply: { text: t(lang, "noSlotsAvailable") },
+    const fallback = await fallbackToGeneralSlots(lang)
+    if (fallback.slots.length === 0) {
+      return {
+        context: { ...context, state: ConversationState.AWAITING_MENU_SELECTION, activeFlow: FlowType.NONE },
+        reply: { text: fallback.text },
+      }
     }
+    slots = fallback.slots
   }
 
-  const singleExactMatch = slots.length === 1 && parsed.kind !== "day_query"
+  const singleExactMatch = slots === requestedSlots && slots.length === 1 && parsed.kind !== "day_query"
   return {
     context: {
       ...context,
@@ -213,6 +248,9 @@ export async function startBookingFromFreeText(
         ? { reason, selectedSlotIso: slots[0]!.startsAtIso }
         : { reason, cachedSlots: slots, slotOffset: slots.length },
     },
+    // A patient the bot doesn't recognize yet still needs to give their name first —
+    // any "that day isn't available, here's what is" framing shows once we list the
+    // slots after the name arrives (see AWAITING_NAME below).
     reply: { text: t(lang, "askName") },
   }
 }
@@ -394,6 +432,23 @@ export const bookAppointmentFlow: FlowHandler = async ({ text, buttonId, context
           parsed.kind === "asap"
             ? await appointmentService.getAvailableSlots(BOOKING_HORIZON_DAYS, 1, 0)
             : await appointmentService.getSlotsOnDate(parsed.date)
+
+        if (newSlots.length === 0) {
+          const fallback = await fallbackToGeneralSlots(lang)
+          if (fallback.slots.length === 0) {
+            return {
+              context: { ...context, state: ConversationState.AWAITING_MENU_SELECTION, activeFlow: FlowType.NONE },
+              reply: { text: fallback.text },
+            }
+          }
+          return {
+            context: { ...context, booking: { ...draft, cachedSlots: fallback.slots, slotOffset: fallback.slots.length } },
+            reply: {
+              text: fallback.text,
+              ...(fallback.hasMore ? { buttons: [{ id: "more_slots", title: t(lang, "moreDatesButton") }] } : {}),
+            },
+          }
+        }
 
         if (newSlots.length === 1 && parsed.kind !== "day_query") {
           return {
