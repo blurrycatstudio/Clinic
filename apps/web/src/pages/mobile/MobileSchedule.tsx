@@ -31,6 +31,7 @@ const STATUS_SORT_ORDER: Record<AppointmentStatus, number> = {
   statusConfirmed: 0,
   statusCheckedIn: 0,
   statusPending: 1,
+  statusScheduled: 1,
   statusCancelled: 2,
   statusCompleted: 3,
 }
