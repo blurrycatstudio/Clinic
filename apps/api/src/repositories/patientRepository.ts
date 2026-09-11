@@ -44,7 +44,7 @@ export const patientRepository = {
       .insert({
         phone_e164: input.phoneE164,
         full_name: input.fullName,
-        language: input.language ?? "es",
+        language: input.language ?? "en",
         date_of_birth: input.dateOfBirth ?? null,
         notes: input.notes ?? null,
       })
