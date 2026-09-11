@@ -4,21 +4,25 @@ import {
   CLINIC_TIMEZONE,
   ConversationState,
   FlowType,
+  Intent,
   MENU_OPTION_KEYS,
   menuOptionButtonLabels,
   menuOptionLabels,
   t,
   type ClinicSettings,
+  type ConversationContext,
+  type Language,
   type MenuOptionKey,
 } from "@clinic/shared"
-import type { FlowHandler, FlowReply } from "./types.js"
+import type { FlowHandler, FlowReply, FlowResult } from "./types.js"
 import { enterRescheduleFlow } from "./rescheduleFlow.js"
 import { enterCancelFlow } from "./cancelFlow.js"
 import { startBookingFromFreeText } from "./bookAppointmentFlow.js"
 import { appointmentService } from "../services/appointmentService.js"
 import { patientRepository } from "../repositories/patientRepository.js"
 import { appointmentRepository } from "../repositories/appointmentRepository.js"
-import { tryAnswerOffScript } from "../lib/offScript.js"
+import { locationReply, LOCATION_KEYWORDS } from "../lib/offScript.js"
+import { openaiService } from "../services/openaiService.js"
 
 const NUMBER_EMOJI = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟"]
 
@@ -81,50 +85,57 @@ export function buildMainMenu(lang: "en" | "es", settings: ClinicSettings): Flow
   return reply
 }
 
+/**
+ * Returning patients (recognized by their WhatsApp number) skip straight past
+ * the name/phone questions with their saved details pre-filled — they can
+ * still overwrite the name in the confirmation step if it's wrong/outdated.
+ * Shared by the "Book Appointment" menu choice and by free text that clearly
+ * expresses booking intent without a specific date ("book me an appointment").
+ */
+async function startBookingChoice(context: ConversationContext, lang: Language): Promise<FlowResult> {
+  const existingPatient = await patientRepository.findByPhone(context.phoneE164)
+  if (existingPatient) {
+    const lastAppointment = await appointmentRepository.findMostRecentForPatient(existingPatient.id)
+    const lastReason = lastAppointment?.reason
+    const reasonLine = lastReason ? t(lang, "lastVisitReasonLine", { reason: lastReason }) : ""
+
+    return {
+      context: {
+        ...context,
+        state: ConversationState.AWAITING_RETURNING_PATIENT_CONFIRMATION,
+        activeFlow: FlowType.BOOK,
+        booking: {
+          fullName: existingPatient.full_name,
+          phoneE164: existingPatient.phone_e164,
+          ...(lastReason ? { lastReason } : {}),
+        },
+      },
+      reply: {
+        text: t(lang, "confirmSavedDetails", {
+          name: existingPatient.full_name,
+          phone: existingPatient.phone_e164,
+          reasonLine,
+        }),
+        // No "No" button here — there's no dedicated no-op branch, typing the
+        // corrected name already serves as the "these details are wrong" path.
+        buttons: [{ id: "yes", title: t(lang, "confirmYesButton") }],
+      },
+    }
+  }
+  return {
+    context: { ...context, state: ConversationState.AWAITING_NAME, activeFlow: FlowType.BOOK, booking: {} },
+    reply: { text: t(lang, "askName") },
+  }
+}
+
 export const mainMenuFlow: FlowHandler = async ({ text, buttonId, context, settings }) => {
   const lang = context.language ?? "es"
   const layout = buildMenuLayout(settings)
   const choice = resolveMenuChoice((buttonId ?? text).trim(), layout)
 
   switch (choice) {
-    case "book": {
-      // Returning patients (recognized by their WhatsApp number) skip straight past
-      // the name/phone questions with their saved details pre-filled — they can
-      // still overwrite the name in the confirmation step if it's wrong/outdated.
-      const existingPatient = await patientRepository.findByPhone(context.phoneE164)
-      if (existingPatient) {
-        const lastAppointment = await appointmentRepository.findMostRecentForPatient(existingPatient.id)
-        const lastReason = lastAppointment?.reason
-        const reasonLine = lastReason ? t(lang, "lastVisitReasonLine", { reason: lastReason }) : ""
-
-        return {
-          context: {
-            ...context,
-            state: ConversationState.AWAITING_RETURNING_PATIENT_CONFIRMATION,
-            activeFlow: FlowType.BOOK,
-            booking: {
-              fullName: existingPatient.full_name,
-              phoneE164: existingPatient.phone_e164,
-              ...(lastReason ? { lastReason } : {}),
-            },
-          },
-          reply: {
-            text: t(lang, "confirmSavedDetails", {
-              name: existingPatient.full_name,
-              phone: existingPatient.phone_e164,
-              reasonLine,
-            }),
-            // No "No" button here — there's no dedicated no-op branch, typing the
-            // corrected name already serves as the "these details are wrong" path.
-            buttons: [{ id: "yes", title: t(lang, "confirmYesButton") }],
-          },
-        }
-      }
-      return {
-        context: { ...context, state: ConversationState.AWAITING_NAME, activeFlow: FlowType.BOOK, booking: {} },
-        reply: { text: t(lang, "askName") },
-      }
-    }
+    case "book":
+      return startBookingChoice(context, lang)
     case "reschedule":
       return enterRescheduleFlow(context)
     case "cancel":
@@ -187,9 +198,22 @@ export const mainMenuFlow: FlowHandler = async ({ text, buttonId, context, setti
       const bookingResult = await startBookingFromFreeText(context, rawText)
       if (bookingResult) return bookingResult
 
-      const offScript = await tryAnswerOffScript(rawText, lang, settings)
-      if (offScript) {
-        return { context, reply: { text: `${offScript.text}\n\n${buildMainMenu(lang, settings).text}` } }
+      const lowerText = rawText.toLowerCase()
+      if (LOCATION_KEYWORDS.some((kw) => lowerText.includes(kw))) {
+        return { context, reply: locationReply(lang, settings) }
+      }
+
+      // No parseable date/time, but the message may still clearly express booking/
+      // reschedule/cancel intent with no specifics ("book me an appointment", "I need
+      // to cancel my visit") — route those into the real deterministic flow instead of
+      // treating them as an unanswerable off-script question (OpenAI never books).
+      const { intent, answer } = await openaiService.classifyAndAnswer(rawText, lang, settings)
+      if (intent === Intent.BOOK_APPOINTMENT) return startBookingChoice(context, lang)
+      if (intent === Intent.RESCHEDULE_APPOINTMENT) return enterRescheduleFlow(context)
+      if (intent === Intent.CANCEL_APPOINTMENT) return enterCancelFlow(context)
+
+      if (answer) {
+        return { context, reply: { text: `${answer}\n\n${buildMainMenu(lang, settings).text}` } }
       }
 
       return {
