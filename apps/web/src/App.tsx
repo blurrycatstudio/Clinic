@@ -17,6 +17,10 @@ import Patients from "@/pages/Patients"
 import MedicalRecords from "@/pages/MedicalRecords"
 import Invoices from "@/pages/Invoices"
 import Reports from "@/pages/Reports"
+import MobileDashboard from "@/pages/mobile/MobileDashboard"
+import MobileSchedule from "@/pages/mobile/MobileSchedule"
+import MobileConsultation from "@/pages/mobile/MobileConsultation"
+import MobileRecord from "@/pages/mobile/MobileRecord"
 
 const queryClient = new QueryClient()
 
@@ -43,6 +47,11 @@ function App() {
                   <Route path="/reports" element={<Reports />} />
                   <Route path="/settings" element={<Settings />} />
                 </Route>
+                {/* New mobile-first routes: full-bleed, no desktop AppShell. */}
+                <Route path="/mobile/dashboard" element={<MobileDashboard />} />
+                <Route path="/mobile/schedule" element={<MobileSchedule />} />
+                <Route path="/mobile/consultation/:appointmentId" element={<MobileConsultation />} />
+                <Route path="/mobile/records/:patientId" element={<MobileRecord />} />
               </Route>
             </Routes>
           </BrowserRouter>
