@@ -5,19 +5,31 @@ import type { FlowReply } from "../flows/types.js"
 /** Shared across every flow so "where are you" is answered identically no matter which prompt the patient is mid-way through. */
 export const LOCATION_KEYWORDS = [
   "ubicaci", "direcci", "location", "address", "mapa", "map", "donde", "dónde", "where",
+  "directions", "located", "situated", "gps", "pin", "waze", "how do i get", "how to get",
+  "how do i reach", "how to reach", "como llego", "cómo llego", "como llegar", "cómo llegar",
 ]
 
 function buildMapsUrl(address: string): string {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`
 }
 
+/**
+ * When we have coordinates, WhatsApp's native location message already renders a pin
+ * with a tap-to-open-in-Maps action (and shows the name/address under it) — sending a
+ * second text message with the address and a raw maps link on top of that is redundant.
+ * So `text` here is kept only for conversation history (suppressTextSend: true tells
+ * conversationEngine not to send it as its own message) whenever we have a pin to send;
+ * without coordinates there's no pin, so the text+link is the only way to share it.
+ */
 export function locationReply(lang: Language, settings: ClinicSettings): FlowReply {
   const mapsUrl = settings.google_maps_url || buildMapsUrl(settings.address)
   const text = `📍 ${settings.address}\n${mapsUrl}`
+  const { latitude, longitude } = settings
   return {
     text,
-    ...(settings.latitude != null && settings.longitude != null
-      ? { location: { latitude: settings.latitude, longitude: settings.longitude, name: settings.clinic_name, address: settings.address } }
+    suppressTextSend: latitude != null && longitude != null,
+    ...(latitude != null && longitude != null
+      ? { location: { latitude, longitude, name: settings.clinic_name, address: settings.address } }
       : {}),
   }
 }

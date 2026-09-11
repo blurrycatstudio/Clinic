@@ -149,17 +149,21 @@ export const mainMenuFlow: FlowHandler = async ({ text, buttonId, context, setti
       const hours = lang === "es" ? settings.hours_summary_es : settings.hours_summary_en
       const parking = lang === "es" ? settings.parking_info_es : settings.parking_info_en
       const overview = t(lang, "clinicOverview", { address: settings.address, hours, parking })
-      const mapsLine = settings.google_maps_url ? `\n${settings.google_maps_url}` : ""
+      const { latitude, longitude } = settings
+      const hasCoordinates = latitude != null && longitude != null
+      // The maps link is only needed in the text when there's no pin to carry it —
+      // with coordinates, the location message below already gives a tap-to-open-in-Maps pin.
+      const mapsLine = !hasCoordinates && settings.google_maps_url ? `\n${settings.google_maps_url}` : ""
 
       return {
         context: { ...context, state: ConversationState.AWAITING_FAQ_QUESTION, activeFlow: FlowType.INFO },
         reply: {
           text: `${overview}${mapsLine}\n\n${t(lang, "infoPrompt")}`,
-          ...(settings.latitude != null && settings.longitude != null
+          ...(latitude != null && longitude != null
             ? {
                 location: {
-                  latitude: settings.latitude,
-                  longitude: settings.longitude,
+                  latitude,
+                  longitude,
                   name: settings.clinic_name,
                   address: settings.address,
                 },

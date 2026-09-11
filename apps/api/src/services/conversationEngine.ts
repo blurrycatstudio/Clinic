@@ -146,7 +146,9 @@ export async function triggerVoiceHandoff(
           settings,
         })
 
-  if (result.reply.text || result.reply.list || result.reply.buttons) {
+  // suppressTextSend is set when `text` is only address+link duplicating the native
+  // location pin sent below (see locationReply) — kept for history, but not sent twice.
+  if ((result.reply.text && !result.reply.suppressTextSend) || result.reply.list || result.reply.buttons) {
     await sendFlowReply(phoneE164, conversation.id, result.reply)
   }
   if (result.reply.location) {
@@ -300,7 +302,9 @@ export async function handleInboundMessage(input: InboundMessage): Promise<void>
     result.reply.text = fallback || t(context.language, "genericFallback")
   }
 
-  if (result.reply.text || result.reply.list || result.reply.buttons) {
+  // suppressTextSend is set when `text` is only address+link duplicating the native
+  // location pin sent below (see locationReply) — kept for history, but not sent twice.
+  if ((result.reply.text && !result.reply.suppressTextSend) || result.reply.list || result.reply.buttons) {
     await sendFlowReply(input.phoneE164, conversation.id, result.reply)
   }
 

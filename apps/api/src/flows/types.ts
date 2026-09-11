@@ -9,6 +9,8 @@ export type FlowReply = {
   /** Body text for the `buttons` message specifically, when both `buttons` and `list` are sent as two separate messages. Defaults to `text`. */
   buttonsText?: string
   location?: { latitude: number; longitude: number; name?: string; address?: string }
+  /** When true, `text` is kept for conversation history only — not sent as its own WhatsApp message (e.g. address+link text that a `location` pin in the same reply already covers). */
+  suppressTextSend?: boolean
 }
 
 export type FlowResult = {
