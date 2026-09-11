@@ -21,15 +21,17 @@ export type NavItem = {
   iconColor: string
   badge?: number
   badgeColor?: string
+  /** Shown in the primary mobile tab bar. Everything else moves under "More" on small screens. */
+  mobilePrimary?: boolean
 }
 
 export const NAV_ITEMS: NavItem[] = [
-  { path: "/", labelKey: "navDashboard", icon: House, iconColor: "#2563EB" },
-  { path: "/appointments", labelKey: "navAppointments", icon: Calendar, iconColor: "#F97316" },
-  { path: "/patients", labelKey: "navPatients", icon: Baby, iconColor: "#16A34A" },
+  { path: "/", labelKey: "navDashboard", icon: House, iconColor: "#2563EB", mobilePrimary: true },
+  { path: "/appointments", labelKey: "navAppointments", icon: Calendar, iconColor: "#F97316", mobilePrimary: true },
+  { path: "/patients", labelKey: "navPatients", icon: Baby, iconColor: "#16A34A", mobilePrimary: true },
   // Voice Calls — disabled for now, uncomment to bring back.
   // { path: "/calls", labelKey: "navCalls", icon: Phone, iconColor: "#16A34A", badge: 3, badgeColor: "#F97316" },
-  { path: "/whatsapp", labelKey: "navWhatsapp", icon: MessageCircle, iconColor: "#25D366", badge: 7, badgeColor: "#16A34A" },
+  { path: "/whatsapp", labelKey: "navWhatsapp", icon: MessageCircle, iconColor: "#25D366", badge: 7, badgeColor: "#16A34A", mobilePrimary: true },
   // Messages — disabled for now, uncomment to bring back.
   // { path: "/messages", labelKey: "navMessages", icon: MessagesSquare, iconColor: "#3B82F6" },
   { path: "/records", labelKey: "navRecords", icon: FileText, iconColor: "#EA580C" },
