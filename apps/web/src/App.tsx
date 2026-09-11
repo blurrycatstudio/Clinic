@@ -1,10 +1,11 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { BrowserRouter, Route, Routes } from "react-router-dom"
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom"
 import { AppShell } from "@/components/layout/AppShell"
 import { ProtectedRoute } from "@/components/layout/ProtectedRoute"
 import { AuthProvider } from "@/lib/useAuth"
 import { LanguageProvider } from "@/lib/i18n"
 import { ToastProvider } from "@/lib/toast"
+import { useIsMobileViewport } from "@/hooks/useIsMobileViewport"
 import Login from "@/pages/Login"
 import Dashboard from "@/pages/Dashboard"
 import WhatsAppPage from "@/pages/WhatsAppPage"
@@ -24,6 +25,17 @@ import MobileRecord from "@/pages/mobile/MobileRecord"
 
 const queryClient = new QueryClient()
 
+/** Root route: sends phone-width viewports straight to the mobile-first dashboard instead of the desktop layout, live on resize. */
+function Home() {
+  const isMobile = useIsMobileViewport()
+  if (isMobile) return <Navigate to="/mobile/dashboard" replace />
+  return (
+    <AppShell>
+      <Dashboard />
+    </AppShell>
+  )
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -34,8 +46,8 @@ function App() {
             <Routes>
               <Route path="/login" element={<Login />} />
               <Route element={<ProtectedRoute />}>
+                <Route path="/" element={<Home />} />
                 <Route element={<AppShell />}>
-                  <Route path="/" element={<Dashboard />} />
                   <Route path="/appointments" element={<Appointments />} />
                   <Route path="/patients" element={<Patients />} />
                   {/* <Route path="/calls" element={<VoiceCalls />} /> */}
