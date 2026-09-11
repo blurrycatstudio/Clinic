@@ -226,12 +226,17 @@ export const mainMenuFlow: FlowHandler = async ({ text, buttonId, context, setti
       if (intent === Intent.CANCEL_APPOINTMENT) return enterCancelFlow(context)
 
       if (answer) {
-        return { context, reply: { text: `${answer}\n\n${buildMainMenu(lang, settings).text}` } }
+        const menuReply = buildMainMenu(lang, settings)
+        return { context, reply: { ...menuReply, text: `${answer}\n\n${menuReply.text}` } }
       }
 
+      // Always resend the actual tappable menu here, not just its text — a
+      // patient who hits this fallback has nothing to reply to otherwise
+      // besides retyping "Hola"/"menu" from scratch.
+      const menuReply = buildMainMenu(lang, settings)
       return {
         context,
-        reply: { text: t(lang, "menuInvalid") },
+        reply: { ...menuReply, text: `${t(lang, "menuInvalid")}\n\n${menuReply.text}` },
       }
     }
   }
