@@ -54,6 +54,32 @@ export const patientRepository = {
     return data
   },
 
+  async updateBasicInfo(
+    id: string,
+    input: {
+      fullName?: string
+      phoneE164?: string
+      dateOfBirth?: string | null
+      language?: "en" | "es"
+      notes?: string | null
+    },
+  ): Promise<Patient> {
+    const { data, error } = await supabase
+      .from("patients")
+      .update({
+        ...(input.fullName !== undefined ? { full_name: input.fullName } : {}),
+        ...(input.phoneE164 !== undefined ? { phone_e164: input.phoneE164 } : {}),
+        ...(input.dateOfBirth !== undefined ? { date_of_birth: input.dateOfBirth } : {}),
+        ...(input.language !== undefined ? { language: input.language } : {}),
+        ...(input.notes !== undefined ? { notes: input.notes } : {}),
+      })
+      .eq("id", id)
+      .select("*")
+      .single()
+    if (error) throw new AppError(`Failed to update patient: ${error.message}`)
+    return data
+  },
+
   async updateClinicalInfo(
     id: string,
     input: { allergies?: string[]; currentMedications?: string[] },

@@ -233,6 +233,18 @@ export const STR = {
     heightLabel: "Height",
     bmiNormal: "Normal",
 
+    // Edit patient dialog
+    editPatientTitle: "Edit Patient Details",
+    editPatientSub: "Update basic information for",
+    editFullName: "Full Name",
+    editPhone: "Phone (Parent)",
+    editDob: "Date of Birth",
+    editLanguage: "Preferred Language",
+    editNotes: "Notes",
+    editNotesPh: "Any general notes about this patient...",
+    editSaveChanges: "Save Changes",
+    editSaved: "Patient details saved",
+
     // Start Consultation modal
     consultModalTitle: "Start Consultation",
     consultModalSub: "Record today's visit for",
@@ -682,6 +694,18 @@ export const STR = {
     weightLabel: "Peso",
     heightLabel: "Talla",
     bmiNormal: "Normal",
+
+    // Edit patient dialog
+    editPatientTitle: "Editar Datos del Paciente",
+    editPatientSub: "Actualizar información básica de",
+    editFullName: "Nombre Completo",
+    editPhone: "Teléfono (Padre/Madre)",
+    editDob: "Fecha de Nacimiento",
+    editLanguage: "Idioma Preferido",
+    editNotes: "Notas",
+    editNotesPh: "Cualquier nota general sobre este paciente...",
+    editSaveChanges: "Guardar Cambios",
+    editSaved: "Datos del paciente guardados",
 
     // Start Consultation modal
     consultModalTitle: "Iniciar Consulta",

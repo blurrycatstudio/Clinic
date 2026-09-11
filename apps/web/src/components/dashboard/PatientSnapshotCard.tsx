@@ -9,6 +9,7 @@ import {
   LineChart,
   Loader2,
   PenLine,
+  Pencil,
   Pill,
   Plus,
   ShieldCheck,
@@ -29,6 +30,7 @@ import { PhoneCallIcon } from "@/components/icons/PhoneCallIcon"
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon"
 import { StartConsultationDialog, type ConsultationResult } from "@/components/dashboard/StartConsultationDialog"
 import { QuickNoteDialog } from "@/components/dashboard/QuickNoteDialog"
+import { EditPatientDialog } from "@/components/dashboard/EditPatientDialog"
 import { NewPrescriptionDialog } from "@/components/prescriptions/NewPrescriptionDialog"
 import { PrescriptionDetailDialog } from "@/components/prescriptions/PrescriptionDetailDialog"
 import type { ApiPrescription } from "@/pages/Prescriptions"
@@ -115,6 +117,7 @@ export function PatientSnapshotCard({ appointment }: { appointment: DisplayAppoi
   const [consultOpen, setConsultOpen] = useState(false)
   const [rxOpen, setRxOpen] = useState(false)
   const [noteOpen, setNoteOpen] = useState(false)
+  const [editOpen, setEditOpen] = useState(false)
   const [viewingRx, setViewingRx] = useState<ApiPrescription | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -126,6 +129,7 @@ export function PatientSnapshotCard({ appointment }: { appointment: DisplayAppoi
     setConsultOpen(false)
     setRxOpen(false)
     setNoteOpen(false)
+    setEditOpen(false)
   }, [patientId])
 
   const patientQuery = useQuery({
@@ -365,6 +369,9 @@ export function PatientSnapshotCard({ appointment }: { appointment: DisplayAppoi
             </Button>
             <Button onClick={() => setNoteOpen(true)} variant="outline" size="icon" className="rounded-xl" aria-label="Quick clinical note">
               <PenLine className="size-4" />
+            </Button>
+            <Button onClick={() => setEditOpen(true)} variant="outline" size="icon" className="rounded-xl" aria-label="Edit patient details">
+              <Pencil className="size-4" />
             </Button>
             <Button onClick={handleExportDossier} variant="outline" size="icon" className="rounded-xl" aria-label="Export dossier">
               <FileOutput className="size-4" />
@@ -821,6 +828,7 @@ export function PatientSnapshotCard({ appointment }: { appointment: DisplayAppoi
         onCreated={() => prescriptionsQuery.refetch()}
       />
       <PrescriptionDetailDialog rx={viewingRx} onOpenChange={(open) => !open && setViewingRx(null)} />
+      <EditPatientDialog open={editOpen} onOpenChange={setEditOpen} patient={p} />
       <QuickNoteDialog
         open={noteOpen}
         onOpenChange={setNoteOpen}

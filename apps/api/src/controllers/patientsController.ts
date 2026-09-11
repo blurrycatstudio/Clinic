@@ -25,6 +25,25 @@ export const patientsController = {
     res.json({ patient, upcomingAppointments: appointments })
   },
 
+  async updateBasicInfo(req: Request, res: Response) {
+    const params = z.object({ id: z.string().uuid() }).parse(req.params)
+    const body = z
+      .object({
+        fullName: z.string().min(1).optional(),
+        phoneE164: z.string().min(1).optional(),
+        dateOfBirth: z.string().nullable().optional(),
+        language: z.enum(["en", "es"]).optional(),
+        notes: z.string().nullable().optional(),
+      })
+      .parse(req.body)
+
+    const existing = await patientRepository.findById(params.id)
+    if (!existing) throw new NotFoundError("Patient not found")
+
+    const patient = await patientRepository.updateBasicInfo(params.id, body)
+    res.json({ patient })
+  },
+
   async updateClinicalInfo(req: Request, res: Response) {
     const params = z.object({ id: z.string().uuid() }).parse(req.params)
     const body = z
