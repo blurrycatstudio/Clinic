@@ -8,12 +8,8 @@ import { Card } from "@/components/ui/card"
 import { useLang } from "@/lib/i18n"
 import { STATUS_COLORS } from "@/lib/data"
 import { api } from "@/lib/api"
-import { toDisplayAppointment, type ApiAppointment, type DisplayAppointment } from "@/lib/appointments"
+import { toDateParam, toDisplayAppointment, type ApiAppointment, type DisplayAppointment } from "@/lib/appointments"
 import { cn } from "@/lib/utils"
-
-function toDateParam(date: Date): string {
-  return date.toISOString().slice(0, 10)
-}
 
 export function TodaysScheduleCard({
   selectedId,
@@ -34,7 +30,7 @@ export function TodaysScheduleCard({
   const { data, isLoading, error } = useQuery({
     queryKey: ["appointments", "today", dateParam],
     queryFn: () => api.get<{ rows: ApiAppointment[]; count: number }>(`/appointments?date=${dateParam}&limit=100`),
-    refetchInterval: 30_000,
+    refetchInterval: 10_000,
   })
 
   const schedule = (data?.rows ?? []).map(toDisplayAppointment)

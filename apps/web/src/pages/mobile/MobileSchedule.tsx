@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { useLang } from "@/lib/i18n"
 import { api } from "@/lib/api"
 import { STATUS_COLORS, type AppointmentStatus } from "@/lib/data"
-import { toDisplayAppointment, type ApiAppointment, type DisplayAppointment } from "@/lib/appointments"
+import { toDateParam, toDisplayAppointment, type ApiAppointment, type DisplayAppointment } from "@/lib/appointments"
 import { cn } from "@/lib/utils"
 import { useToast } from "@/lib/toast"
 
@@ -22,10 +22,6 @@ const FILTERS: { key: StatusFilter; labelKey: "apptsFilterAll" | "statusConfirme
   { key: "statusCompleted", labelKey: "statusCompleted" },
   { key: "statusCancelled", labelKey: "statusCancelled" },
 ]
-
-function toDateParam(date: Date): string {
-  return date.toISOString().slice(0, 10)
-}
 
 export default function MobileSchedule() {
   const { t } = useLang()
@@ -43,7 +39,7 @@ export default function MobileSchedule() {
   const { data, isLoading, error } = useQuery({
     queryKey: ["appointments", "mobile-schedule", dateParam],
     queryFn: () => api.get<{ rows: ApiAppointment[]; count: number }>(`/appointments?date=${dateParam}&limit=100`),
-    refetchInterval: 30_000,
+    refetchInterval: 10_000,
   })
 
   const appointments = useMemo(

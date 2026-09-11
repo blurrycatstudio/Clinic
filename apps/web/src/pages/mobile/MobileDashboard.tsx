@@ -22,7 +22,7 @@ export default function MobileDashboard() {
   const { data, isLoading, error } = useQuery({
     queryKey: ["appointments", "today", today],
     queryFn: () => api.get<{ rows: ApiAppointment[]; count: number }>(`/appointments?date=${today}&limit=100`),
-    refetchInterval: 30_000,
+    refetchInterval: 10_000,
   })
 
   const { data: dashboardStats } = useDashboardStats()

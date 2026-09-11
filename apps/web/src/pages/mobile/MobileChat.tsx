@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useNavigate, useParams } from "react-router-dom"
 import { Check, CheckCheck, Send } from "lucide-react"
 import { MobileShell } from "@/components/mobile/MobileShell"
@@ -25,6 +25,11 @@ export default function MobileChat() {
   const toast = useToast()
   const { conversationId } = useParams<{ conversationId: string }>()
   const [draft, setDraft] = useState("")
+  const scrollRef = useRef<HTMLDivElement>(null)
+  // Starts true so a freshly-opened thread lands on the latest message, WhatsApp-style,
+  // instead of at the top of the whole history — flips to false once staff scrolls up to
+  // read older messages, so a background poll doesn't yank them back down to the bottom.
+  const stickToBottomRef = useRef(true)
 
   const conversationsQuery = useConversations()
   const conversation = conversationsQuery.data?.rows.find((c) => c.id === conversationId)
@@ -34,9 +39,26 @@ export default function MobileChat() {
   const messages = messagesQuery.data?.messages ?? []
   const title = conversation ? conversation.wa_profile_name || conversation.wa_phone_e164 : t.mobileMessagesTitle
 
+  useEffect(() => {
+    stickToBottomRef.current = true
+  }, [conversationId])
+
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!el || !stickToBottomRef.current) return
+    el.scrollTop = el.scrollHeight
+  }, [messages])
+
+  function handleScroll() {
+    const el = scrollRef.current
+    if (!el) return
+    stickToBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80
+  }
+
   function send() {
     const text = draft.trim()
     if (!text) return
+    stickToBottomRef.current = true
     sendMessage.mutate(text, { onError: () => toast(t.mobileMessagesSendFailed) })
     setDraft("")
   }
@@ -44,7 +66,7 @@ export default function MobileChat() {
   return (
     <MobileShell title={title} onBack={() => navigate("/mobile/messages")}>
       <div className="flex h-full flex-col">
-        <div className="flex-1 space-y-1.5 overflow-y-auto bg-[#F8FAFC] p-3">
+        <div ref={scrollRef} onScroll={handleScroll} className="flex-1 space-y-1.5 overflow-y-auto bg-[#F8FAFC] p-3">
           {messagesQuery.isLoading ? (
             <div className="py-10 text-center text-[13px] text-muted-foreground">{t.mobileMessagesLoading}</div>
           ) : messages.length === 0 ? (

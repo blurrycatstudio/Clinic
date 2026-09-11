@@ -109,6 +109,11 @@ export function ManualMessaging() {
   const [draft, setDraft] = useState("")
   const [contactSearch, setContactSearch] = useState("")
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const scrollRef = useRef<HTMLDivElement>(null)
+  // Starts true so opening/switching a thread lands on the latest message, WhatsApp-style,
+  // instead of at the top of the whole history — flips to false once staff scrolls up to
+  // read older messages, so a background poll doesn't yank them back down to the bottom.
+  const stickToBottomRef = useRef(true)
 
   const conversationsQuery = useConversations()
   const conversations = conversationsQuery.data?.rows ?? []
@@ -135,9 +140,26 @@ export function ManualMessaging() {
   }))
   const displayMsgs: DisplayMessage[] = live ? liveMessages : (active?.msgs ?? [])
 
+  useEffect(() => {
+    stickToBottomRef.current = true
+  }, [activeId])
+
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!el || !stickToBottomRef.current) return
+    el.scrollTop = el.scrollHeight
+  }, [displayMsgs])
+
+  function handleScroll() {
+    const el = scrollRef.current
+    if (!el) return
+    stickToBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80
+  }
+
   function send() {
     const text = draft.trim()
     if (!text || !active) return
+    stickToBottomRef.current = true
 
     if (live) {
       sendMessage.mutate(text, { onError: () => toast("Failed to send message") })
@@ -247,6 +269,8 @@ export function ManualMessaging() {
         </div>
 
         <div
+          ref={scrollRef}
+          onScroll={handleScroll}
           className="flex-1 space-y-1.5 overflow-y-auto bg-[#0b141a] p-3 sm:p-4.5"
           style={{ backgroundImage: `url("${WA_WALLPAPER}")`, backgroundRepeat: "repeat" }}
         >

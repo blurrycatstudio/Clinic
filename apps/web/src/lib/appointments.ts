@@ -26,6 +26,11 @@ export type DisplayAppointment = {
   status: AppointmentStatus
 }
 
+/** Local calendar date (YYYY-MM-DD) — not `toISOString().slice(0, 10)`, which reports the UTC date and drifts a day off whenever local time is ahead of UTC midnight. */
+export function toDateParam(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`
+}
+
 const AVATAR_COLORS = ["#16A34A", "#2563EB", "#DC2626", "#9333EA", "#0891B2", "#F97316", "#DB2777", "#0D9488"]
 
 export function colorFor(seed: string): string {

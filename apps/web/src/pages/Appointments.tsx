@@ -11,7 +11,7 @@ import { api } from "@/lib/api"
 import { cn } from "@/lib/utils"
 import { useToast } from "@/lib/toast"
 import { useDashboardStats } from "@/hooks/useDashboardStats"
-import { toDisplayAppointment, type ApiAppointment, type DisplayAppointment } from "@/lib/appointments"
+import { toDateParam, toDisplayAppointment, type ApiAppointment, type DisplayAppointment } from "@/lib/appointments"
 
 type StatusFilter = "all" | AppointmentStatus
 
@@ -190,13 +190,13 @@ export default function Appointments() {
 
   const shownDate = new Date()
   shownDate.setDate(shownDate.getDate() + dayOffset)
-  const dateLabel = dayOffset === 0 ? t.dateLine : shownDate.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })
-  const dateParam = `${shownDate.getFullYear()}-${String(shownDate.getMonth() + 1).padStart(2, "0")}-${String(shownDate.getDate()).padStart(2, "0")}`
+  const dateLabel = shownDate.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })
+  const dateParam = toDateParam(shownDate)
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["appointments", dateParam],
     queryFn: () => api.get<{ rows: ApiAppointment[]; count: number }>(`/appointments?limit=200&date=${dateParam}`),
-    refetchInterval: 30_000,
+    refetchInterval: 10_000,
   })
 
   const appointments = useMemo(() => (data?.rows ?? []).map(toDisplayAppointment), [data])
