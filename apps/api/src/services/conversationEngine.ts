@@ -16,6 +16,7 @@ import { clinicInfoFlow } from "../flows/clinicInfoFlow.js"
 import { humanSupportFlow } from "../flows/humanSupportFlow.js"
 import type { FlowHandler } from "../flows/types.js"
 import { logger } from "../config/logger.js"
+import { detectLanguageHeuristic } from "../lib/detectLanguage.js"
 
 /**
  * Matches common greeting typos/elongations (hii, hiii, heyy, hellooo,
@@ -154,22 +155,32 @@ export async function handleInboundMessage(input: InboundMessage): Promise<void>
   let context: ConversationContext = loaded
 
   // Very first turn (or the patient hasn't picked a language yet and just greeted us):
-  // show the language picker verbatim instead of trying to parse "Hi" as a 1/2 choice.
+  // try to infer the language from their own wording first ("hii" -> English, "hola" ->
+  // Spanish) instead of always interrupting with a picker. Only when that's ambiguous do
+  // we fall back to asking explicitly.
   if (!context.language && (isNew || isGreeting(normalizedText))) {
-    const promptText = t("es", "languagePrompt", { clinicName: settings.clinic_name })
-    // Button titles are bilingual on purpose — the patient hasn't picked a language yet.
-    await sendFlowReply(input.phoneE164, conversation.id, {
-      text: promptText,
-      buttons: [
-        { id: "1", title: "Español" },
-        { id: "2", title: "English" },
-      ],
-    })
-    await redisStateService.save(input.phoneE164, {
-      ...context,
-      state: ConversationState.AWAITING_LANGUAGE_SELECTION,
-    })
-    return
+    const detected = detectLanguageHeuristic(input.text)
+    if (detected) {
+      await conversationRepository.setLanguage(conversation.id, detected)
+      context = { ...context, language: detected, state: ConversationState.AWAITING_MENU_SELECTION }
+      // Fall through to normal dispatch below so a message like "I have a fever, book
+      // me asap" both sets the language AND gets acted on in this same turn.
+    } else {
+      const promptText = t("es", "languagePrompt", { clinicName: settings.clinic_name })
+      // Button titles are bilingual on purpose — the patient hasn't picked a language yet.
+      await sendFlowReply(input.phoneE164, conversation.id, {
+        text: promptText,
+        buttons: [
+          { id: "1", title: "Español" },
+          { id: "2", title: "English" },
+        ],
+      })
+      await redisStateService.save(input.phoneE164, {
+        ...context,
+        state: ConversationState.AWAITING_LANGUAGE_SELECTION,
+      })
+      return
+    }
   }
 
   // Global escape hatch: typing a greeting/menu word anytime resets to the main menu,

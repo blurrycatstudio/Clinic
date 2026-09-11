@@ -1,6 +1,6 @@
 import { addDays, addMinutes, format, isBefore, parse, startOfDay } from "date-fns"
 import { fromZonedTime, toZonedTime } from "date-fns-tz"
-import { BOOKING_HORIZON_DAYS, CLINIC_TIMEZONE, type Appointment } from "@clinic/shared"
+import { BOOKING_HORIZON_DAYS, CLINIC_TIMEZONE, type Appointment, type DoctorScheduleDay } from "@clinic/shared"
 import { appointmentRepository } from "../repositories/appointmentRepository.js"
 import { doctorScheduleRepository } from "../repositories/doctorScheduleRepository.js"
 import { patientRepository } from "../repositories/patientRepository.js"
@@ -8,6 +8,39 @@ import { auditLogRepository } from "../repositories/auditLogRepository.js"
 import { ValidationError } from "../lib/errors.js"
 
 export type AvailableSlot = { startsAtIso: string; label: string }
+
+/** Generates every open (unbooked, in-the-future, not-on-break) 30-min slot for a single clinic day. */
+function slotsForDay(
+  dayInClinic: Date,
+  scheduleByWeekday: Map<number, DoctorScheduleDay>,
+  bookedStarts: Set<number>,
+  now: Date,
+): AvailableSlot[] {
+  const weekday = dayInClinic.getDay()
+  const day = scheduleByWeekday.get(weekday)
+  if (!day || !day.is_active) return []
+
+  const dayStr = format(dayInClinic, "yyyy-MM-dd")
+  const dayStart = fromZonedTime(`${dayStr}T${day.start_time}`, CLINIC_TIMEZONE)
+  const dayEnd = fromZonedTime(`${dayStr}T${day.end_time}`, CLINIC_TIMEZONE)
+  const breakStart = day.break_start_time ? fromZonedTime(`${dayStr}T${day.break_start_time}`, CLINIC_TIMEZONE) : null
+  const breakEnd = day.break_end_time ? fromZonedTime(`${dayStr}T${day.break_end_time}`, CLINIC_TIMEZONE) : null
+
+  const slots: AvailableSlot[] = []
+  let cursor = dayStart
+  while (isBefore(addMinutes(cursor, 30), addMinutes(dayEnd, 1))) {
+    const slotEnd = addMinutes(cursor, 30)
+    const overlapsBreak = breakStart && breakEnd && isBefore(cursor, breakEnd) && isBefore(breakStart, slotEnd)
+    const isPast = isBefore(cursor, now)
+    const isBooked = bookedStarts.has(cursor.getTime())
+
+    if (!overlapsBreak && !isPast && !isBooked) {
+      slots.push({ startsAtIso: cursor.toISOString(), label: formatSlotLabel(cursor) })
+    }
+    cursor = slotEnd
+  }
+  return slots
+}
 
 /**
  * 100% deterministic scheduling logic — no AI involved anywhere in this
@@ -37,35 +70,26 @@ export const appointmentService = {
 
     for (let dayOffset = 0; dayOffset <= daysAhead && slots.length < totalNeeded * 4; dayOffset++) {
       const dayInClinic = addDays(horizonStart, dayOffset)
-      const weekday = dayInClinic.getDay()
-      const day = scheduleByWeekday.get(weekday)
-      if (!day || !day.is_active) continue
-
-      const dayStr = format(dayInClinic, "yyyy-MM-dd")
-      const dayStart = fromZonedTime(`${dayStr}T${day.start_time}`, CLINIC_TIMEZONE)
-      const dayEnd = fromZonedTime(`${dayStr}T${day.end_time}`, CLINIC_TIMEZONE)
-      const breakStart = day.break_start_time ? fromZonedTime(`${dayStr}T${day.break_start_time}`, CLINIC_TIMEZONE) : null
-      const breakEnd = day.break_end_time ? fromZonedTime(`${dayStr}T${day.break_end_time}`, CLINIC_TIMEZONE) : null
-
-      let cursor = dayStart
-      while (isBefore(addMinutes(cursor, 30), addMinutes(dayEnd, 1))) {
-        const slotEnd = addMinutes(cursor, 30)
-        const overlapsBreak = breakStart && breakEnd && isBefore(cursor, breakEnd) && isBefore(breakStart, slotEnd)
-        const isPast = isBefore(cursor, now)
-        const isBooked = bookedStarts.has(cursor.getTime())
-
-        if (!overlapsBreak && !isPast && !isBooked) {
-          slots.push({
-            startsAtIso: cursor.toISOString(),
-            label: formatSlotLabel(cursor),
-          })
-        }
-        cursor = slotEnd
-        if (slots.length >= totalNeeded) break
-      }
+      slots.push(...slotsForDay(dayInClinic, scheduleByWeekday, bookedStarts, now))
+      if (slots.length >= totalNeeded) break
     }
 
     return slots.slice(offset, totalNeeded)
+  },
+
+  /** All open slots on one specific clinic-local day — used for "what's open on the 14th?" and for a booking request with a date but no explicit time. */
+  async getSlotsOnDate(dateInClinic: Date): Promise<AvailableSlot[]> {
+    const schedule = await doctorScheduleRepository.getWeeklySchedule()
+    const scheduleByWeekday = new Map(schedule.map((d) => [d.weekday, d]))
+
+    const now = new Date()
+    const dayStart = startOfDay(toZonedTime(dateInClinic, CLINIC_TIMEZONE))
+    const dayEnd = addDays(dayStart, 1)
+
+    const existing = await appointmentRepository.listBetween(dayStart.toISOString(), dayEnd.toISOString())
+    const bookedStarts = new Set(existing.map((a) => new Date(a.starts_at).getTime()))
+
+    return slotsForDay(dayStart, scheduleByWeekday, bookedStarts, now)
   },
 
   async bookAppointment(input: {

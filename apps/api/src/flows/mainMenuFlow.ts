@@ -14,9 +14,11 @@ import {
 import type { FlowHandler, FlowReply } from "./types.js"
 import { enterRescheduleFlow } from "./rescheduleFlow.js"
 import { enterCancelFlow } from "./cancelFlow.js"
+import { startBookingFromFreeText } from "./bookAppointmentFlow.js"
 import { appointmentService } from "../services/appointmentService.js"
 import { patientRepository } from "../repositories/patientRepository.js"
 import { appointmentRepository } from "../repositories/appointmentRepository.js"
+import { tryAnswerOffScript } from "../lib/offScript.js"
 
 const NUMBER_EMOJI = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟"]
 
@@ -131,11 +133,12 @@ export const mainMenuFlow: FlowHandler = async ({ text, buttonId, context, setti
       const hours = lang === "es" ? settings.hours_summary_es : settings.hours_summary_en
       const parking = lang === "es" ? settings.parking_info_es : settings.parking_info_en
       const overview = t(lang, "clinicOverview", { address: settings.address, hours, parking })
+      const mapsLine = settings.google_maps_url ? `\n${settings.google_maps_url}` : ""
 
       return {
         context: { ...context, state: ConversationState.AWAITING_FAQ_QUESTION, activeFlow: FlowType.INFO },
         reply: {
-          text: `${overview}\n\n${t(lang, "infoPrompt")}`,
+          text: `${overview}${mapsLine}\n\n${t(lang, "infoPrompt")}`,
           ...(settings.latitude != null && settings.longitude != null
             ? {
                 location: {
@@ -176,10 +179,23 @@ export const mainMenuFlow: FlowHandler = async ({ text, buttonId, context, setti
 
       return { context: resetContext, reply: { text: t(lang, "yourAppointmentsStatus", { appointments: lines }) } }
     }
-    default:
+    default: {
+      // Free text that didn't match a menu number/button — first check whether it's
+      // actually a booking request in disguise ("I have a fever, book me asap",
+      // "book me for the 14th at 5pm", "what's open next Tuesday?").
+      const rawText = (buttonId ?? text).trim()
+      const bookingResult = await startBookingFromFreeText(context, rawText)
+      if (bookingResult) return bookingResult
+
+      const offScript = await tryAnswerOffScript(rawText, lang, settings)
+      if (offScript) {
+        return { context, reply: { text: `${offScript.text}\n\n${buildMainMenu(lang, settings).text}` } }
+      }
+
       return {
         context,
         reply: { text: t(lang, "menuInvalid") },
       }
+    }
   }
 }

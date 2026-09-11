@@ -65,8 +65,8 @@ export const openaiService = {
     try {
       const grounding =
         language === "es"
-          ? `Clínica: ${settings.clinic_name}\nDoctor: ${settings.doctor_name} (${settings.doctor_specialty}, cédula ${settings.doctor_license})\nDirección: ${settings.address}\nHorario: ${settings.hours_summary_es}\nEstacionamiento: ${settings.parking_info_es}\nCostos: ${settings.fees_info_es}\nSeguros: ${settings.insurance_info_es}`
-          : `Clinic: ${settings.clinic_name}\nDoctor: ${settings.doctor_name} (${settings.doctor_specialty}, license ${settings.doctor_license})\nAddress: ${settings.address}\nHours: ${settings.hours_summary_en}\nParking: ${settings.parking_info_en}\nFees: ${settings.fees_info_en}\nInsurance: ${settings.insurance_info_en}`
+          ? `Clínica: ${settings.clinic_name}\nDoctor: ${settings.doctor_name} (${settings.doctor_specialty}, cédula ${settings.doctor_license})\nDirección: ${settings.address}\nMapa: ${settings.google_maps_url}\nHorario: ${settings.hours_summary_es}\nEstacionamiento: ${settings.parking_info_es}\nCostos: ${settings.fees_info_es}\nSeguros: ${settings.insurance_info_es}`
+          : `Clinic: ${settings.clinic_name}\nDoctor: ${settings.doctor_name} (${settings.doctor_specialty}, license ${settings.doctor_license})\nAddress: ${settings.address}\nMap: ${settings.google_maps_url}\nHours: ${settings.hours_summary_en}\nParking: ${settings.parking_info_en}\nFees: ${settings.fees_info_en}\nInsurance: ${settings.insurance_info_en}`
 
       const completion = await openai.chat.completions.create({
         model: OPENAI_MODEL,
@@ -108,8 +108,8 @@ export const openaiService = {
     try {
       const grounding =
         language === "es"
-          ? `Clínica: ${settings.clinic_name}\nDoctor: ${settings.doctor_name} (${settings.doctor_specialty}, cédula ${settings.doctor_license})\nDirección: ${settings.address}\nHorario: ${settings.hours_summary_es}\nEstacionamiento: ${settings.parking_info_es}\nCostos: ${settings.fees_info_es}\nSeguros: ${settings.insurance_info_es}`
-          : `Clinic: ${settings.clinic_name}\nDoctor: ${settings.doctor_name} (${settings.doctor_specialty}, license ${settings.doctor_license})\nAddress: ${settings.address}\nHours: ${settings.hours_summary_en}\nParking: ${settings.parking_info_en}\nFees: ${settings.fees_info_en}\nInsurance: ${settings.insurance_info_en}`
+          ? `Clínica: ${settings.clinic_name}\nDoctor: ${settings.doctor_name} (${settings.doctor_specialty}, cédula ${settings.doctor_license})\nDirección: ${settings.address}\nMapa: ${settings.google_maps_url}\nHorario: ${settings.hours_summary_es}\nEstacionamiento: ${settings.parking_info_es}\nCostos: ${settings.fees_info_es}\nSeguros: ${settings.insurance_info_es}`
+          : `Clinic: ${settings.clinic_name}\nDoctor: ${settings.doctor_name} (${settings.doctor_specialty}, license ${settings.doctor_license})\nAddress: ${settings.address}\nMap: ${settings.google_maps_url}\nHours: ${settings.hours_summary_en}\nParking: ${settings.parking_info_en}\nFees: ${settings.fees_info_en}\nInsurance: ${settings.insurance_info_en}`
 
       const completion = await openai.chat.completions.create({
         model: OPENAI_MODEL,

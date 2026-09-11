@@ -2,9 +2,9 @@ import { ConversationState, FlowType, Intent } from "@clinic/shared"
 import type { FlowHandler } from "./types.js"
 import { openaiService } from "../services/openaiService.js"
 import { buildMainMenu } from "./mainMenuFlow.js"
+import { LOCATION_KEYWORDS, locationReply } from "../lib/offScript.js"
 
 const MENU_ESCAPE_WORDS = new Set(["menu", "hola", "hi", "hello"])
-const LOCATION_KEYWORDS = ["ubicaci", "direcci", "location", "address", "mapa", "map", "donde", "dónde", "where"]
 
 export const clinicInfoFlow: FlowHandler = async ({ text, context, settings }) => {
   const lang = context.language ?? "es"
@@ -18,19 +18,8 @@ export const clinicInfoFlow: FlowHandler = async ({ text, context, settings }) =
   }
 
   const lowerText = trimmed.toLowerCase()
-  if (LOCATION_KEYWORDS.some((kw) => lowerText.includes(kw)) && settings.latitude != null && settings.longitude != null) {
-    return {
-      context,
-      reply: {
-        text: lang === "es" ? `📍 ${settings.address}` : `📍 ${settings.address}`,
-        location: {
-          latitude: settings.latitude,
-          longitude: settings.longitude,
-          name: settings.clinic_name,
-          address: settings.address,
-        },
-      },
-    }
+  if (LOCATION_KEYWORDS.some((kw) => lowerText.includes(kw))) {
+    return { context, reply: locationReply(lang, settings) }
   }
 
   const { intent, answer } = await openaiService.classifyAndAnswer(trimmed, lang, settings)

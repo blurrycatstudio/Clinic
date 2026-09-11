@@ -107,6 +107,7 @@ export function ManualMessaging() {
   const [demoContacts, setDemoContacts] = useState<Contact[]>(CONTACTS)
   const [activeId, setActiveId] = useState<string | undefined>(live ? undefined : CONTACTS[0].id)
   const [draft, setDraft] = useState("")
+  const [contactSearch, setContactSearch] = useState("")
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const conversationsQuery = useConversations()
@@ -118,8 +119,13 @@ export function ManualMessaging() {
     if (live && !activeId && conversations.length > 0) setActiveId(conversations[0].id)
   }, [live, activeId, conversations])
 
-  const contacts: Contact[] = live ? conversations.map(toContact) : demoContacts
-  const active = contacts.find((c) => c.id === activeId) ?? contacts[0]
+  const allContacts: Contact[] = live ? conversations.map(toContact) : demoContacts
+  const active = allContacts.find((c) => c.id === activeId) ?? allContacts[0]
+
+  const query = contactSearch.trim().toLowerCase()
+  const contacts = query
+    ? allContacts.filter((c) => c.name.toLowerCase().includes(query) || c.child.toLowerCase().includes(query))
+    : allContacts
 
   const liveMessages: DisplayMessage[] = (messagesQuery.data?.messages ?? []).map((m) => ({
     from: m.direction === "outbound" ? "me" : "them",
@@ -175,12 +181,17 @@ export function ManualMessaging() {
           <div className="relative hidden sm:block">
             <Search className="pointer-events-none absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-[#8696a0]" />
             <input
+              value={contactSearch}
+              onChange={(e) => setContactSearch(e.target.value)}
               placeholder={t.waContactsSearch}
               className="h-9 w-full rounded-full border-none bg-[#202c33] pl-8.5 text-xs text-[#e9edef] placeholder:text-[#8696a0] outline-none focus:ring-1 focus:ring-[#00a884]"
             />
           </div>
         </div>
         <div className="flex-1 overflow-y-auto">
+          {contacts.length === 0 && (
+            <div className="hidden p-4 text-center text-[12px] text-[#8696a0] sm:block">No contacts found.</div>
+          )}
           {contacts.map((c) => {
             const last = live ? null : c.msgs[c.msgs.length - 1]
             const selected = c.id === activeId

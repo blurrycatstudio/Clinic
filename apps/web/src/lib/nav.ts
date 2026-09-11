@@ -4,8 +4,8 @@ import {
   CreditCard,
   FileText,
   House,
-  MessagesSquare,
-  Phone,
+  // MessagesSquare, // Messages nav — disabled for now
+  // Phone, // Voice Calls nav — disabled for now
   Settings,
   Syringe,
   BarChart3,
@@ -27,9 +27,11 @@ export const NAV_ITEMS: NavItem[] = [
   { path: "/", labelKey: "navDashboard", icon: House, iconColor: "#2563EB" },
   { path: "/appointments", labelKey: "navAppointments", icon: Calendar, iconColor: "#F97316" },
   { path: "/patients", labelKey: "navPatients", icon: Baby, iconColor: "#16A34A" },
-  { path: "/calls", labelKey: "navCalls", icon: Phone, iconColor: "#16A34A", badge: 3, badgeColor: "#F97316" },
+  // Voice Calls — disabled for now, uncomment to bring back.
+  // { path: "/calls", labelKey: "navCalls", icon: Phone, iconColor: "#16A34A", badge: 3, badgeColor: "#F97316" },
   { path: "/whatsapp", labelKey: "navWhatsapp", icon: MessageCircle, iconColor: "#25D366", badge: 7, badgeColor: "#16A34A" },
-  { path: "/messages", labelKey: "navMessages", icon: MessagesSquare, iconColor: "#3B82F6" },
+  // Messages — disabled for now, uncomment to bring back.
+  // { path: "/messages", labelKey: "navMessages", icon: MessagesSquare, iconColor: "#3B82F6" },
   { path: "/records", labelKey: "navRecords", icon: FileText, iconColor: "#EA580C" },
   { path: "/prescriptions", labelKey: "navPrescriptions", icon: Syringe, iconColor: "#EC4899" },
   { path: "/invoices", labelKey: "navInvoices", icon: CreditCard, iconColor: "#16A34A" },

@@ -3,6 +3,7 @@ import { toZonedTime } from "date-fns-tz"
 import { CLINIC_TIMEZONE, ConversationState, FlowType, t, type ConversationContext } from "@clinic/shared"
 import type { FlowHandler, FlowResult } from "./types.js"
 import { appointmentService, type AvailableSlot } from "../services/appointmentService.js"
+import { tryAnswerOffScript } from "../lib/offScript.js"
 
 function renderAppointmentList(options: { label: string }[]): string {
   return options.map((o, i) => `${i + 1}️⃣ ${o.label}`).join("\n")
@@ -40,7 +41,7 @@ export async function enterRescheduleFlow(context: ConversationContext): Promise
   }
 }
 
-export const rescheduleFlow: FlowHandler = async ({ text, context }) => {
+export const rescheduleFlow: FlowHandler = async ({ text, context, settings }) => {
   const lang = context.language ?? "es"
   const draft = context.reschedule ?? {}
 
@@ -50,6 +51,10 @@ export const rescheduleFlow: FlowHandler = async ({ text, context }) => {
       const index = Number.parseInt(text.trim(), 10) - 1
       const chosen = options[index]
       if (!chosen) {
+        const offScript = await tryAnswerOffScript(text, lang, settings)
+        if (offScript) {
+          return { context, reply: { text: `${offScript.text}\n\n${t(lang, "chooseAppointmentToReschedule", { appointments: renderAppointmentList(options) })}` } }
+        }
         return { context, reply: { text: t(lang, "appointmentSelectionInvalid") } }
       }
 
@@ -76,6 +81,10 @@ export const rescheduleFlow: FlowHandler = async ({ text, context }) => {
       const index = Number.parseInt(text.trim(), 10) - 1
       const slot = slots[index]
       if (!slot) {
+        const offScript = await tryAnswerOffScript(text, lang, settings)
+        if (offScript) {
+          return { context, reply: { text: `${offScript.text}\n\n${t(lang, "chooseSlot", { slots: renderSlotList(slots) })}` } }
+        }
         return { context, reply: { text: t(lang, "slotInvalid") } }
       }
 
@@ -102,6 +111,8 @@ export const rescheduleFlow: FlowHandler = async ({ text, context }) => {
       const isNo = ["no", "2"].includes(normalized)
 
       if (!isYes && !isNo) {
+        const offScript = await tryAnswerOffScript(text, lang, settings)
+        if (offScript) return { context, reply: { text: `${offScript.text}\n\n${t(lang, "confirmInvalid")}` } }
         return { context, reply: { text: t(lang, "confirmInvalid") } }
       }
       if (isNo) {

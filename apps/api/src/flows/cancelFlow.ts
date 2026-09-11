@@ -4,6 +4,7 @@ import { CLINIC_TIMEZONE, ConversationState, FlowType, t, type ConversationConte
 import type { FlowHandler, FlowResult } from "./types.js"
 import { appointmentService } from "../services/appointmentService.js"
 import { appointmentRepository } from "../repositories/appointmentRepository.js"
+import { tryAnswerOffScript } from "../lib/offScript.js"
 
 function renderAppointmentList(options: { label: string }[]): string {
   return options.map((o, i) => `${i + 1}️⃣ ${o.label}`).join("\n")
@@ -37,7 +38,7 @@ export async function enterCancelFlow(context: ConversationContext): Promise<Flo
   }
 }
 
-export const cancelFlow: FlowHandler = async ({ text, context }) => {
+export const cancelFlow: FlowHandler = async ({ text, context, settings }) => {
   const lang = context.language ?? "es"
   const draft = context.cancellation ?? {}
 
@@ -47,6 +48,10 @@ export const cancelFlow: FlowHandler = async ({ text, context }) => {
       const index = Number.parseInt(text.trim(), 10) - 1
       const chosen = options[index]
       if (!chosen) {
+        const offScript = await tryAnswerOffScript(text, lang, settings)
+        if (offScript) {
+          return { context, reply: { text: `${offScript.text}\n\n${t(lang, "chooseAppointmentToCancel", { appointments: renderAppointmentList(options) })}` } }
+        }
         return { context, reply: { text: t(lang, "appointmentSelectionInvalid") } }
       }
 
@@ -81,6 +86,8 @@ export const cancelFlow: FlowHandler = async ({ text, context }) => {
       const isNo = ["no", "2"].includes(normalized)
 
       if (!isYes && !isNo) {
+        const offScript = await tryAnswerOffScript(text, lang, settings)
+        if (offScript) return { context, reply: { text: `${offScript.text}\n\n${t(lang, "confirmInvalid")}` } }
         return { context, reply: { text: t(lang, "confirmInvalid") } }
       }
       if (isNo || !draft.targetAppointmentId) {
