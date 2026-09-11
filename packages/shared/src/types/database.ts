@@ -12,8 +12,29 @@ export type ISOTimestamp = string // full ISO 8601
 
 export type Language = "en" | "es"
 
+export type Clinic = {
+  id: UUID
+  name: string
+  slug: string
+  status: "active" | "suspended"
+  created_at: ISOTimestamp
+  updated_at: ISOTimestamp
+}
+
+export type StaffRole = "owner" | "staff"
+
+export type StaffUser = {
+  id: UUID
+  clinic_id: UUID
+  auth_user_id: UUID
+  role: StaffRole
+  created_at: ISOTimestamp
+  updated_at: ISOTimestamp
+}
+
 export type Patient = {
   id: UUID
+  clinic_id: UUID
   full_name: string
   phone_e164: string
   language: Language
@@ -34,6 +55,7 @@ export type AppointmentStatus =
 
 export type Appointment = {
   id: UUID
+  clinic_id: UUID
   patient_id: UUID
   doctor_id: string
   starts_at: ISOTimestamp
@@ -51,6 +73,7 @@ export type Appointment = {
 
 export type DoctorScheduleDay = {
   id: UUID
+  clinic_id: UUID
   doctor_id: string
   weekday: number // 0=Sunday .. 6=Saturday
   start_time: string // "09:00"
@@ -62,6 +85,7 @@ export type DoctorScheduleDay = {
 
 export type ClinicSettings = {
   id: UUID
+  clinic_id: UUID
   clinic_name: string
   doctor_name: string
   doctor_specialty: string
@@ -82,6 +106,10 @@ export type ClinicSettings = {
   appointment_duration_minutes: number
   reminder_call_enabled: boolean
   reminder_call_hours_before: number
+  /** Which WhatsApp Business phone number's webhooks route to this clinic. */
+  whatsapp_phone_number_id: string | null
+  /** Which Vapi phone number's webhooks route to this clinic. */
+  vapi_phone_number: string | null
   /** Which WhatsApp main-menu options are shown to patients, and in what canonical order. */
   enabled_menu_options: MenuOptionKey[]
   /** Subset of enabled_menu_options (max 3, WhatsApp's reply-button cap) shown as always-visible quick-action buttons. */
@@ -93,6 +121,7 @@ export type ConversationStatus = "active" | "closed" | "escalated"
 
 export type WhatsappConversation = {
   id: UUID
+  clinic_id: UUID
   patient_id: UUID | null
   wa_phone_e164: string
   wa_profile_name: string | null
@@ -107,6 +136,7 @@ export type MessageType = "text" | "template" | "interactive" | "location" | "im
 
 export type WhatsappMessage = {
   id: UUID
+  clinic_id: UUID
   conversation_id: UUID
   wa_message_id: string | null
   direction: MessageDirection
@@ -121,6 +151,7 @@ export type WhatsappMessage = {
 /** Durable mirror of the Redis conversation state, for audit + crash recovery. */
 export type ConversationStateRow = {
   id: UUID
+  clinic_id: UUID
   conversation_id: UUID
   state: string
   context: Record<string, unknown>
@@ -133,6 +164,7 @@ export type VoiceCallStatus = "in_progress" | "completed" | "failed" | "no_answe
 
 export type VoiceCall = {
   id: UUID
+  clinic_id: UUID
   patient_id: UUID | null
   appointment_id: UUID | null
   vapi_call_id: string
@@ -149,6 +181,7 @@ export type VoiceCall = {
 
 export type CallTranscript = {
   id: UUID
+  clinic_id: UUID
   voice_call_id: UUID
   role: "assistant" | "user" | "system"
   content: string
@@ -174,6 +207,7 @@ export type AuditAction =
 
 export type AuditLog = {
   id: UUID
+  clinic_id: UUID
   actor_type: "patient" | "system" | "staff" | "ai"
   actor_id: string | null
   action: AuditAction
@@ -200,6 +234,7 @@ export type PrescriptionItem = {
 
 export type Prescription = {
   id: UUID
+  clinic_id: UUID
   sequence_number: number
   patient_id: UUID
   appointment_id: UUID | null
@@ -214,6 +249,7 @@ export type Prescription = {
 
 export type Consultation = {
   id: UUID
+  clinic_id: UUID
   sequence_number: number
   patient_id: UUID
   appointment_id: UUID | null
@@ -240,6 +276,7 @@ export type InvoiceItem = {
 
 export type Invoice = {
   id: UUID
+  clinic_id: UUID
   sequence_number: number
   patient_id: UUID
   appointment_id: UUID | null
