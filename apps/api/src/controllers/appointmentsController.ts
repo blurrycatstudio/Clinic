@@ -8,6 +8,8 @@ import { voiceCallRepository } from "../repositories/voiceCallRepository.js"
 import { vapiService } from "../services/vapiService.js"
 import { env } from "../config/env.js"
 import { NotFoundError } from "../lib/errors.js"
+import { buildReminderCallOverrides } from "../lib/reminderCallGreeting.js"
+import { clinicSettingsRepository } from "../repositories/clinicSettingsRepository.js"
 
 export const appointmentsController = {
   async list(req: Request, res: Response) {
@@ -85,11 +87,13 @@ export const appointmentsController = {
     if (!appointment) throw new NotFoundError("Appointment not found")
     const patient = await patientRepository.findById(appointment.patient_id)
     if (!patient) throw new NotFoundError("Patient not found")
+    const settings = await clinicSettingsRepository.get()
 
     const { vapiCallId } = await vapiService.createOutboundCall({
       phoneE164: patient.phone_e164,
       assistantId: env.VAPI_REMINDER_ASSISTANT_ID || undefined,
       metadata: { appointmentId: appointment.id, purpose: "appointment_confirmation" },
+      assistantOverrides: buildReminderCallOverrides(patient, appointment, settings),
     })
     const call = await voiceCallRepository.create({
       vapiCallId,
