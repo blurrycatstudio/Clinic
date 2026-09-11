@@ -17,7 +17,7 @@ import {
 import type { FlowHandler, FlowReply, FlowResult } from "./types.js"
 import { enterRescheduleFlow } from "./rescheduleFlow.js"
 import { enterCancelFlow } from "./cancelFlow.js"
-import { startBookingFromFreeText } from "./bookAppointmentFlow.js"
+import { startBookingFromFreeText, extractReasonIfPresent } from "./bookAppointmentFlow.js"
 import { appointmentService } from "../services/appointmentService.js"
 import { patientRepository } from "../repositories/patientRepository.js"
 import { appointmentRepository } from "../repositories/appointmentRepository.js"
@@ -92,7 +92,11 @@ export function buildMainMenu(lang: "en" | "es", settings: ClinicSettings): Flow
  * Shared by the "Book Appointment" menu choice and by free text that clearly
  * expresses booking intent without a specific date ("book me an appointment").
  */
-async function startBookingChoice(context: ConversationContext, lang: Language): Promise<FlowResult> {
+async function startBookingChoice(context: ConversationContext, lang: Language, rawText?: string): Promise<FlowResult> {
+  // A booking intent detected from free text may already state why ("I have a
+  // fever, book me an appointment") — carry it along so later steps don't ask again.
+  const reason = rawText ? extractReasonIfPresent(rawText) : undefined
+
   const existingPatient = await patientRepository.findByPhone(context.phoneE164)
   if (existingPatient) {
     const lastAppointment = await appointmentRepository.findMostRecentForPatient(existingPatient.id)
@@ -108,6 +112,7 @@ async function startBookingChoice(context: ConversationContext, lang: Language):
           fullName: existingPatient.full_name,
           phoneE164: existingPatient.phone_e164,
           ...(lastReason ? { lastReason } : {}),
+          ...(reason ? { reason } : {}),
         },
       },
       reply: {
@@ -123,7 +128,7 @@ async function startBookingChoice(context: ConversationContext, lang: Language):
     }
   }
   return {
-    context: { ...context, state: ConversationState.AWAITING_NAME, activeFlow: FlowType.BOOK, booking: {} },
+    context: { ...context, state: ConversationState.AWAITING_NAME, activeFlow: FlowType.BOOK, booking: reason ? { reason } : {} },
     reply: { text: t(lang, "askName") },
   }
 }
@@ -208,7 +213,7 @@ export const mainMenuFlow: FlowHandler = async ({ text, buttonId, context, setti
       // to cancel my visit") — route those into the real deterministic flow instead of
       // treating them as an unanswerable off-script question (OpenAI never books).
       const { intent, answer } = await openaiService.classifyAndAnswer(rawText, lang, settings)
-      if (intent === Intent.BOOK_APPOINTMENT) return startBookingChoice(context, lang)
+      if (intent === Intent.BOOK_APPOINTMENT) return startBookingChoice(context, lang, rawText)
       if (intent === Intent.RESCHEDULE_APPOINTMENT) return enterRescheduleFlow(context)
       if (intent === Intent.CANCEL_APPOINTMENT) return enterCancelFlow(context)
 

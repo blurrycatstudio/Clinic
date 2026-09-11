@@ -51,11 +51,110 @@ function confirmationReply(lang: Language, draft: PendingBookingDraft, slot: Ava
   }
 }
 
+/** Only extracts a reason when the text actually carries descriptive content — a bare date/availability query shouldn't be mistaken for one. */
+export function extractReasonIfPresent(rawText: string): string | undefined {
+  const wordCount = rawText.trim().split(/\s+/).filter(Boolean).length
+  return wordCount >= MIN_WORDS_FOR_REASON ? rawText.trim() : undefined
+}
+
 /** Falls back to the patient's last visit reason, or a generic label, when the free text was just a bare date/availability query with no descriptive content. */
 function inferReason(rawText: string, lastReason?: string, lang: Language = "es"): string {
-  const wordCount = rawText.trim().split(/\s+/).filter(Boolean).length
-  if (wordCount >= MIN_WORDS_FOR_REASON) return rawText.trim()
-  return lastReason ?? (lang === "es" ? "Consulta general" : "General consultation")
+  return extractReasonIfPresent(rawText) ?? lastReason ?? (lang === "es" ? "Consulta general" : "General consultation")
+}
+
+const NAME_DISQUALIFIERS = /\d|[?¿]/
+const BOOKING_INTENT_WORDS = [
+  "book", "appointment", "cita", "agendar", "reprogramar", "reschedule", "cancel", "cancelar",
+  "fever", "fiebre", "dolor", "pain", "asap", "urgent", "urgente", "doctor", "hola", "hello", "hi",
+]
+
+/** A patient correcting their saved name types 1-6 plain words with no digits/booking language — anything else at that prompt is almost certainly a re-stated request, not a name. */
+function isPlausibleFullName(text: string): boolean {
+  const trimmed = text.trim()
+  if (trimmed.length < 2 || trimmed.length > 60) return false
+  if (NAME_DISQUALIFIERS.test(trimmed)) return false
+  const lower = trimmed.toLowerCase()
+  if (BOOKING_INTENT_WORDS.some((w) => lower.includes(w))) return false
+  return trimmed.split(/\s+/).filter(Boolean).length <= 6
+}
+
+/**
+ * Continues an already-identified booking (name/phone known, `draft` may
+ * already carry a reason) using whatever free text the patient just sent —
+ * shared by a fresh free-text request from an existing patient and by a
+ * patient re-stating their request instead of answering the current prompt
+ * (e.g. mid returning-patient confirmation). Never asks a question that
+ * `draft`/`rawText` has already answered.
+ */
+async function resolveBookingContinuation(
+  context: ConversationContext,
+  rawText: string,
+  lang: Language,
+  draft: PendingBookingDraft,
+): Promise<FlowResult> {
+  const parsed = parseBookingRequest(rawText, lang, new Date())
+  const withReason: PendingBookingDraft = { ...draft, reason: draft.reason ?? inferReason(rawText, draft.lastReason, lang) }
+
+  if (!parsed) {
+    const { slots, hasMore, text: promptText } = await promptForSlots(lang)
+    if (slots.length === 0) {
+      return {
+        context: { ...context, state: ConversationState.AWAITING_MENU_SELECTION, activeFlow: FlowType.NONE },
+        reply: { text: promptText },
+      }
+    }
+    return {
+      context: {
+        ...context,
+        state: ConversationState.AWAITING_SLOT_SELECTION,
+        activeFlow: FlowType.BOOK,
+        booking: { ...withReason, cachedSlots: slots, slotOffset: slots.length },
+      },
+      reply: {
+        text: promptText,
+        ...(hasMore ? { buttons: [{ id: "more_slots", title: t(lang, "moreDatesButton") }] } : {}),
+      },
+    }
+  }
+
+  const dayMatches =
+    parsed.kind === "asap"
+      ? await appointmentService.getAvailableSlots(BOOKING_HORIZON_DAYS, 1, 0)
+      : await appointmentService.getSlotsOnDate(parsed.date)
+  const exact = parsed.kind === "exact" ? dayMatches.find((s) => Math.abs(new Date(s.startsAtIso).getTime() - parsed.date.getTime()) < 60_000) : null
+  const slots = exact ? [exact] : dayMatches
+
+  if (slots.length === 0) {
+    return {
+      context: { ...context, state: ConversationState.AWAITING_MENU_SELECTION, activeFlow: FlowType.NONE },
+      reply: { text: t(lang, "noSlotsAvailable") },
+    }
+  }
+
+  // A single matched slot (ASAP, or an exact date+time that's actually free) can go
+  // straight to confirmation; several open slots (or a bare-day query) still need the
+  // patient to pick one.
+  if (slots.length === 1 && parsed.kind !== "day_query") {
+    return {
+      context: {
+        ...context,
+        state: ConversationState.AWAITING_BOOKING_CONFIRMATION,
+        activeFlow: FlowType.BOOK,
+        booking: { ...withReason, selectedSlotIso: slots[0]!.startsAtIso },
+      },
+      reply: confirmationReply(lang, withReason, slots[0]!),
+    }
+  }
+
+  return {
+    context: {
+      ...context,
+      state: ConversationState.AWAITING_SLOT_SELECTION,
+      activeFlow: FlowType.BOOK,
+      booking: { ...withReason, cachedSlots: slots, slotOffset: slots.length },
+    },
+    reply: slotListReply(lang, slots),
+  }
 }
 
 /**
@@ -74,9 +173,18 @@ export async function startBookingFromFreeText(
   if (!parsed) return null
 
   const existingPatient = await patientRepository.findByPhone(context.phoneE164)
-  const lastAppointment = existingPatient ? await appointmentRepository.findMostRecentForPatient(existingPatient.id) : null
-  const reason = inferReason(rawText, lastAppointment?.reason, lang)
+  if (existingPatient) {
+    const lastAppointment = await appointmentRepository.findMostRecentForPatient(existingPatient.id)
+    return resolveBookingContinuation(context, rawText, lang, {
+      fullName: existingPatient.full_name,
+      phoneE164: existingPatient.phone_e164,
+      ...(lastAppointment?.reason ? { lastReason: lastAppointment.reason } : {}),
+    })
+  }
 
+  // New patient: still need their name before we can confirm/list anything meaningfully.
+  // Resolve the slot(s) now so AWAITING_NAME can jump straight to confirmation/listing.
+  const reason = inferReason(rawText, undefined, lang)
   let slots: AvailableSlot[]
   if (parsed.kind === "asap") {
     slots = await appointmentService.getAvailableSlots(BOOKING_HORIZON_DAYS, 1, 0)
@@ -88,11 +196,6 @@ export async function startBookingFromFreeText(
     slots = await appointmentService.getSlotsOnDate(parsed.date)
   }
 
-  const baseDraft: PendingBookingDraft = {
-    ...(existingPatient ? { fullName: existingPatient.full_name, phoneE164: existingPatient.phone_e164 } : {}),
-    reason,
-  }
-
   if (slots.length === 0) {
     return {
       context: { ...context, state: ConversationState.AWAITING_MENU_SELECTION, activeFlow: FlowType.NONE },
@@ -100,44 +203,17 @@ export async function startBookingFromFreeText(
     }
   }
 
-  // A single matched slot (ASAP, or an exact date+time that's actually free) can go
-  // straight to confirmation once we know who's booking; several open slots means the
-  // patient still needs to pick one.
   const singleExactMatch = slots.length === 1 && parsed.kind !== "day_query"
-
-  if (!existingPatient) {
-    // New patient: still need their name before we can confirm/list anything meaningfully.
-    return {
-      context: {
-        ...context,
-        state: ConversationState.AWAITING_NAME,
-        activeFlow: FlowType.BOOK,
-        booking: singleExactMatch ? { ...baseDraft, selectedSlotIso: slots[0]!.startsAtIso } : { ...baseDraft, cachedSlots: slots, slotOffset: slots.length },
-      },
-      reply: { text: t(lang, "askName") },
-    }
-  }
-
-  if (singleExactMatch) {
-    return {
-      context: {
-        ...context,
-        state: ConversationState.AWAITING_BOOKING_CONFIRMATION,
-        activeFlow: FlowType.BOOK,
-        booking: { ...baseDraft, selectedSlotIso: slots[0]!.startsAtIso },
-      },
-      reply: confirmationReply(lang, baseDraft, slots[0]!),
-    }
-  }
-
   return {
     context: {
       ...context,
-      state: ConversationState.AWAITING_SLOT_SELECTION,
+      state: ConversationState.AWAITING_NAME,
       activeFlow: FlowType.BOOK,
-      booking: { ...baseDraft, cachedSlots: slots, slotOffset: slots.length },
+      booking: singleExactMatch
+        ? { reason, selectedSlotIso: slots[0]!.startsAtIso }
+        : { reason, cachedSlots: slots, slotOffset: slots.length },
     },
-    reply: slotListReply(lang, slots),
+    reply: { text: t(lang, "askName") },
   }
 }
 
@@ -151,6 +227,11 @@ export const bookAppointmentFlow: FlowHandler = async ({ text, buttonId, context
       const isYes = ["si", "sí", "yes", "1"].includes(normalized)
 
       if (isYes) {
+        // The triggering message may already have carried a reason (e.g. "I have a
+        // fever, book me an appointment") — don't re-ask what we already know.
+        if (draft.reason) {
+          return resolveBookingContinuation(context, "", lang, draft)
+        }
         return {
           context: { ...context, state: ConversationState.AWAITING_REASON },
           reply: draft.lastReason
@@ -162,18 +243,27 @@ export const bookAppointmentFlow: FlowHandler = async ({ text, buttonId, context
         }
       }
 
-      // Anything else is treated as a corrected full name rather than a plain
-      // invalid reply — patients naturally just retype their name here instead
-      // of saying "no" first.
-      const fullName = text.trim()
-      if (fullName.length < 2) {
+      const trimmedText = text.trim()
+      if (trimmedText.length < 2) {
         return { context, reply: { text: t(lang, "confirmSavedDetailsInvalid") } }
       }
+
+      // Anything short and name-shaped is treated as a corrected full name rather
+      // than a plain invalid reply — patients naturally just retype their name
+      // here instead of saying "no" first. Anything else (mentions a date, a
+      // symptom, "book"/"appointment", contains digits, etc.) is almost certainly
+      // the patient re-stating their whole request instead of confirming/fixing
+      // their name — handle it as a continuation of the same booking instead of
+      // silently overwriting their saved name with that sentence.
+      if (!isPlausibleFullName(trimmedText)) {
+        return resolveBookingContinuation(context, trimmedText, lang, draft)
+      }
+
       return {
         context: {
           ...context,
           state: ConversationState.AWAITING_REASON,
-          booking: { ...draft, fullName, phoneE164: context.phoneE164 },
+          booking: { ...draft, fullName: trimmedText, phoneE164: context.phoneE164 },
         },
         reply: draft.lastReason
           ? {
@@ -210,6 +300,11 @@ export const bookAppointmentFlow: FlowHandler = async ({ text, buttonId, context
           context: { ...context, state: ConversationState.AWAITING_SLOT_SELECTION, booking: updatedDraft },
           reply: slotListReply(lang, updatedDraft.cachedSlots),
         }
+      }
+      // A reason was already inferred from the message that started this booking
+      // (e.g. "I have a fever, book me an appointment") — go straight to slots.
+      if (updatedDraft.reason) {
+        return resolveBookingContinuation(context, "", lang, updatedDraft)
       }
 
       return {
