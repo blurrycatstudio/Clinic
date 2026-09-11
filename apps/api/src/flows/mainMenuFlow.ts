@@ -92,7 +92,7 @@ export function buildMainMenu(lang: "en" | "es", settings: ClinicSettings): Flow
  * Shared by the "Book Appointment" menu choice and by free text that clearly
  * expresses booking intent without a specific date ("book me an appointment").
  */
-async function startBookingChoice(context: ConversationContext, lang: Language, rawText?: string): Promise<FlowResult> {
+export async function startBookingChoice(context: ConversationContext, lang: Language, rawText?: string): Promise<FlowResult> {
   // A booking intent detected from free text may already state why ("I have a
   // fever, book me an appointment") — carry it along so later steps don't ask again.
   const reason = rawText ? extractReasonIfPresent(rawText) : undefined
