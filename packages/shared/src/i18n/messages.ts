@@ -58,6 +58,8 @@ export const botMessages = {
       "Lo sentimos, no encontramos horarios disponibles en los próximos días. Un miembro del equipo te contactará pronto.",
     requestedDayUnavailable: "No tenemos horarios disponibles ese día. Estos son los próximos horarios disponibles:",
     chooseSlot: "Estos son los horarios disponibles. Responde con el número de tu opción:\n\n{slots}",
+    chooseSlotPrompt: "Estos son los horarios disponibles. Toca uno para elegirlo, o responde con su número:",
+    viewTimesButton: "Ver horarios",
     slotInvalid: "Esa opción no es válida. Elige uno de los números de la lista.",
     confirmBooking:
       "Confirma tu cita:\n\n👤 Paciente: {name}\n📅 Fecha: {date}\n🕐 Hora: {time}\n📝 Motivo: {reason}\n\nResponde *SI* para confirmar o *NO* para cancelar.",
@@ -128,6 +130,8 @@ export const botMessages = {
       "Sorry, we couldn't find any open slots in the coming days. A team member will reach out shortly.",
     requestedDayUnavailable: "We don't have any open slots that day. Here are the next available times:",
     chooseSlot: "Here are the available time slots. Reply with the number of your choice:\n\n{slots}",
+    chooseSlotPrompt: "Here are the available time slots. Tap one to select it, or reply with its number:",
+    viewTimesButton: "View times",
     slotInvalid: "That's not a valid option. Please choose one of the listed numbers.",
     confirmBooking:
       "Please confirm your appointment:\n\n👤 Patient: {name}\n📅 Date: {date}\n🕐 Time: {time}\n📝 Reason: {reason}\n\nReply *YES* to confirm or *NO* to cancel.",

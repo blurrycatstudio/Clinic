@@ -1,5 +1,5 @@
 import { BOOKING_HORIZON_DAYS, CLINIC_TIMEZONE, ConversationState, FlowType, t, type ConversationContext, type Language, type PendingBookingDraft } from "@clinic/shared"
-import type { FlowHandler, FlowResult } from "./types.js"
+import type { FlowHandler, FlowReply, FlowResult } from "./types.js"
 import { appointmentService, type AvailableSlot } from "../services/appointmentService.js"
 import { patientRepository } from "../repositories/patientRepository.js"
 import { appointmentRepository } from "../repositories/appointmentRepository.js"
@@ -11,24 +11,27 @@ import { toZonedTime } from "date-fns-tz"
 const SLOTS_PER_PAGE = 9
 const MIN_WORDS_FOR_REASON = 4
 
-function renderSlotList(slots: AvailableSlot[]): string {
-  return slots.map((s, i) => `${i + 1}️⃣ ${s.label}`).join("\n")
+/** Each slot becomes a tappable WhatsApp list row (title = the slot's time label) — the patient selects with one tap instead of typing a number, though a typed number still works as a fallback. A trailing "See more dates" row (when `hasMore`) fits within WhatsApp's 10-row cap since a page is 9 slots. */
+function buildSlotListReply(lang: Language, slots: AvailableSlot[], hasMore: boolean): FlowReply {
+  if (slots.length === 0) return { text: t(lang, "noSlotsAvailable") }
+  const rows = slots.map((s, i) => ({ id: String(i + 1), title: s.label }))
+  if (hasMore) rows.push({ id: "more_slots", title: t(lang, "moreDatesButton") })
+  return {
+    text: t(lang, "chooseSlotPrompt"),
+    list: { buttonLabel: t(lang, "viewTimesButton"), rows },
+  }
 }
 
-/** Fetches one page of slots starting at `offset`. Requests one extra slot beyond the page size just to detect whether a further page exists, for the "See more dates" button. */
-async function promptForSlots(lang: Language, offset = 0) {
+/** Fetches one page of slots starting at `offset`. Requests one extra slot beyond the page size just to detect whether a further page exists, for the trailing "See more dates" row. */
+async function promptForSlots(lang: Language, offset = 0): Promise<{ slots: AvailableSlot[]; hasMore: boolean; reply: FlowReply }> {
   const fetched = await appointmentService.getAvailableSlots(BOOKING_HORIZON_DAYS, SLOTS_PER_PAGE + 1, offset)
   const hasMore = fetched.length > SLOTS_PER_PAGE
   const slots = fetched.slice(0, SLOTS_PER_PAGE)
-  if (slots.length === 0) {
-    return { slots, hasMore: false, text: t(lang, "noSlotsAvailable") }
-  }
-  return { slots, hasMore, text: t(lang, "chooseSlot", { slots: renderSlotList(slots) }) }
+  return { slots, hasMore, reply: buildSlotListReply(lang, slots, hasMore) }
 }
 
-function slotListReply(lang: Language, slots: AvailableSlot[]) {
-  if (slots.length === 0) return { text: t(lang, "noSlotsAvailable") }
-  return { text: t(lang, "chooseSlot", { slots: renderSlotList(slots) }) }
+function slotListReply(lang: Language, slots: AvailableSlot[]): FlowReply {
+  return buildSlotListReply(lang, slots, false)
 }
 
 /**
@@ -37,12 +40,10 @@ function slotListReply(lang: Language, slots: AvailableSlot[]) {
  * reads as the whole clinic being unavailable — fall back to the clinic's next
  * actually-open slots so the patient can still book something in this turn.
  */
-async function fallbackToGeneralSlots(lang: Language) {
-  const { slots, hasMore, text: promptText } = await promptForSlots(lang)
-  if (slots.length === 0) {
-    return { slots, hasMore: false, text: t(lang, "noSlotsAvailable") }
-  }
-  return { slots, hasMore, text: `${t(lang, "requestedDayUnavailable")}\n\n${promptText}` }
+async function fallbackToGeneralSlots(lang: Language): Promise<{ slots: AvailableSlot[]; hasMore: boolean; reply: FlowReply }> {
+  const { slots, hasMore, reply } = await promptForSlots(lang)
+  if (slots.length === 0) return { slots, hasMore: false, reply }
+  return { slots, hasMore, reply: { ...reply, text: `${t(lang, "requestedDayUnavailable")}\n\n${reply.text}` } }
 }
 
 function buildConfirmText(lang: Language, draft: PendingBookingDraft, slot: AvailableSlot) {
@@ -110,11 +111,11 @@ async function resolveBookingContinuation(
   const withReason: PendingBookingDraft = { ...draft, reason: draft.reason ?? inferReason(rawText, draft.lastReason, lang) }
 
   if (!parsed) {
-    const { slots, hasMore, text: promptText } = await promptForSlots(lang)
+    const { slots, reply } = await promptForSlots(lang)
     if (slots.length === 0) {
       return {
         context: { ...context, state: ConversationState.AWAITING_MENU_SELECTION, activeFlow: FlowType.NONE },
-        reply: { text: promptText },
+        reply,
       }
     }
     return {
@@ -124,10 +125,7 @@ async function resolveBookingContinuation(
         activeFlow: FlowType.BOOK,
         booking: { ...withReason, cachedSlots: slots, slotOffset: slots.length },
       },
-      reply: {
-        text: promptText,
-        ...(hasMore ? { buttons: [{ id: "more_slots", title: t(lang, "moreDatesButton") }] } : {}),
-      },
+      reply,
     }
   }
 
@@ -143,7 +141,7 @@ async function resolveBookingContinuation(
     if (fallback.slots.length === 0) {
       return {
         context: { ...context, state: ConversationState.AWAITING_MENU_SELECTION, activeFlow: FlowType.NONE },
-        reply: { text: fallback.text },
+        reply: fallback.reply,
       }
     }
     return {
@@ -153,10 +151,7 @@ async function resolveBookingContinuation(
         activeFlow: FlowType.BOOK,
         booking: { ...withReason, cachedSlots: fallback.slots, slotOffset: fallback.slots.length },
       },
-      reply: {
-        text: fallback.text,
-        ...(fallback.hasMore ? { buttons: [{ id: "more_slots", title: t(lang, "moreDatesButton") }] } : {}),
-      },
+      reply: fallback.reply,
     }
   }
   const slots = requestedSlots
@@ -232,7 +227,7 @@ export async function startBookingFromFreeText(
     if (fallback.slots.length === 0) {
       return {
         context: { ...context, state: ConversationState.AWAITING_MENU_SELECTION, activeFlow: FlowType.NONE },
-        reply: { text: fallback.text },
+        reply: fallback.reply,
       }
     }
     slots = fallback.slots
@@ -369,11 +364,11 @@ export const bookAppointmentFlow: FlowHandler = async ({ text, buttonId, context
       const normalized = text.trim().toLowerCase()
       const wantsSameReason = ["igual", "same", "mismo"].includes(normalized)
       const reason = wantsSameReason && draft.lastReason ? draft.lastReason : text.trim()
-      const { slots, hasMore, text: promptText } = await promptForSlots(lang)
+      const { slots, reply } = await promptForSlots(lang)
       if (slots.length === 0) {
         return {
           context: { ...context, state: ConversationState.AWAITING_MENU_SELECTION, activeFlow: FlowType.NONE },
-          reply: { text: promptText },
+          reply,
         }
       }
       return {
@@ -382,10 +377,7 @@ export const bookAppointmentFlow: FlowHandler = async ({ text, buttonId, context
           state: ConversationState.AWAITING_SLOT_SELECTION,
           booking: { ...draft, reason, cachedSlots: slots, slotOffset: slots.length },
         },
-        reply: {
-          text: promptText,
-          ...(hasMore ? { buttons: [{ id: "more_slots", title: t(lang, "moreDatesButton") }] } : {}),
-        },
+        reply,
       }
     }
 
@@ -394,24 +386,21 @@ export const bookAppointmentFlow: FlowHandler = async ({ text, buttonId, context
       // cachedSlots/slotOffset with the new page — each page renumbers from 1.
       if ((buttonId ?? text).trim() === "more_slots") {
         const offset = draft.slotOffset ?? draft.cachedSlots?.length ?? 0
-        const { slots: nextSlots, hasMore, text: promptText } = await promptForSlots(lang, offset)
+        const { slots: nextSlots, reply } = await promptForSlots(lang, offset)
         if (nextSlots.length === 0) {
           return {
             context: { ...context, state: ConversationState.AWAITING_MENU_SELECTION, activeFlow: FlowType.NONE },
-            reply: { text: promptText },
+            reply,
           }
         }
         return {
           context: { ...context, booking: { ...draft, cachedSlots: nextSlots, slotOffset: offset + nextSlots.length } },
-          reply: {
-            text: promptText,
-            ...(hasMore ? { buttons: [{ id: "more_slots", title: t(lang, "moreDatesButton") }] } : {}),
-          },
+          reply,
         }
       }
 
       const slots = draft.cachedSlots ?? (await appointmentService.getAvailableSlots())
-      const index = Number.parseInt(text.trim(), 10) - 1
+      const index = Number.parseInt((buttonId ?? text).trim(), 10) - 1
       const slot = slots[index]
       if (slot) {
         return {
@@ -424,42 +413,14 @@ export const bookAppointmentFlow: FlowHandler = async ({ text, buttonId, context
         }
       }
 
-      // Not a numeric choice — the patient may be naming a different date instead
-      // of picking from the list ("actually the 14th", "qué hay el 20").
+      // Not a numeric choice — the patient may be naming a different date/time
+      // instead of picking from the list ("actually the 14th at 2pm", "qué hay el
+      // 20") — resolve it exactly like a fresh request (including narrowing down
+      // to that one instant when it's actually free) rather than just re-listing
+      // the whole day.
       const parsed = parseBookingRequest(text, lang, new Date())
       if (parsed) {
-        const newSlots =
-          parsed.kind === "asap"
-            ? await appointmentService.getAvailableSlots(BOOKING_HORIZON_DAYS, 1, 0)
-            : await appointmentService.getSlotsOnDate(parsed.date)
-
-        if (newSlots.length === 0) {
-          const fallback = await fallbackToGeneralSlots(lang)
-          if (fallback.slots.length === 0) {
-            return {
-              context: { ...context, state: ConversationState.AWAITING_MENU_SELECTION, activeFlow: FlowType.NONE },
-              reply: { text: fallback.text },
-            }
-          }
-          return {
-            context: { ...context, booking: { ...draft, cachedSlots: fallback.slots, slotOffset: fallback.slots.length } },
-            reply: {
-              text: fallback.text,
-              ...(fallback.hasMore ? { buttons: [{ id: "more_slots", title: t(lang, "moreDatesButton") }] } : {}),
-            },
-          }
-        }
-
-        if (newSlots.length === 1 && parsed.kind !== "day_query") {
-          return {
-            context: { ...context, state: ConversationState.AWAITING_BOOKING_CONFIRMATION, booking: { ...draft, selectedSlotIso: newSlots[0]!.startsAtIso } },
-            reply: confirmationReply(lang, draft, newSlots[0]!),
-          }
-        }
-        return {
-          context: { ...context, booking: { ...draft, cachedSlots: newSlots, slotOffset: newSlots.length } },
-          reply: slotListReply(lang, newSlots),
-        }
+        return resolveBookingContinuation(context, text, lang, draft)
       }
 
       const offScript = await tryAnswerOffScript(text, lang, settings)
