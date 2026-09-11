@@ -1,15 +1,14 @@
 import { useMemo } from "react"
 import { useMutation, useQuery } from "@tanstack/react-query"
 import { useNavigate } from "react-router-dom"
-import { Phone, MessageCircle, Stethoscope, ChevronRight, CalendarDays, BellRing } from "lucide-react"
+import { Phone, MessageCircle, Stethoscope, BellRing } from "lucide-react"
 import { MobileShell } from "@/components/mobile/MobileShell"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { useLang } from "@/lib/i18n"
 import { api } from "@/lib/api"
-import { STATUS_COLORS } from "@/lib/data"
-import { toDisplayAppointment, type ApiAppointment, type DisplayAppointment } from "@/lib/appointments"
+import { toDateParam, toDisplayAppointment, type ApiAppointment, type DisplayAppointment } from "@/lib/appointments"
 import { useDashboardStats } from "@/hooks/useDashboardStats"
 import { useToast } from "@/lib/toast"
 
@@ -18,7 +17,7 @@ export default function MobileDashboard() {
   const navigate = useNavigate()
   const toast = useToast()
 
-  const today = new Date().toISOString().slice(0, 10)
+  const today = toDateParam(new Date())
   const { data, isLoading, error } = useQuery({
     queryKey: ["appointments", "today", today],
     queryFn: () => api.get<{ rows: ApiAppointment[]; count: number }>(`/appointments?date=${today}&limit=100`),
@@ -129,69 +128,6 @@ export default function MobileDashboard() {
               {t.mobileDashboardSendReminder}
             </Button>
           </Card>
-        )}
-
-        <div className="flex items-center justify-between">
-          <h2 className="font-heading text-[15px] font-bold">{t.mobileDashboardTodaySchedule}</h2>
-          <button onClick={() => navigate("/mobile/schedule")} className="text-xs font-bold text-primary">
-            {t.mobileDashboardViewAll}
-          </button>
-        </div>
-
-        {isLoading ? (
-          <div className="flex flex-col gap-2">
-            {[0, 1, 2].map((i) => (
-              <div key={i} className="h-16 animate-pulse rounded-xl bg-muted" />
-            ))}
-          </div>
-        ) : schedule.length === 0 ? (
-          <Card className="gap-0 rounded-2xl border p-6 text-center shadow-none">
-            <div className="mx-auto mb-2 flex size-11 items-center justify-center rounded-2xl bg-accent">
-              <CalendarDays className="size-5 text-primary" strokeWidth={1.6} />
-            </div>
-            <p className="text-[13px] text-muted-foreground">{t.mobileDashboardEmpty}</p>
-          </Card>
-        ) : (
-          <div className="flex flex-col gap-2">
-            {schedule.map((a) => {
-              const sc = STATUS_COLORS[a.status]
-              return (
-                <Card
-                  key={a.id}
-                  onClick={() => navigate(`/mobile/consultation/${a.id}`)}
-                  className="cursor-pointer gap-0 rounded-xl border p-3 shadow-none hover:bg-muted/40"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <span className="w-14 shrink-0 font-mono text-[11.5px] font-bold whitespace-nowrap">{a.time}</span>
-                    <Avatar className="size-8 shrink-0">
-                      <AvatarFallback style={{ background: a.color }} className="text-[10.5px] font-bold text-white">
-                        {a.initials}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate text-[13px] font-bold">{a.child}</div>
-                      <div className="truncate text-[11px] text-muted-foreground">{a.reason || "—"}</div>
-                    </div>
-                    <span className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold whitespace-nowrap" style={{ background: sc.bg, color: sc.color }}>
-                      {t[a.status]}
-                    </span>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        sendReminder(a)
-                      }}
-                      disabled={!a.phone || (reminderMutation.isPending && reminderMutation.variables === a.id)}
-                      title={t.mobileDashboardSendReminder}
-                      className="flex size-7 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-muted disabled:opacity-40"
-                    >
-                      <BellRing className="size-3.5" strokeWidth={2.2} />
-                    </button>
-                    <ChevronRight className="size-4 shrink-0 text-muted-foreground/60" />
-                  </div>
-                </Card>
-              )
-            })}
-          </div>
         )}
       </div>
     </MobileShell>
