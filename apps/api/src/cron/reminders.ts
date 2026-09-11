@@ -98,10 +98,28 @@ export async function runReminderCallJob(): Promise<{ sent: number; failed: numb
       const patient = await patientRepository.findById(appointment.patient_id)
       if (!patient) continue
 
+      const zoned = toZonedTime(new Date(appointment.starts_at), CLINIC_TIMEZONE)
+      const date = format(zoned, "EEEE d MMMM")
+      const time = format(zoned, "h:mm a")
+      const lang = patient.language ?? "es"
+      // We only have one Vapi assistant — this override swaps just the
+      // opening line for outbound reminder calls so it never says "thank
+      // you for calling" (that's only correct when the patient called us).
+      // The system prompt's "OUTBOUND REMINDER CALL" section takes over
+      // from there using the appointmentId variable below.
+      const firstMessage =
+        lang === "en"
+          ? `Hello ${patient.full_name}, this is ${settings.clinic_name} calling to remind you of your appointment on ${date} at ${time}. Can you confirm you'll be attending?`
+          : `Hola ${patient.full_name}, le llamamos de ${settings.clinic_name} para recordarle su cita el ${date} a las ${time}. ¿Puede confirmar que asistirá?`
+
       const { vapiCallId } = await vapiService.createOutboundCall({
         phoneE164: patient.phone_e164,
         assistantId: env.VAPI_REMINDER_ASSISTANT_ID || undefined,
         metadata: { appointmentId: appointment.id, purpose: "appointment_reminder_call" },
+        assistantOverrides: {
+          firstMessage,
+          variableValues: { appointmentId: appointment.id, callPurpose: "appointment_reminder_call" },
+        },
       })
       await voiceCallRepository.create({
         vapiCallId,

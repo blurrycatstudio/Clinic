@@ -17,6 +17,17 @@ export const vapiService = {
     phoneE164: string
     assistantId?: string
     metadata?: Record<string, unknown>
+    /**
+     * Per-call overrides applied on top of the assistant's own config —
+     * lets a single Vapi assistant behave differently for outbound calls
+     * (e.g. a reminder-specific first message and greeting) without
+     * needing a second assistant. See Vapi's `assistantOverrides` on
+     * POST /call: https://docs.vapi.ai
+     */
+    assistantOverrides?: {
+      firstMessage?: string
+      variableValues?: Record<string, string | number | boolean>
+    }
   }): Promise<{ vapiCallId: string }> {
     if (!isVapiOutboundConfigured) {
       throw new ValidationError(
@@ -40,6 +51,7 @@ export const vapiService = {
         phoneNumberId: env.VAPI_PHONE_NUMBER_ID,
         customer: { number: input.phoneE164 },
         ...(input.metadata ? { metadata: input.metadata } : {}),
+        ...(input.assistantOverrides ? { assistantOverrides: input.assistantOverrides } : {}),
       }),
     })
 
