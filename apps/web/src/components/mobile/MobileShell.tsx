@@ -1,15 +1,17 @@
 import { useMemo, useState, type ReactNode } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { Dialog } from "radix-ui"
-import { ChevronLeft, House, Calendar, Baby, MessageCircle, FileText, Bell, CalendarPlus, X } from "lucide-react"
+import { ChevronLeft, House, Calendar, Baby, MessageCircle, FileText, Bell, CalendarPlus, X, LogOut } from "lucide-react"
 import { NavLink, useNavigate } from "react-router-dom"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { PhoneInput } from "@/components/ui/phone-input"
 import { useLang } from "@/lib/i18n"
 import { api } from "@/lib/api"
 import { useToast } from "@/lib/toast"
 import { cn } from "@/lib/utils"
+import { supabase } from "@/lib/supabaseClient"
 import { toDateParam, toDisplayAppointment, type ApiAppointment } from "@/lib/appointments"
 
 // All five point within /mobile/* — tabs used to jump out to the desktop AppShell pages
@@ -77,7 +79,7 @@ function NewAppointmentSheet({ open, onOpenChange }: { open: boolean; onOpenChan
             </div>
             <div>
               <label className="mb-1.5 block text-xs font-bold">{t.mobileApptPhone}</label>
-              <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+52 664 123 4567" className="h-10" />
+              <PhoneInput value={phone} onChange={setPhone} placeholder="664 123 4567" className="h-10" />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -119,6 +121,83 @@ function NewAppointmentSheet({ open, onOpenChange }: { open: boolean; onOpenChan
  * screen even in a desktop browser. Deliberately separate from AppShell —
  * the desktop sidebar/topbar/navbar are untouched.
  */
+/** Left-hand drawer opened from the header's doctor identity ("profile") — surfaces every mobile section plus sign out. */
+function ProfileSidebar({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
+  const { t, lang, setLang } = useLang()
+  const navigate = useNavigate()
+
+  async function handleLogout() {
+    if (supabase) await supabase.auth.signOut()
+    onOpenChange(false)
+    navigate("/login", { replace: true })
+  }
+
+  return (
+    <Dialog.Root open={open} onOpenChange={onOpenChange}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm" />
+        <Dialog.Content className="fixed inset-y-0 left-0 z-50 flex w-[82%] max-w-[320px] flex-col bg-white pb-[env(safe-area-inset-bottom)] shadow-2xl outline-none">
+          <div className="flex items-center gap-2.5 border-b border-border/60 px-4 py-4">
+            <Avatar className="size-10 shrink-0">
+              <AvatarFallback className="bg-gradient-to-br from-primary to-sidebar text-[12px] font-bold text-primary-foreground">GR</AvatarFallback>
+            </Avatar>
+            <div className="min-w-0 flex-1">
+              <Dialog.Title className="truncate text-[13.5px] font-bold">Dr. Gamaliel Rodríguez</Dialog.Title>
+              <div className="truncate text-[11px] text-muted-foreground">{t.doctorSpecialty}</div>
+            </div>
+            <Dialog.Close className="flex size-8 shrink-0 items-center justify-center rounded-full hover:bg-muted">
+              <X className="size-4" strokeWidth={2} />
+            </Dialog.Close>
+          </div>
+
+          <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto p-2">
+            {TABS.map((tab) => (
+              <NavLink
+                key={tab.path}
+                to={tab.path}
+                onClick={() => onOpenChange(false)}
+                className={({ isActive }) =>
+                  cn(
+                    "flex items-center gap-3 rounded-lg px-3 py-2.5 text-[13.5px] font-semibold transition-colors",
+                    isActive ? "bg-accent text-primary" : "text-foreground hover:bg-muted",
+                  )
+                }
+              >
+                <tab.icon className="size-[18px]" strokeWidth={2} />
+                {t[tab.labelKey]}
+              </NavLink>
+            ))}
+          </nav>
+
+          <div className="flex flex-col gap-3 border-t border-border/60 p-3">
+            <div className="flex items-center gap-1 self-start rounded-full bg-[#F1F5F9] p-[3px]">
+              {(["en", "es"] as const).map((code) => (
+                <button
+                  key={code}
+                  onClick={() => setLang(code)}
+                  className={cn(
+                    "rounded-full px-3 py-1 text-[11px] font-bold transition-colors",
+                    lang === code ? "bg-[#2563EB] text-white shadow-sm" : "text-[#64748B] hover:text-foreground",
+                  )}
+                >
+                  {code === "en" ? "EN" : "ES"}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-[13.5px] font-bold text-destructive hover:bg-destructive/10"
+            >
+              <LogOut className="size-[18px]" strokeWidth={2} />
+              {t.logoutMenuItem}
+            </button>
+          </div>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
+  )
+}
+
 export function MobileShell({
   children,
   title,
@@ -136,6 +215,7 @@ export function MobileShell({
   const navigate = useNavigate()
   const [newApptOpen, setNewApptOpen] = useState(false)
   const [notifOpen, setNotifOpen] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
 
   const today = toDateParam(new Date())
   const { data: todayData } = useQuery({
@@ -179,7 +259,7 @@ export function MobileShell({
             </>
           ) : (
             <>
-              <div className="flex min-w-0 items-center gap-2.5">
+              <button onClick={() => setSidebarOpen(true)} className="flex min-w-0 items-center gap-2.5 rounded-lg text-left">
                 <Avatar className="size-8.5 shrink-0">
                   <AvatarFallback className="bg-gradient-to-br from-primary to-sidebar text-[11px] font-bold text-primary-foreground">
                     GR
@@ -189,7 +269,7 @@ export function MobileShell({
                   <div className="truncate text-[13px] font-bold">Dr. Gamaliel Rodríguez</div>
                   <div className="truncate text-[11px] text-muted-foreground">{t.doctorSpecialty}</div>
                 </div>
-              </div>
+              </button>
               <div className="flex shrink-0 items-center gap-1 rounded-full bg-[#F1F5F9] p-[3px]">
                 {(["en", "es"] as const).map((code) => (
                   <button
@@ -307,6 +387,7 @@ export function MobileShell({
       </div>
 
       <NewAppointmentSheet open={newApptOpen} onOpenChange={setNewApptOpen} />
+      <ProfileSidebar open={sidebarOpen} onOpenChange={setSidebarOpen} />
     </div>
   )
 }

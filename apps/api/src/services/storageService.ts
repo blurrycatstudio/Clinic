@@ -16,6 +16,11 @@ function getClient(): S3Client {
 export const storageService = {
   /** Uploads a PDF and returns its public URL. Requires R2_* env vars + a public bucket/custom domain (R2_PUBLIC_URL). */
   async uploadPdf(key: string, buffer: Buffer): Promise<string> {
+    return storageService.uploadFile(key, buffer, "application/pdf")
+  },
+
+  /** Uploads an arbitrary file and returns its public URL. Requires R2_* env vars + a public bucket/custom domain (R2_PUBLIC_URL). */
+  async uploadFile(key: string, buffer: Buffer, contentType: string): Promise<string> {
     if (!isR2Configured) {
       throw new ExternalServiceError("Cloudflare R2", "Storage isn't configured yet — set R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET_NAME, and R2_PUBLIC_URL.")
     }
@@ -25,7 +30,7 @@ export const storageService = {
           Bucket: env.R2_BUCKET_NAME,
           Key: key,
           Body: buffer,
-          ContentType: "application/pdf",
+          ContentType: contentType,
         }),
       )
     } catch (err) {

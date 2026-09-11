@@ -27,7 +27,7 @@ export function createApp() {
   // while still handing every route a parsed JSON body.
   app.use(
     express.json({
-      limit: "2mb",
+      limit: "15mb",
       verify: (req: Request & { rawBody?: Buffer }, _res, buf) => {
         req.rawBody = Buffer.from(buf)
       },

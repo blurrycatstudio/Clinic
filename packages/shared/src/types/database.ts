@@ -248,6 +248,16 @@ export type Prescription = {
   updated_at: ISOTimestamp
 }
 
+export type PatientDocument = {
+  id: UUID
+  patient_id: UUID
+  name: string
+  mime_type: string
+  size_bytes: number
+  url: string
+  created_at: ISOTimestamp
+}
+
 export type Consultation = {
   id: UUID
   clinic_id: UUID

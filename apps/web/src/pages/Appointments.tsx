@@ -5,6 +5,7 @@ import { Dialog } from "radix-ui"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { PhoneInput } from "@/components/ui/phone-input"
 import { useLang } from "@/lib/i18n"
 import { STATUS_COLORS, type AppointmentStatus } from "@/lib/data"
 import { api } from "@/lib/api"
@@ -64,7 +65,7 @@ function NewAppointmentDialog({
             </div>
             <div>
               <label className="mb-1.5 block text-xs font-bold">Phone</label>
-              <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+52 664 123 4567" className="h-9" />
+              <PhoneInput value={phone} onChange={setPhone} placeholder="664 123 4567" className="h-9" />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>

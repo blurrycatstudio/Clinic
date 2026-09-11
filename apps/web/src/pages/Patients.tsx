@@ -6,6 +6,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { PhoneInput } from "@/components/ui/phone-input"
 import { useLang } from "@/lib/i18n"
 import { HISTORY, PATIENTS, type Patient } from "@/lib/data"
 import { cn } from "@/lib/utils"
@@ -16,6 +17,7 @@ type StatusFilter = "all" | "active" | "inactive"
 function NewPatientDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
   const toast = useToast()
   const [name, setName] = useState("")
+  const [guardianPhone, setGuardianPhone] = useState("")
 
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
@@ -40,7 +42,7 @@ function NewPatientDialog({ open, onOpenChange }: { open: boolean; onOpenChange:
               </div>
               <div>
                 <label className="mb-1.5 block text-xs font-bold">Guardian phone</label>
-                <Input type="tel" placeholder="+52 664 000 0000" className="h-9" />
+                <PhoneInput value={guardianPhone} onChange={setGuardianPhone} placeholder="664 000 0000" className="h-9" />
               </div>
             </div>
           </div>

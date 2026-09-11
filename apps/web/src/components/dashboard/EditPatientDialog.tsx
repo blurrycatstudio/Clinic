@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { Dialog } from "radix-ui"
 import { Loader2, Save, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { PhoneInput } from "@/components/ui/phone-input"
 import { useLang } from "@/lib/i18n"
 import { api } from "@/lib/api"
 import { useToast } from "@/lib/toast"
@@ -91,12 +92,7 @@ export function EditPatientDialog({
 
             <label className="flex flex-col gap-1.5 text-xs font-bold">
               {t.editPhone}
-              <input
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="+52 664 123 4567"
-                className="rounded-lg border border-border bg-transparent px-2.5 py-2 text-sm font-normal outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-              />
+              <PhoneInput value={phone} onChange={setPhone} placeholder="664 123 4567" className="h-9" />
             </label>
 
             <div className="grid grid-cols-2 gap-3">

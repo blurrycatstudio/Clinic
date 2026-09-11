@@ -68,7 +68,26 @@ type ApiConsultation = {
   created_at: string
 }
 
-type LocalDocument = { name: string; date: string; size: string; type: "pdf" | "image"; url?: string; pdfId?: string }
+type LocalDocument = { id?: string; name: string; date: string; size: string; type: "pdf" | "image"; url?: string; pdfId?: string }
+
+type ApiPatientDocument = {
+  id: string
+  patient_id: string
+  name: string
+  mime_type: string
+  size_bytes: number
+  url: string
+  created_at: string
+}
+
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve((reader.result as string).split(",")[1] ?? "")
+    reader.onerror = () => reject(reader.error)
+    reader.readAsDataURL(file)
+  })
+}
 
 const AVATAR_COLORS = ["#16A34A", "#2563EB", "#DC2626", "#9333EA", "#0891B2", "#F97316", "#DB2777", "#0D9488"]
 
@@ -113,7 +132,7 @@ export function PatientSnapshotCard({ appointment }: { appointment: DisplayAppoi
   const toast = useToast()
   const queryClient = useQueryClient()
   const [tab, setTab] = useState<TabKey>("overview")
-  const [extraDocuments, setExtraDocuments] = useState<LocalDocument[]>([])
+  const [uploading, setUploading] = useState(false)
   const [consultOpen, setConsultOpen] = useState(false)
   const [rxOpen, setRxOpen] = useState(false)
   const [noteOpen, setNoteOpen] = useState(false)
@@ -125,7 +144,6 @@ export function PatientSnapshotCard({ appointment }: { appointment: DisplayAppoi
 
   useEffect(() => {
     setTab("overview")
-    setExtraDocuments([])
     setConsultOpen(false)
     setRxOpen(false)
     setNoteOpen(false)
@@ -155,6 +173,25 @@ export function PatientSnapshotCard({ appointment }: { appointment: DisplayAppoi
     queryKey: ["prescriptions", patientId],
     queryFn: () => api.get<{ rows: ApiPrescription[]; count: number }>(`/prescriptions?patientId=${patientId}&limit=50`),
     enabled: !!patientId,
+  })
+
+  const documentsQuery = useQuery({
+    queryKey: ["patient-documents", patientId],
+    queryFn: () => api.get<{ documents: ApiPatientDocument[] }>(`/patients/${patientId}/documents`),
+    enabled: !!patientId,
+  })
+
+  const uploadDocumentMutation = useMutation({
+    mutationFn: (input: { name: string; mimeType: string; dataBase64: string }) =>
+      api.post<{ document: ApiPatientDocument }>(`/patients/${patientId}/documents`, input),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["patient-documents", patientId] }),
+    onError: () => toast("Failed to upload document"),
+  })
+
+  const deleteDocumentMutation = useMutation({
+    mutationFn: (documentId: string) => api.delete(`/patients/${patientId}/documents/${documentId}`),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["patient-documents", patientId] }),
+    onError: () => toast("Failed to delete document"),
   })
 
   if (!appointment || !patientId) {
@@ -207,7 +244,14 @@ export function PatientSnapshotCard({ appointment }: { appointment: DisplayAppoi
       : null
 
   const documents: LocalDocument[] = [
-    ...extraDocuments,
+    ...(documentsQuery.data?.documents ?? []).map((doc) => ({
+      id: doc.id,
+      name: doc.name,
+      date: new Date(doc.created_at).toLocaleDateString(),
+      size: `${Math.max(1, Math.round(doc.size_bytes / 1024))} KB`,
+      type: doc.mime_type === "application/pdf" ? ("pdf" as const) : ("image" as const),
+      url: doc.url,
+    })),
     ...prescriptions
       .filter((rx) => rx.prescription_items.length > 0)
       .map((rx) => ({
@@ -281,19 +325,32 @@ export function PatientSnapshotCard({ appointment }: { appointment: DisplayAppoi
     toast("Dossier exported")
   }
 
-  function handleFilesSelected(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleFilesSelected(e: React.ChangeEvent<HTMLInputElement>) {
     const files = e.target.files
     if (!files || files.length === 0) return
-    const uploaded: LocalDocument[] = Array.from(files).map((f) => ({
-      name: f.name,
-      date: new Date().toLocaleDateString(),
-      size: `${Math.max(1, Math.round(f.size / 1024))} KB`,
-      type: f.name.toLowerCase().endsWith(".pdf") ? "pdf" : "image",
-      url: URL.createObjectURL(f),
-    }))
-    setExtraDocuments((prev) => [...uploaded, ...prev])
-    toast(`Uploaded ${uploaded.length} document${uploaded.length > 1 ? "s" : ""} (this session only)`)
+    const list = Array.from(files)
     e.target.value = ""
+    setUploading(true)
+    try {
+      for (const file of list) {
+        const dataBase64 = await fileToBase64(file)
+        await uploadDocumentMutation.mutateAsync({
+          name: file.name,
+          mimeType: file.type || (file.name.toLowerCase().endsWith(".pdf") ? "application/pdf" : "application/octet-stream"),
+          dataBase64,
+        })
+      }
+      toast(`Uploaded ${list.length} document${list.length > 1 ? "s" : ""}`)
+    } catch {
+      toast("Failed to upload document")
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  function handleDeleteDocument(doc: LocalDocument) {
+    if (!doc.id) return
+    deleteDocumentMutation.mutate(doc.id)
   }
 
   const tabs: { key: TabKey; icon: React.ElementType; labelKey: keyof Strings }[] = [
@@ -666,34 +723,51 @@ export function PatientSnapshotCard({ appointment }: { appointment: DisplayAppoi
           <div className="rounded-xl border p-4">
             <div className="mb-3 flex items-center justify-between">
               <h3 className="font-heading text-[14.5px] font-bold">{t.tabDocuments}</h3>
-              <button onClick={() => fileInputRef.current?.click()} className="flex cursor-pointer items-center gap-1 text-xs font-bold text-primary">
-                <Upload className="size-3" strokeWidth={2.4} />
-                {t.qaUploadDocument}
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                className="flex cursor-pointer items-center gap-1 text-xs font-bold text-primary disabled:opacity-50"
+              >
+                {uploading ? <Loader2 className="size-3 animate-spin" /> : <Upload className="size-3" strokeWidth={2.4} />}
+                {uploading ? "Uploading…" : t.qaUploadDocument}
               </button>
               <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleFilesSelected} />
             </div>
-            {documents.length === 0 ? (
+            {documentsQuery.isLoading ? (
+              <div className="flex items-center gap-2 px-3.5 py-2.5 text-[13px] text-muted-foreground">
+                <Loader2 className="size-3.5 animate-spin" /> Loading documents…
+              </div>
+            ) : documents.length === 0 ? (
               <div className="rounded-xl bg-muted px-3.5 py-2.5 text-[13px] font-semibold text-muted-foreground">
                 {t.noDocumentsUploaded}
               </div>
             ) : (
               <div className="flex flex-col divide-y">
                 {documents.map((doc, i) => (
-                  <button
-                    key={i}
-                    onClick={() => handleOpenDocument(doc)}
-                    className="flex w-full items-center gap-3 py-3 text-left first:pt-0 last:pb-0 hover:bg-muted/40"
-                  >
-                    <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[#FFF7ED] text-[#C2410C]">
-                      {doc.type === "pdf" ? <FileText className="size-4" strokeWidth={1.8} /> : <ImageIcon className="size-4" strokeWidth={1.8} />}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate text-[13px] font-bold text-primary">{doc.name}</div>
-                      <div className="text-[11.5px] text-muted-foreground">
-                        {doc.date} · {doc.size}
+                  <div key={i} className="flex w-full items-center gap-3 py-3 first:pt-0 last:pb-0 hover:bg-muted/40">
+                    <button
+                      onClick={() => handleOpenDocument(doc)}
+                      className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                    >
+                      <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[#FFF7ED] text-[#C2410C]">
+                        {doc.type === "pdf" ? <FileText className="size-4" strokeWidth={1.8} /> : <ImageIcon className="size-4" strokeWidth={1.8} />}
                       </div>
-                    </div>
-                  </button>
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-[13px] font-bold text-primary">{doc.name}</div>
+                        <div className="text-[11.5px] text-muted-foreground">
+                          {doc.date} · {doc.size}
+                        </div>
+                      </div>
+                    </button>
+                    {doc.id && (
+                      <button
+                        onClick={() => handleDeleteDocument(doc)}
+                        className="shrink-0 rounded-lg px-2 py-1 text-[11px] font-bold text-destructive hover:bg-destructive/10"
+                      >
+                        Delete
+                      </button>
+                    )}
+                  </div>
                 ))}
               </div>
             )}
