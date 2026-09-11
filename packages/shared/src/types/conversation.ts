@@ -29,6 +29,9 @@ export enum ConversationState {
   AWAITING_CANCELLATION_TARGET_SELECTION = "AWAITING_CANCELLATION_TARGET_SELECTION",
   AWAITING_CANCELLATION_CONFIRMATION = "AWAITING_CANCELLATION_CONFIRMATION",
 
+  // Appointment reminder response (Confirm/Reschedule/Cancel buttons on the reminder message)
+  AWAITING_REMINDER_RESPONSE = "AWAITING_REMINDER_RESPONSE",
+
   // Clinic info / FAQ
   AWAITING_FAQ_QUESTION = "AWAITING_FAQ_QUESTION",
 
@@ -69,11 +72,18 @@ export type PendingRescheduleDraft = {
   selectedSlotIso?: string
   cachedAppointments?: CachedAppointmentOption[]
   cachedSlots?: CachedSlot[]
+  /** How many earlier slots have already been shown — where the next "See more dates" batch should pick up from. */
+  slotOffset?: number
 }
 
 export type PendingCancellationDraft = {
   targetAppointmentId?: string
   cachedAppointments?: CachedAppointmentOption[]
+}
+
+/** Set when a reminder's Confirm/Reschedule/Cancel buttons are sent, so the reply can act on that specific appointment without asking "which one?" again. */
+export type PendingReminderDraft = {
+  appointmentId: string
 }
 
 export type ConversationContext = {
@@ -86,6 +96,7 @@ export type ConversationContext = {
   booking?: PendingBookingDraft
   reschedule?: PendingRescheduleDraft
   cancellation?: PendingCancellationDraft
+  reminder?: PendingReminderDraft
   /** Last N turns kept only for OpenAI fallback context, not for business logic. */
   recentTurns: { role: "user" | "assistant"; text: string }[]
   updatedAt: string

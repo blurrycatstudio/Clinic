@@ -146,11 +146,8 @@ export async function triggerVoiceHandoff(
           settings,
         })
 
-  // suppressTextSend is set when `text` is only address+link duplicating the native
-  // location pin sent below (see locationReply) — kept for history, but not sent twice.
-  if ((result.reply.text && !result.reply.suppressTextSend) || result.reply.list || result.reply.buttons) {
-    await sendFlowReply(phoneE164, conversation.id, result.reply)
-  }
+  // Sent first, ahead of the text, so the native pin (with its own tap-to-open-in-Maps
+  // "Get Directions" action) leads the reply instead of trailing behind the Hours/Parking text.
   if (result.reply.location) {
     const { messageId } = await whatsappService.sendLocationMessage(phoneE164, result.reply.location)
     messageRepository
@@ -162,6 +159,12 @@ export async function triggerVoiceHandoff(
         waMessageId: messageId,
       })
       .catch((err) => logger.warn({ err }, "outbound location log failed"))
+  }
+
+  // suppressTextSend is set when `text` is only address+link duplicating the native
+  // location pin sent above (see locationReply) — kept for history, but not sent twice.
+  if ((result.reply.text && !result.reply.suppressTextSend) || result.reply.list || result.reply.buttons) {
+    await sendFlowReply(phoneE164, conversation.id, result.reply)
   }
 
   await auditLogRepository.record({
@@ -314,12 +317,8 @@ export async function handleInboundMessage(input: InboundMessage): Promise<void>
     result.reply.text = fallback || t(context.language, "genericFallback")
   }
 
-  // suppressTextSend is set when `text` is only address+link duplicating the native
-  // location pin sent below (see locationReply) — kept for history, but not sent twice.
-  if ((result.reply.text && !result.reply.suppressTextSend) || result.reply.list || result.reply.buttons) {
-    await sendFlowReply(input.phoneE164, conversation.id, result.reply)
-  }
-
+  // Sent first, ahead of the text, so the native pin (with its own tap-to-open-in-Maps
+  // "Get Directions" action) leads the reply instead of trailing behind the Hours/Parking text.
   if (result.reply.location) {
     const { messageId } = await whatsappService.sendLocationMessage(input.phoneE164, result.reply.location)
     messageRepository
@@ -331,6 +330,12 @@ export async function handleInboundMessage(input: InboundMessage): Promise<void>
         waMessageId: messageId,
       })
       .catch((err) => logger.warn({ err }, "outbound location log failed"))
+  }
+
+  // suppressTextSend is set when `text` is only address+link duplicating the native
+  // location pin sent above (see locationReply) — kept for history, but not sent twice.
+  if ((result.reply.text && !result.reply.suppressTextSend) || result.reply.list || result.reply.buttons) {
+    await sendFlowReply(input.phoneE164, conversation.id, result.reply)
   }
 
   if (result.context.state === ConversationState.ESCALATED_TO_HUMAN) {

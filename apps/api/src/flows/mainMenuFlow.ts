@@ -148,18 +148,23 @@ export const mainMenuFlow: FlowHandler = async ({ text, buttonId, context, setti
     case "info": {
       const hours = lang === "es" ? settings.hours_summary_es : settings.hours_summary_en
       const parking = lang === "es" ? settings.parking_info_es : settings.parking_info_en
-      const overview = t(lang, "clinicOverview", { address: settings.address, hours, parking })
       const { latitude, longitude } = settings
       const hasCoordinates = latitude != null && longitude != null
-      // The maps link is only needed in the text when there's no pin to carry it —
-      // with coordinates, the location message below already gives a tap-to-open-in-Maps pin.
-      const mapsLine = !hasCoordinates && settings.google_maps_url ? `\n${settings.google_maps_url}` : ""
+      // With coordinates, the native location pin sent alongside this message already
+      // shows the address and a tap-to-open-in-Maps action — so the text only adds
+      // Hours/Parking on top of it instead of repeating the address a second time.
+      // Without coordinates there's no pin, so the text carries the full address (plus
+      // a raw maps link, if one is configured) as the only way to share the location.
+      const overview = hasCoordinates
+        ? t(lang, "clinicOverviewNoLocation", { hours, parking })
+        : t(lang, "clinicOverview", { address: settings.address, hours, parking }) +
+          (settings.google_maps_url ? `\n${settings.google_maps_url}` : "")
 
       return {
         context: { ...context, state: ConversationState.AWAITING_FAQ_QUESTION, activeFlow: FlowType.INFO },
         reply: {
-          text: `${overview}${mapsLine}\n\n${t(lang, "infoPrompt")}`,
-          ...(latitude != null && longitude != null
+          text: `${overview}\n\n${t(lang, "infoPrompt")}`,
+          ...(hasCoordinates
             ? {
                 location: {
                   latitude,

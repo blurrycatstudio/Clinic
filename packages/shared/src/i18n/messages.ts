@@ -93,8 +93,12 @@ export const botMessages = {
       "¿Confirmas que deseas cancelar tu cita del {date} a las {time}? Responde *SI* o *NO*.",
     cancellationConfirmed: "✅ Tu cita ha sido cancelada. Escribe *Hola* si deseas agendar una nueva.",
     cancellationAborted: "Tu cita se mantiene sin cambios. Escribe *Hola* si necesitas algo más.",
+    reminderConfirmed: "✅ ¡Gracias! Confirmamos tu asistencia el {date} a las {time}. Te esperamos.",
+    reminderInvalid: "Toca *Confirmar*, *Reprogramar* o *Cancelar* arriba, o escribe una de esas palabras.",
+    reminderAppointmentGone: "Esa cita ya no está activa. Escribe *Hola* si necesitas algo más.",
     clinicOverview:
       "📍 *Ubicación*\n{address}\n\n🗓️ *Horario*\n{hours}\n\n🅿️ *Estacionamiento*\n{parking}",
+    clinicOverviewNoLocation: "🗓️ *Horario*\n{hours}\n\n🅿️ *Estacionamiento*\n{parking}",
     infoPrompt:
       "¿Algo más que quieras saber? Puedo darte información sobre costos, seguros o el doctor.",
     infoFallback:
@@ -163,8 +167,12 @@ export const botMessages = {
     confirmCancellation: "Do you confirm cancelling your appointment on {date} at {time}? Reply *YES* or *NO*.",
     cancellationConfirmed: "✅ Your appointment has been cancelled. Type *Hi* if you'd like to book a new one.",
     cancellationAborted: "Your appointment remains unchanged. Type *Hi* if you need anything else.",
+    reminderConfirmed: "✅ Thanks! We've marked you as confirmed for {date} at {time}. See you then.",
+    reminderInvalid: "Tap *Confirm*, *Reschedule*, or *Cancel* above, or type one of those words.",
+    reminderAppointmentGone: "That appointment is no longer active. Type *Hi* if you need anything else.",
     clinicOverview:
       "📍 *Location*\n{address}\n\n🗓️ *Hours*\n{hours}\n\n🅿️ *Parking*\n{parking}",
+    clinicOverviewNoLocation: "🗓️ *Hours*\n{hours}\n\n🅿️ *Parking*\n{parking}",
     infoPrompt:
       "Anything else you'd like to know? I can tell you about fees, insurance, or the doctor.",
     infoFallback: "For that question it's best to speak with our team directly. Type *Hi* and choose to talk to a human.",
