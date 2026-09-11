@@ -21,3 +21,4 @@ agentRouter.post("/whatsapp-availability", asyncHandler(async (req, res) => agen
 agentRouter.post("/whatsapp-appointment-details", asyncHandler(async (req, res) => agentController.sendAppointmentDetailsOnWhatsapp(req, res)))
 agentRouter.post("/escalations", asyncHandler(async (req, res) => agentController.escalate(req, res)))
 agentRouter.post("/whatsapp-handoff", asyncHandler(async (req, res) => agentController.whatsappHandoff(req, res)))
+agentRouter.post("/verify-phone-suffix", asyncHandler(async (req, res) => agentController.verifyPhoneSuffix(req, res)))

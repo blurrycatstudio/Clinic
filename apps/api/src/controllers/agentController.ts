@@ -321,4 +321,27 @@ export const agentController = {
     const { sent, state } = await triggerVoiceHandoff(body.phone, body.intent, body.language)
     res.json({ sent, state })
   },
+
+  /**
+   * Voice tool: before handing a reschedule request off to WhatsApp, the
+   * caller confirms the last 2 digits of the phone number the appointment
+   * was booked under. This is a spoken-confirmation check against a number
+   * we already have (caller ID, or a number the caller explicitly gave) —
+   * not a lookup — so it never reveals any phone number back to the caller,
+   * it only confirms whether what they said matches.
+   */
+  async verifyPhoneSuffix(req: Request, res: Response) {
+    const body = z
+      .object({
+        phone: z.string().min(4),
+        lastTwoDigits: z.string().min(1).max(4),
+      })
+      .parse(req.body)
+
+    const actualDigits = body.phone.replace(/\D/g, "")
+    const providedDigits = body.lastTwoDigits.replace(/\D/g, "")
+    const verified = providedDigits.length > 0 && actualDigits.slice(-2) === providedDigits.slice(-2)
+
+    res.json({ verified })
+  },
 }
