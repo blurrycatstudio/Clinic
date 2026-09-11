@@ -15,6 +15,7 @@ import {
   type MenuOptionKey,
 } from "@clinic/shared"
 import type { FlowHandler, FlowReply, FlowResult } from "./types.js"
+import { backToMenuButton } from "./backToMenuButton.js"
 import { enterRescheduleFlow } from "./rescheduleFlow.js"
 import { enterCancelFlow } from "./cancelFlow.js"
 import { startBookingFromFreeText, extractReasonIfPresent } from "./bookAppointmentFlow.js"
@@ -123,13 +124,13 @@ export async function startBookingChoice(context: ConversationContext, lang: Lan
         }),
         // No "No" button here — there's no dedicated no-op branch, typing the
         // corrected name already serves as the "these details are wrong" path.
-        buttons: [{ id: "yes", title: t(lang, "confirmYesButton") }],
+        buttons: [{ id: "yes", title: t(lang, "confirmYesButton") }, backToMenuButton(lang)],
       },
     }
   }
   return {
     context: { ...context, state: ConversationState.AWAITING_NAME, activeFlow: FlowType.BOOK, booking: reason ? { reason } : {} },
-    reply: { text: t(lang, "askName") },
+    reply: { text: t(lang, "askName"), buttons: [backToMenuButton(lang)] },
   }
 }
 
@@ -163,6 +164,10 @@ export const mainMenuFlow: FlowHandler = async ({ text, buttonId, context, setti
           text: bodyText,
           suppressTextSend: true,
           ctaUrl: { bodyText, displayText: t(lang, "getDirectionsButton"), url: mapsUrl },
+          // Sent as its own message (see sendFlowReply) with a short body — the full
+          // overview already went out on the ctaUrl message above, so this isn't repeated.
+          buttons: [backToMenuButton(lang)],
+          buttonsText: t(lang, "infoPrompt"),
           // Coordinates are optional and there's no admin UI for them yet — when set,
           // this sends WhatsApp's native drop-a-pin card too, as a bonus alongside the button.
           ...(hasCoordinates
@@ -181,7 +186,7 @@ export const mainMenuFlow: FlowHandler = async ({ text, buttonId, context, setti
     case "human":
       return {
         context: { ...context, state: ConversationState.ESCALATED_TO_HUMAN, activeFlow: FlowType.HUMAN_SUPPORT },
-        reply: { text: t(lang, "humanSupportAck") },
+        reply: { text: t(lang, "humanSupportAck"), buttons: [backToMenuButton(lang)] },
       }
     case "status": {
       const appointments = await appointmentService.findActiveAppointmentsForPhone(context.phoneE164)

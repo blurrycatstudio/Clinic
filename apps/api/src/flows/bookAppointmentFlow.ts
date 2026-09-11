@@ -8,15 +8,19 @@ import { tryAnswerOffScript } from "../lib/offScript.js"
 import { ConflictError } from "../lib/errors.js"
 import { format } from "date-fns"
 import { toZonedTime } from "date-fns-tz"
+import { backToMenuButton } from "./backToMenuButton.js"
 
-const SLOTS_PER_PAGE = 9
+// 8, not 9, to leave room in WhatsApp's 10-row cap for the trailing "See more dates"
+// and "Back to menu" rows a page can carry alongside the slots themselves.
+const SLOTS_PER_PAGE = 8
 const MIN_WORDS_FOR_REASON = 4
 
-/** Each slot becomes a tappable WhatsApp list row (title = the slot's time label) — the patient selects with one tap instead of typing a number, though a typed number still works as a fallback. A trailing "See more dates" row (when `hasMore`) fits within WhatsApp's 10-row cap since a page is 9 slots. */
+/** Each slot becomes a tappable WhatsApp list row (title = the slot's time label) — the patient selects with one tap instead of typing a number, though a typed number still works as a fallback. A trailing "See more dates" row (when `hasMore`) and a "Back to menu" row both fit within WhatsApp's 10-row cap since a page is 8 slots. */
 function buildSlotListReply(lang: Language, slots: AvailableSlot[], hasMore: boolean): FlowReply {
   if (slots.length === 0) return { text: t(lang, "noSlotsAvailable") }
   const rows = slots.map((s, i) => ({ id: String(i + 1), title: s.label }))
   if (hasMore) rows.push({ id: "more_slots", title: t(lang, "moreDatesButton") })
+  rows.push(backToMenuButton(lang))
   return {
     text: t(lang, "chooseSlotPrompt"),
     list: { buttonLabel: t(lang, "viewTimesButton"), rows },
@@ -57,12 +61,22 @@ function buildConfirmText(lang: Language, draft: PendingBookingDraft, slot: Avai
   })
 }
 
+function askReasonReply(lang: Language, lastReason?: string): FlowReply {
+  return lastReason
+    ? {
+        text: t(lang, "askReasonWithHint", { lastReason }),
+        buttons: [{ id: "same", title: t(lang, "sameReasonButton") }, backToMenuButton(lang)],
+      }
+    : { text: t(lang, "askReason"), buttons: [backToMenuButton(lang)] }
+}
+
 function confirmationReply(lang: Language, draft: PendingBookingDraft, slot: AvailableSlot) {
   return {
     text: buildConfirmText(lang, draft, slot),
     buttons: [
       { id: "yes", title: t(lang, "confirmYesButton") },
       { id: "no", title: t(lang, "confirmNoButton") },
+      backToMenuButton(lang),
     ],
   }
 }
@@ -247,7 +261,7 @@ export async function startBookingFromFreeText(
     // A patient the bot doesn't recognize yet still needs to give their name first —
     // any "that day isn't available, here's what is" framing shows once we list the
     // slots after the name arrives (see AWAITING_NAME below).
-    reply: { text: t(lang, "askName") },
+    reply: { text: t(lang, "askName"), buttons: [backToMenuButton(lang)] },
   }
 }
 
@@ -268,12 +282,7 @@ export const bookAppointmentFlow: FlowHandler = async ({ text, buttonId, context
         }
         return {
           context: { ...context, state: ConversationState.AWAITING_REASON },
-          reply: draft.lastReason
-            ? {
-                text: t(lang, "askReasonWithHint", { lastReason: draft.lastReason }),
-                buttons: [{ id: "same", title: t(lang, "sameReasonButton") }],
-              }
-            : { text: t(lang, "askReason") },
+          reply: askReasonReply(lang, draft.lastReason),
         }
       }
 
@@ -299,19 +308,14 @@ export const bookAppointmentFlow: FlowHandler = async ({ text, buttonId, context
           state: ConversationState.AWAITING_REASON,
           booking: { ...draft, fullName: trimmedText, phoneE164: context.phoneE164 },
         },
-        reply: draft.lastReason
-          ? {
-              text: t(lang, "askReasonWithHint", { lastReason: draft.lastReason }),
-              buttons: [{ id: "same", title: t(lang, "sameReasonButton") }],
-            }
-          : { text: t(lang, "askReason") },
+        reply: askReasonReply(lang, draft.lastReason),
       }
     }
 
     case ConversationState.AWAITING_NAME: {
       const fullName = text.trim()
       if (fullName.length < 2) {
-        return { context, reply: { text: t(lang, "askName") } }
+        return { context, reply: { text: t(lang, "askName"), buttons: [backToMenuButton(lang)] } }
       }
       // The patient's WhatsApp number *is* their contact number — asking for it
       // again as free text let it drift out of sync with context.phoneE164,
@@ -343,7 +347,7 @@ export const bookAppointmentFlow: FlowHandler = async ({ text, buttonId, context
 
       return {
         context: { ...context, state: ConversationState.AWAITING_REASON, booking: updatedDraft },
-        reply: { text: t(lang, "askReason") },
+        reply: askReasonReply(lang),
       }
     }
 

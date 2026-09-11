@@ -292,11 +292,17 @@ export async function handleInboundMessage(input: InboundMessage): Promise<void>
     ConversationState.AWAITING_REASON,
   ].includes(context.state)
 
+  // A tapped "🔙 Menu" button (id "menu", attached to nearly every prompt so mobile
+  // patients always have a way out without scrolling back up or retyping "menu") is
+  // unambiguous — unlike the literal typed word, which could coincidentally be a
+  // patient's actual name/reason — so it resets to the menu even mid free-text entry.
+  const tappedBackToMenu = input.buttonId === "menu"
+
   // Always short-circuit straight to the menu on a greeting, even if the patient is
   // already sitting at AWAITING_MENU_SELECTION — mainMenuFlow has no case for "hi",
   // so without this a repeated "hi" after one invalid choice would loop on
   // menuInvalid forever instead of ever re-showing the menu.
-  if (context.language && isGreeting(normalizedText) && !inFreeTextEntry) {
+  if (context.language && (tappedBackToMenu || (isGreeting(normalizedText) && !inFreeTextEntry))) {
     const next = { ...context, state: ConversationState.AWAITING_MENU_SELECTION, activeFlow: FlowType.NONE }
     const menuReply = buildMainMenu(context.language, settings)
     await sendFlowReply(input.phoneE164, conversation.id, menuReply)

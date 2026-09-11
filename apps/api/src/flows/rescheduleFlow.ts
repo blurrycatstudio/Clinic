@@ -17,8 +17,11 @@ import { tryAnswerOffScript } from "../lib/offScript.js"
 import { startBookingFromFreeText } from "./bookAppointmentFlow.js"
 import { enterCancelFlow } from "./cancelFlow.js"
 import { openaiService } from "../services/openaiService.js"
+import { backToMenuButton } from "./backToMenuButton.js"
 
-const SLOTS_PER_PAGE = 9
+// 8, not 9, to leave room in WhatsApp's 10-row cap for the trailing "See more dates"
+// and "Back to menu" rows a page can carry alongside the slots themselves.
+const SLOTS_PER_PAGE = 8
 
 /**
  * A patient mid-reschedule often just restates their whole request instead of
@@ -47,15 +50,19 @@ async function tryRestateIntent(
 function appointmentListReply(lang: Language, promptKey: "chooseAppointmentToReschedule", options: { label: string }[]): FlowReply {
   return {
     text: t(lang, promptKey, { appointments: options.map((o, i) => `${i + 1}️⃣ ${o.label}`).join("\n") }),
-    list: { buttonLabel: t(lang, "viewTimesButton"), rows: options.map((o, i) => ({ id: String(i + 1), title: o.label })) },
+    list: {
+      buttonLabel: t(lang, "viewTimesButton"),
+      rows: [...options.map((o, i) => ({ id: String(i + 1), title: o.label })), backToMenuButton(lang)],
+    },
   }
 }
 
-/** Each slot becomes a tappable WhatsApp list row; a trailing "See more dates" row (when `hasMore`) fits within WhatsApp's 10-row cap since a page is 9 slots. */
+/** Each slot becomes a tappable WhatsApp list row; a trailing "See more dates" row (when `hasMore`) and a "Back to menu" row both fit within WhatsApp's 10-row cap since a page is 8 slots. */
 function buildSlotListReply(lang: Language, slots: AvailableSlot[], hasMore: boolean): FlowReply {
   if (slots.length === 0) return { text: t(lang, "noSlotsAvailable") }
   const rows = slots.map((s, i) => ({ id: String(i + 1), title: s.label }))
   if (hasMore) rows.push({ id: "more_slots", title: t(lang, "moreDatesButton") })
+  rows.push(backToMenuButton(lang))
   return {
     text: t(lang, "chooseSlotPrompt"),
     list: { buttonLabel: t(lang, "viewTimesButton"), rows },
@@ -202,6 +209,7 @@ export const rescheduleFlow: FlowHandler = async ({ text, buttonId, context, set
           buttons: [
             { id: "yes", title: t(lang, "confirmYesButton") },
             { id: "no", title: t(lang, "confirmNoButton") },
+            backToMenuButton(lang),
           ],
         },
       }

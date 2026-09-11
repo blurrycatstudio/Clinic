@@ -17,6 +17,7 @@ import { tryAnswerOffScript } from "../lib/offScript.js"
 import { startBookingFromFreeText } from "./bookAppointmentFlow.js"
 import { enterRescheduleFlow } from "./rescheduleFlow.js"
 import { openaiService } from "../services/openaiService.js"
+import { backToMenuButton } from "./backToMenuButton.js"
 
 /**
  * A patient mid-cancellation often just restates their whole request instead of
@@ -44,7 +45,21 @@ async function tryRestateIntent(
 function appointmentListReply(lang: Language, options: { label: string }[]): FlowReply {
   return {
     text: t(lang, "chooseAppointmentToCancel", { appointments: options.map((o, i) => `${i + 1}️⃣ ${o.label}`).join("\n") }),
-    list: { buttonLabel: t(lang, "viewTimesButton"), rows: options.map((o, i) => ({ id: String(i + 1), title: o.label })) },
+    list: {
+      buttonLabel: t(lang, "viewTimesButton"),
+      rows: [...options.map((o, i) => ({ id: String(i + 1), title: o.label })), backToMenuButton(lang)],
+    },
+  }
+}
+
+function confirmCancellationReply(lang: Language, date: string, time: string): FlowReply {
+  return {
+    text: t(lang, "confirmCancellation", { date, time }),
+    buttons: [
+      { id: "yes", title: t(lang, "confirmYesButton") },
+      { id: "no", title: t(lang, "confirmNoButton") },
+      backToMenuButton(lang),
+    ],
   }
 }
 
@@ -96,13 +111,7 @@ export async function enterCancelFlowForAppointment(context: ConversationContext
       activeFlow: FlowType.CANCEL,
       cancellation: { targetAppointmentId: appointmentId },
     },
-    reply: {
-      text: t(lang, "confirmCancellation", { date: format(zoned, "EEEE d MMMM"), time: format(zoned, "h:mm a") }),
-      buttons: [
-        { id: "yes", title: t(lang, "confirmYesButton") },
-        { id: "no", title: t(lang, "confirmNoButton") },
-      ],
-    },
+    reply: confirmCancellationReply(lang, format(zoned, "EEEE d MMMM"), format(zoned, "h:mm a")),
   }
 }
 
@@ -142,13 +151,7 @@ export const cancelFlow: FlowHandler = async ({ text, buttonId, context, setting
           state: ConversationState.AWAITING_CANCELLATION_CONFIRMATION,
           cancellation: { targetAppointmentId: chosen.appointmentId },
         },
-        reply: {
-          text: t(lang, "confirmCancellation", { date: format(zoned, "EEEE d MMMM"), time: format(zoned, "h:mm a") }),
-          buttons: [
-            { id: "yes", title: t(lang, "confirmYesButton") },
-            { id: "no", title: t(lang, "confirmNoButton") },
-          ],
-        },
+        reply: confirmCancellationReply(lang, format(zoned, "EEEE d MMMM"), format(zoned, "h:mm a")),
       }
     }
 

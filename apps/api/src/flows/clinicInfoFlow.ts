@@ -6,6 +6,7 @@ import { startBookingFromFreeText } from "./bookAppointmentFlow.js"
 import { enterRescheduleFlow } from "./rescheduleFlow.js"
 import { enterCancelFlow } from "./cancelFlow.js"
 import { LOCATION_KEYWORDS, locationReply } from "../lib/offScript.js"
+import { backToMenuButton } from "./backToMenuButton.js"
 
 const MENU_ESCAPE_WORDS = new Set(["menu", "hola", "hi", "hello"])
 
@@ -41,6 +42,6 @@ export const clinicInfoFlow: FlowHandler = async ({ text, context, settings }) =
   const faqAnswer = answer ?? (await openaiService.answerFaq(trimmed, lang, settings))
   return {
     context,
-    reply: { text: faqAnswer },
+    reply: { text: faqAnswer, buttons: [backToMenuButton(lang)] },
   }
 }
