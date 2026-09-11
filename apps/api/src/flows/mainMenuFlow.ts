@@ -21,7 +21,7 @@ import { startBookingFromFreeText, extractReasonIfPresent } from "./bookAppointm
 import { appointmentService } from "../services/appointmentService.js"
 import { patientRepository } from "../repositories/patientRepository.js"
 import { appointmentRepository } from "../repositories/appointmentRepository.js"
-import { locationReply, LOCATION_KEYWORDS } from "../lib/offScript.js"
+import { locationReply, LOCATION_KEYWORDS, isGratitudeMessage } from "../lib/offScript.js"
 import { openaiService } from "../services/openaiService.js"
 
 const NUMBER_EMOJI = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟"]
@@ -210,6 +210,10 @@ export const mainMenuFlow: FlowHandler = async ({ text, buttonId, context, setti
       const lowerText = rawText.toLowerCase()
       if (LOCATION_KEYWORDS.some((kw) => lowerText.includes(kw))) {
         return { context, reply: locationReply(lang, settings) }
+      }
+
+      if (isGratitudeMessage(rawText)) {
+        return { context, reply: { text: t(lang, "gratitudeReply") } }
       }
 
       // No parseable date/time, but the message may still clearly express booking/

@@ -253,6 +253,18 @@ export async function handleInboundMessage(input: InboundMessage): Promise<void>
     }
   }
 
+  // The patient already has a language on file but just greeted us in the other one
+  // (e.g. "hola" after a previous conversation that started in English) — switch so
+  // the menu we're about to show, and everything downstream, matches what they just
+  // typed instead of staying stuck in whatever language got set first.
+  if (context.language && isGreeting(normalizedText)) {
+    const detected = detectLanguageHeuristic(input.text)
+    if (detected && detected !== context.language) {
+      await conversationRepository.setLanguage(conversation.id, detected)
+      context = { ...context, language: detected }
+    }
+  }
+
   // Global escape hatch: typing a greeting/menu word anytime resets to the main menu,
   // unless the patient is mid-way through providing free-text booking details, where
   // "hola"/"hi" as a literal answer (e.g. a child named "Hola") would be nonsensical

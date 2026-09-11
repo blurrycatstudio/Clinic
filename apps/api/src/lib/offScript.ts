@@ -1,4 +1,4 @@
-import { Intent, type ClinicSettings, type Language } from "@clinic/shared"
+import { Intent, t, type ClinicSettings, type Language } from "@clinic/shared"
 import { openaiService } from "../services/openaiService.js"
 import type { FlowReply } from "../flows/types.js"
 
@@ -8,6 +8,24 @@ export const LOCATION_KEYWORDS = [
   "directions", "located", "situated", "gps", "pin", "waze", "how do i get", "how to get",
   "how do i reach", "how to reach", "como llego", "cómo llego", "como llegar", "cómo llegar",
 ]
+
+/** Closing pleasantries that don't ask anything — a "thanks" here shouldn't ever get "sorry, I didn't get that". */
+const GRATITUDE_KEYWORDS = [
+  "gracias", "muchas gracias", "mil gracias", "ok gracias", "okay gracias", "vale gracias",
+  "thanks", "thank you", "thankyou", "thank u", "ty", "ok thanks", "okay thanks",
+  "perfecto", "perfect", "genial", "great", "awesome", "excelente", "excellent",
+]
+
+/** True only for a short pleasantry — a longer sentence that happens to contain "thanks" may still be a real question, so this stays a whole-message match, not a substring one. */
+export function isGratitudeMessage(rawText: string): boolean {
+  const normalized = rawText
+    .trim()
+    .toLowerCase()
+    .replace(/[!.,¡¿?]/g, "")
+    .trim()
+  if (!normalized) return false
+  return GRATITUDE_KEYWORDS.includes(normalized)
+}
 
 function buildMapsUrl(address: string): string {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`
@@ -65,6 +83,10 @@ export async function tryAnswerOffScript(
   const lower = rawText.trim().toLowerCase()
   if (LOCATION_KEYWORDS.some((kw) => lower.includes(kw))) {
     return locationReply(lang, settings)
+  }
+
+  if (isGratitudeMessage(rawText)) {
+    return { text: t(lang, "gratitudeReply") }
   }
 
   if (!looksLikeAQuestion(rawText)) return null

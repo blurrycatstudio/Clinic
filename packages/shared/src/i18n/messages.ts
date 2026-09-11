@@ -40,6 +40,7 @@ export const botMessages = {
     mainMenuFooter: "Responde con el número de tu opción.",
     mainMenuFooterWithButtons: "Toca una opción rápida arriba o responde con el número de tu elección.",
     menuInvalid: "No entendí esa opción. Elige una opción rápida o responde con su número.",
+    gratitudeReply: "¡Con gusto! Si necesitas algo más, aquí estamos.",
     confirmSavedDetails:
       "¡Bienvenido de nuevo! Tenemos estos datos guardados:\n\n👤 {name}\n📱 {phone}{reasonLine}\n\nResponde *SI* para usarlos, o escribe el nombre completo correcto si necesitas actualizarlo.",
     confirmYesButton: "Sí",
@@ -113,6 +114,7 @@ export const botMessages = {
     mainMenuFooter: "Reply with the number of your choice.",
     mainMenuFooterWithButtons: "Tap a quick option above or reply with the number of your choice.",
     menuInvalid: "Sorry, I didn't get that. Choose a quick option or reply with its number.",
+    gratitudeReply: "You're welcome! Let us know if you need anything else.",
     confirmSavedDetails:
       "Welcome back! We have these details on file:\n\n👤 {name}\n📱 {phone}{reasonLine}\n\nReply *YES* to use them, or type the correct full name if you need to update it.",
     confirmYesButton: "Yes",
