@@ -9,6 +9,13 @@ import { CLINIC_TIMEZONE, type ClinicSettings, type Patient, type Appointment } 
  * greeting instead of the inbound assistant's default "thank you for
  * calling" — that line only makes sense when the patient called us, never
  * when we called them.
+ *
+ * The opening line always speaks Spanish, regardless of the patient's
+ * stored `language` (which only drives WhatsApp/template text) — every
+ * voice call, inbound or outbound, defaults to Spanish and only switches
+ * to English if the person on the call actually asks for it. The system
+ * prompt's language-detection rule takes over for the rest of the call
+ * from here.
  */
 export function buildReminderCallOverrides(
   patient: Patient,
@@ -18,12 +25,8 @@ export function buildReminderCallOverrides(
   const zoned = toZonedTime(new Date(appointment.starts_at), CLINIC_TIMEZONE)
   const date = format(zoned, "EEEE d MMMM")
   const time = format(zoned, "h:mm a")
-  const lang = patient.language ?? "es"
 
-  const firstMessage =
-    lang === "en"
-      ? `Hello ${patient.full_name}, this is ${settings.clinic_name} calling to remind you of your appointment on ${date} at ${time}. Can you confirm you'll be attending?`
-      : `Hola ${patient.full_name}, le llamamos de ${settings.clinic_name} para recordarle su cita el ${date} a las ${time}. ¿Puede confirmar que asistirá?`
+  const firstMessage = `Hola ${patient.full_name}, le llamamos de ${settings.clinic_name} para recordarle su cita el ${date} a las ${time}. ¿Puede confirmar que asistirá?`
 
   return {
     firstMessage,
