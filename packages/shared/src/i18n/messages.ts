@@ -96,8 +96,8 @@ export const botMessages = {
     reminderConfirmed: "✅ ¡Gracias! Confirmamos tu asistencia el {date} a las {time}. Te esperamos.",
     reminderInvalid: "Toca *Confirmar*, *Reprogramar* o *Cancelar* arriba, o escribe una de esas palabras.",
     reminderAppointmentGone: "Esa cita ya no está activa. Escribe *Hola* si necesitas algo más.",
-    clinicOverviewNoLocation: "🗓️ *Horario*\n{hours}\n\n🅿️ *Estacionamiento*\n{parking}",
-    locationLabel: "Ubicación",
+    clinicOverview:
+      "📍 *Ubicación*\n{address}\n\n🗓️ *Horario*\n{hours}\n\n🅿️ *Estacionamiento*\n{parking}",
     getDirectionsButton: "Cómo llegar",
     infoPrompt:
       "¿Algo más que quieras saber? Puedo darte información sobre costos, seguros o el doctor.",
@@ -170,8 +170,8 @@ export const botMessages = {
     reminderConfirmed: "✅ Thanks! We've marked you as confirmed for {date} at {time}. See you then.",
     reminderInvalid: "Tap *Confirm*, *Reschedule*, or *Cancel* above, or type one of those words.",
     reminderAppointmentGone: "That appointment is no longer active. Type *Hi* if you need anything else.",
-    clinicOverviewNoLocation: "🗓️ *Hours*\n{hours}\n\n🅿️ *Parking*\n{parking}",
-    locationLabel: "Location",
+    clinicOverview:
+      "📍 *Location*\n{address}\n\n🗓️ *Hours*\n{hours}\n\n🅿️ *Parking*\n{parking}",
     getDirectionsButton: "Get Directions",
     infoPrompt:
       "Anything else you'd like to know? I can tell you about fees, insurance, or the doctor.",

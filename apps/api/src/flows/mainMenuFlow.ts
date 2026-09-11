@@ -151,19 +151,18 @@ export const mainMenuFlow: FlowHandler = async ({ text, buttonId, context, setti
       const { latitude, longitude } = settings
       const hasCoordinates = latitude != null && longitude != null
       const mapsUrl = settings.google_maps_url || buildMapsUrl(settings.address)
-      // The "Get Directions" button carries the address, so the text below only adds
-      // Hours/Parking on top of it instead of repeating the address a second time.
-      const overview = t(lang, "clinicOverviewNoLocation", { hours, parking })
+      // A cta_url message's body text supports full multi-line content, so Location/
+      // Hours/Parking/the closing prompt all ride in ONE message with the button
+      // underneath, instead of a separate button message plus a second text message.
+      const overview = t(lang, "clinicOverview", { address: settings.address, hours, parking })
+      const bodyText = `${overview}\n\n${t(lang, "infoPrompt")}`
 
       return {
         context: { ...context, state: ConversationState.AWAITING_FAQ_QUESTION, activeFlow: FlowType.INFO },
         reply: {
-          text: `${overview}\n\n${t(lang, "infoPrompt")}`,
-          ctaUrl: {
-            bodyText: `📍 *${t(lang, "locationLabel")}*\n${settings.address}`,
-            displayText: t(lang, "getDirectionsButton"),
-            url: mapsUrl,
-          },
+          text: bodyText,
+          suppressTextSend: true,
+          ctaUrl: { bodyText, displayText: t(lang, "getDirectionsButton"), url: mapsUrl },
           // Coordinates are optional and there's no admin UI for them yet — when set,
           // this sends WhatsApp's native drop-a-pin card too, as a bonus alongside the button.
           ...(hasCoordinates
