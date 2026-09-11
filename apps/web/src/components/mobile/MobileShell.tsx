@@ -5,12 +5,15 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { useLang } from "@/lib/i18n"
 import { cn } from "@/lib/utils"
 
+// All five point within /mobile/* — tabs used to jump out to the desktop AppShell pages
+// (/patients, /whatsapp, /records), which don't render this bar, so it looked like the
+// bottom toolbar "disappeared" the moment you tapped one.
 const TABS = [
   { path: "/mobile/dashboard", labelKey: "mobileNavDashboard" as const, icon: House },
   { path: "/mobile/schedule", labelKey: "mobileNavSchedule" as const, icon: Calendar },
-  { path: "/patients", labelKey: "mobileNavPatients" as const, icon: Baby },
-  { path: "/whatsapp", labelKey: "mobileNavMessages" as const, icon: MessageCircle },
-  { path: "/records", labelKey: "mobileNavRecords" as const, icon: FileText },
+  { path: "/mobile/patients", labelKey: "mobileNavPatients" as const, icon: Baby },
+  { path: "/mobile/messages", labelKey: "mobileNavMessages" as const, icon: MessageCircle },
+  { path: "/mobile/records", labelKey: "mobileNavRecords" as const, icon: FileText },
 ]
 
 /**
@@ -33,8 +36,11 @@ export function MobileShell({
   const navigate = useNavigate()
 
   return (
-    <div className="min-h-dvh bg-[#F8FAFC]">
-      <div className="mx-auto flex min-h-dvh w-full max-w-[430px] flex-col bg-[#F8FAFC]">
+    // h-dvh + overflow-hidden (not min-h-dvh) so this is a fixed-height frame — <main> below
+    // is then the one thing that actually scrolls internally, instead of the whole window
+    // growing past the viewport and carrying its scroll position between screens.
+    <div className="h-dvh overflow-hidden bg-[#F8FAFC]">
+      <div className="mx-auto flex h-dvh w-full max-w-[430px] flex-col overflow-hidden bg-[#F8FAFC]">
         <header className="sticky top-0 z-40 flex h-14 shrink-0 items-center justify-between gap-2 border-b border-border/60 bg-white px-4">
           {onBack ? (
             <>

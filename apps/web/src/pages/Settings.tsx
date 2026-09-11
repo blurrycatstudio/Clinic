@@ -1,5 +1,6 @@
 import { DoctorProfileCard } from "@/components/dashboard/DoctorProfileCard"
 import { ReminderCallsCard } from "@/components/dashboard/ReminderCallsCard"
+import { MenuOptionsCard } from "@/components/whatsapp/MenuOptionsCard"
 import { useLang } from "@/lib/i18n"
 
 export default function Settings() {
@@ -15,6 +16,7 @@ export default function Settings() {
       <div className="flex w-full max-w-100 flex-col gap-4.5">
         <DoctorProfileCard />
         <ReminderCallsCard />
+        <MenuOptionsCard />
       </div>
     </div>
   )

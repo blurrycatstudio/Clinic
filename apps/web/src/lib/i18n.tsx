@@ -540,6 +540,19 @@ export const STR = {
     mobileRecordNotFound: "Patient not found",
     mobileRecordSent: "Sent",
     mobileRecordDraft: "Not sent yet",
+
+    // ---------- Mobile patients ----------
+    mobilePatientsTitle: "Patients",
+    mobilePatientsSearchPh: "Search by name or phone…",
+    mobilePatientsEmpty: "No patients found",
+    mobilePatientsError: "Couldn't load patients.",
+
+    // ---------- Mobile messages ----------
+    mobileMessagesTitle: "Messages",
+    mobileMessagesEmpty: "No conversations yet",
+    mobileMessagesLoading: "Loading messages…",
+    mobileMessagesNoMessages: "No messages yet",
+    mobileMessagesSendFailed: "Failed to send message",
   },
   es: {
     navDashboard: "Panel",
@@ -1078,6 +1091,19 @@ export const STR = {
     mobileRecordNotFound: "Paciente no encontrado",
     mobileRecordSent: "Enviada",
     mobileRecordDraft: "Sin enviar",
+
+    // ---------- Mobile patients ----------
+    mobilePatientsTitle: "Pacientes",
+    mobilePatientsSearchPh: "Buscar por nombre o teléfono…",
+    mobilePatientsEmpty: "No se encontraron pacientes",
+    mobilePatientsError: "No se pudieron cargar los pacientes.",
+
+    // ---------- Mobile messages ----------
+    mobileMessagesTitle: "Mensajes",
+    mobileMessagesEmpty: "Aún no hay conversaciones",
+    mobileMessagesLoading: "Cargando mensajes…",
+    mobileMessagesNoMessages: "Aún no hay mensajes",
+    mobileMessagesSendFailed: "No se pudo enviar el mensaje",
   },
 }
 

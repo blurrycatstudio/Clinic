@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom"
 import { AppShell } from "@/components/layout/AppShell"
 import { ProtectedRoute } from "@/components/layout/ProtectedRoute"
+import { ScrollToTop } from "@/components/layout/ScrollToTop"
 import { AuthProvider } from "@/lib/useAuth"
 import { LanguageProvider } from "@/lib/i18n"
 import { ToastProvider } from "@/lib/toast"
@@ -22,6 +23,10 @@ import MobileDashboard from "@/pages/mobile/MobileDashboard"
 import MobileSchedule from "@/pages/mobile/MobileSchedule"
 import MobileConsultation from "@/pages/mobile/MobileConsultation"
 import MobileRecord from "@/pages/mobile/MobileRecord"
+import MobilePatients from "@/pages/mobile/MobilePatients"
+import MobileMessages from "@/pages/mobile/MobileMessages"
+import MobileChat from "@/pages/mobile/MobileChat"
+import MobileDocuments from "@/pages/mobile/MobileDocuments"
 
 const queryClient = new QueryClient()
 
@@ -43,6 +48,7 @@ function App() {
         <LanguageProvider>
         <ToastProvider>
           <BrowserRouter>
+            <ScrollToTop />
             <Routes>
               <Route path="/login" element={<Login />} />
               <Route element={<ProtectedRoute />}>
@@ -59,10 +65,16 @@ function App() {
                   <Route path="/reports" element={<Reports />} />
                   <Route path="/settings" element={<Settings />} />
                 </Route>
-                {/* New mobile-first routes: full-bleed, no desktop AppShell. */}
+                {/* New mobile-first routes: full-bleed, no desktop AppShell. All five bottom-tab
+                    destinations (dashboard/schedule/patients/messages/records) live under here so
+                    MobileShell's tab bar never disappears mid-navigation. */}
                 <Route path="/mobile/dashboard" element={<MobileDashboard />} />
                 <Route path="/mobile/schedule" element={<MobileSchedule />} />
                 <Route path="/mobile/consultation/:appointmentId" element={<MobileConsultation />} />
+                <Route path="/mobile/patients" element={<MobilePatients />} />
+                <Route path="/mobile/messages" element={<MobileMessages />} />
+                <Route path="/mobile/messages/:conversationId" element={<MobileChat />} />
+                <Route path="/mobile/records" element={<MobileDocuments />} />
                 <Route path="/mobile/records/:patientId" element={<MobileRecord />} />
               </Route>
             </Routes>

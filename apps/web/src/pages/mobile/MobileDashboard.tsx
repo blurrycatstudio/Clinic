@@ -111,7 +111,7 @@ export default function MobileDashboard() {
                 {t.mobileDashboardCallParent}
               </Button>
               <Button
-                onClick={() => navigate("/whatsapp")}
+                onClick={() => navigate("/mobile/messages", { state: { patientId: upNext.patientId } })}
                 variant="outline"
                 className="flex-1 gap-1.5 rounded-xl border-white/30 bg-transparent font-semibold text-white hover:bg-white/10"
               >
