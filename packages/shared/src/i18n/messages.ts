@@ -17,7 +17,7 @@ export const menuOptionLabels: Record<MenuOptionKey, Record<Language, string>> =
   reschedule: { es: "Reprogramar cita", en: "Reschedule Appointment" },
   cancel: { es: "Cancelar cita", en: "Cancel Appointment" },
   info: { es: "Info de la clínica", en: "Clinic Information" },
-  human: { es: "Hablar con un humano", en: "Human Support" },
+  human: { es: "Contactar soporte", en: "Contact Support" },
   status: { es: "Ver estado de mi cita", en: "Appointment Status" },
 }
 
@@ -27,7 +27,7 @@ export const menuOptionButtonLabels: Record<MenuOptionKey, Record<Language, stri
   reschedule: { es: "Reprogramar", en: "Reschedule" },
   cancel: { es: "Cancelar cita", en: "Cancel Appointment" },
   info: { es: "Info de la clínica", en: "Clinic Information" },
-  human: { es: "Hablar con humano", en: "Human Support" },
+  human: { es: "Contactar soporte", en: "Contact Support" },
   status: { es: "Ver estado de cita", en: "Appointment Status" },
 }
 
@@ -47,6 +47,7 @@ export const botMessages = {
     confirmNoButton: "No",
     sameReasonButton: "Igual",
     moreDatesButton: "Ver más fechas",
+    backToMenuButton: "🔙 Menú principal",
     confirmSavedDetailsInvalid:
       "Responde *SI* para usar tus datos guardados, o escribe el nombre completo del paciente para actualizarlo.",
     lastVisitReasonLine: "\n📝 Motivo de tu última visita: {reason}",
@@ -70,7 +71,7 @@ export const botMessages = {
     bookingCancelled: "Entendido, no se agendó la cita. Escribe *Hola* si necesitas algo más.",
     confirmInvalid: "Por favor responde *SI* o *NO*.",
     noAppointmentsFound:
-      "No encontramos citas activas asociadas a tu número. Si crees que es un error, escribe *Hola* y elige hablar con un humano.",
+      "No encontramos citas activas asociadas a tu número. Si crees que es un error, escribe *Hola* y elige *Contactar soporte*.",
     yourAppointmentsStatus:
       "📋 Estas son tus citas activas:\n\n{appointments}\n\nEscribe *Hola* para volver al menú principal.",
     appointmentStatusLine: "📅 {date} a las {time} — {status}",
@@ -102,9 +103,9 @@ export const botMessages = {
     infoPrompt:
       "¿Algo más que quieras saber? Puedo darte información sobre costos, seguros o el doctor.",
     infoFallback:
-      "Para esa pregunta lo mejor es que hables directo con nuestro equipo. Escribe *Hola* y elige hablar con un humano.",
+      "Para esa pregunta lo mejor es que hables directo con nuestro equipo. Escribe *Hola* y elige *Contactar soporte*.",
     humanSupportAck:
-      "Entendido, un miembro de nuestro equipo revisará tu conversación y te contactará lo antes posible durante horario de atención.",
+      "Puedes contactar a nuestro equipo de soporte directamente al 📞 +91 6386639197.",
     genericFallback:
       "No estoy seguro de haber entendido. Escribe *Hola* para ver el menú principal.",
     sessionExpired: "Tu sesión anterior expiró. Escribe *Hola* para comenzar de nuevo.",
@@ -125,6 +126,7 @@ export const botMessages = {
     confirmNoButton: "No",
     sameReasonButton: "Same",
     moreDatesButton: "See more dates",
+    backToMenuButton: "🔙 Main Menu",
     confirmSavedDetailsInvalid:
       "Reply *YES* to use your saved details, or type the patient's full name to update it.",
     lastVisitReasonLine: "\n📝 Reason from your last visit: {reason}",
@@ -148,7 +150,7 @@ export const botMessages = {
     bookingCancelled: "No problem, the appointment wasn't booked. Type *Hi* if you need anything else.",
     confirmInvalid: "Please reply *YES* or *NO*.",
     noAppointmentsFound:
-      "We couldn't find any active appointments under your number. If you think this is a mistake, type *Hi* and choose to talk to a human.",
+      "We couldn't find any active appointments under your number. If you think this is a mistake, type *Hi* and choose *Contact Support*.",
     yourAppointmentsStatus: "📋 Here are your active appointments:\n\n{appointments}\n\nType *Hi* to go back to the main menu.",
     appointmentStatusLine: "📅 {date} at {time} — {status}",
     statusScheduled: "Scheduled",
@@ -175,9 +177,9 @@ export const botMessages = {
     getDirectionsButton: "Get Directions",
     infoPrompt:
       "Anything else you'd like to know? I can tell you about fees, insurance, or the doctor.",
-    infoFallback: "For that question it's best to speak with our team directly. Type *Hi* and choose to talk to a human.",
+    infoFallback: "For that question it's best to speak with our team directly. Type *Hi* and choose *Contact Support*.",
     humanSupportAck:
-      "Got it — a member of our team will review your conversation and reach out as soon as possible during business hours.",
+      "You can reach our support team directly at 📞 +91 6386639197.",
     genericFallback: "I'm not sure I understood that. Type *Hi* to see the main menu.",
     sessionExpired: "Your previous session expired. Type *Hi* to start again.",
     goodbye: "Thanks for contacting {clinicName}! Have a great day. 😊",

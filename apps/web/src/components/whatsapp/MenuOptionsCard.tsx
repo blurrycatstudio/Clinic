@@ -16,7 +16,7 @@ const MENU_OPTIONS: { key: MenuOptionKey; label: string; description: string }[]
   { key: "reschedule", label: "Reschedule Appointment", description: "Patients can move an existing appointment." },
   { key: "cancel", label: "Cancel Appointment", description: "Patients can cancel an existing appointment." },
   { key: "info", label: "Clinic Information", description: "Hours, address, parking, fees and insurance FAQs." },
-  { key: "human", label: "Human Support", description: "Escalates the chat for staff to take over." },
+  { key: "human", label: "Contact Support", description: "Escalates the chat for staff to take over." },
   { key: "status", label: "Check Appointment Status", description: "Patients can look up their upcoming appointments." },
 ]
 
