@@ -54,7 +54,8 @@ export const cancelFlow: FlowHandler = async ({ text, buttonId, context, setting
       if (!chosen) {
         const offScript = await tryAnswerOffScript(text, lang, settings)
         if (offScript) {
-          return { context, reply: { text: `${offScript.text}\n\n${t(lang, "chooseAppointmentToCancel", { appointments: options.map((o, i) => `${i + 1}️⃣ ${o.label}`).join("\n") })}` } }
+          const listReply = appointmentListReply(lang, options)
+          return { context, reply: { ...listReply, text: `${offScript.text}\n\n${listReply.text}` } }
         }
         return { context, reply: { text: t(lang, "appointmentSelectionInvalid") } }
       }

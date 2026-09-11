@@ -426,7 +426,8 @@ export const bookAppointmentFlow: FlowHandler = async ({ text, buttonId, context
 
       const offScript = await tryAnswerOffScript(text, lang, settings)
       if (offScript) {
-        return { context, reply: { text: `${offScript.text}\n\n${slotListReply(lang, slots).text}` } }
+        const listReply = slotListReply(lang, slots)
+        return { context, reply: { ...listReply, text: `${offScript.text}\n\n${listReply.text}` } }
       }
       return { context, reply: { text: t(lang, "slotInvalid") } }
     }

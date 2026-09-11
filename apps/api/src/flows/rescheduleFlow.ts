@@ -61,7 +61,8 @@ export const rescheduleFlow: FlowHandler = async ({ text, buttonId, context, set
       if (!chosen) {
         const offScript = await tryAnswerOffScript(text, lang, settings)
         if (offScript) {
-          return { context, reply: { text: `${offScript.text}\n\n${t(lang, "chooseAppointmentToReschedule", { appointments: options.map((o, i) => `${i + 1}️⃣ ${o.label}`).join("\n") })}` } }
+          const listReply = appointmentListReply(lang, "chooseAppointmentToReschedule", options)
+          return { context, reply: { ...listReply, text: `${offScript.text}\n\n${listReply.text}` } }
         }
         return { context, reply: { text: t(lang, "appointmentSelectionInvalid") } }
       }
@@ -91,7 +92,8 @@ export const rescheduleFlow: FlowHandler = async ({ text, buttonId, context, set
       if (!slot) {
         const offScript = await tryAnswerOffScript(text, lang, settings)
         if (offScript) {
-          return { context, reply: { text: `${offScript.text}\n\n${t(lang, "chooseSlotPrompt")}` } }
+          const listReply = slotListReply(lang, slots)
+          return { context, reply: { ...listReply, text: `${offScript.text}\n\n${listReply.text}` } }
         }
         return { context, reply: { text: t(lang, "slotInvalid") } }
       }
