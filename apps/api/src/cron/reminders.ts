@@ -35,6 +35,10 @@ async function deliverReminder(appointment: Appointment, which: "24h" | "2h"): P
       conversationId: conversation.id,
       language: patient.language,
       params: [patient.full_name, date, time],
+      sessionFallbackText:
+        patient.language === "es"
+          ? `Recordatorio: tienes una cita mañana ${date} a las ${time}.`
+          : `Reminder: you have an appointment tomorrow, ${date} at ${time}.`,
     })
   } else {
     const settings = await clinicSettingsRepository.get()
@@ -45,6 +49,10 @@ async function deliverReminder(appointment: Appointment, which: "24h" | "2h"): P
       conversationId: conversation.id,
       language: patient.language,
       params: [patient.full_name, settings.doctor_name, date, time, settings.clinic_name, clinicShortName],
+      sessionFallbackText:
+        patient.language === "es"
+          ? `Recordatorio: tu cita con ${settings.doctor_name} es hoy a las ${time} en ${settings.clinic_name}.`
+          : `Reminder: your appointment with ${settings.doctor_name} is today at ${time} at ${settings.clinic_name}.`,
     })
 
     // The 2h reminder is the one whose template carries Confirm/Reschedule/Cancel

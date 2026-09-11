@@ -473,6 +473,11 @@ export const STR = {
     mobileNavMessages: "Messages",
     mobileNavRecords: "Records",
     mobileHeaderClinicName: "Dr. Gamaliel's Pediatrics",
+    mobileNavAddAppt: "New Appointment",
+    mobileNavAdd: "Add",
+    mobileApptPhone: "Phone",
+    mobileApptCreated: "Appointment created",
+    mobileApptCreateFailed: "Failed to create appointment",
 
     // ---------- Mobile dashboard ----------
     mobileDashboardGreeting: "Welcome back",
@@ -1024,6 +1029,11 @@ export const STR = {
     mobileNavMessages: "Mensajes",
     mobileNavRecords: "Expedientes",
     mobileHeaderClinicName: "Pediatría Dr. Gamaliel",
+    mobileNavAddAppt: "Nueva Cita",
+    mobileNavAdd: "Agregar",
+    mobileApptPhone: "Teléfono",
+    mobileApptCreated: "Cita creada",
+    mobileApptCreateFailed: "No se pudo crear la cita",
 
     // ---------- Mobile dashboard ----------
     mobileDashboardGreeting: "Bienvenido de nuevo",
