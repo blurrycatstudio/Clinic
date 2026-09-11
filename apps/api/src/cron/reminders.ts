@@ -1,16 +1,68 @@
 import { format } from "date-fns"
 import { toZonedTime } from "date-fns-tz"
-import { CLINIC_TIMEZONE } from "@clinic/shared"
+import { CLINIC_TIMEZONE, ConversationState, FlowType, type Appointment } from "@clinic/shared"
 import { appointmentRepository } from "../repositories/appointmentRepository.js"
 import { patientRepository } from "../repositories/patientRepository.js"
 import { conversationRepository } from "../repositories/conversationRepository.js"
 import { clinicSettingsRepository } from "../repositories/clinicSettingsRepository.js"
 import { voiceCallRepository } from "../repositories/voiceCallRepository.js"
 import { templateService } from "../services/templateService.js"
+import { redisStateService } from "../services/redisStateService.js"
 import { vapiService } from "../services/vapiService.js"
 import { env, isVapiOutboundConfigured } from "../config/env.js"
 import { logger } from "../config/logger.js"
 import { buildReminderCallOverrides } from "../lib/reminderCallGreeting.js"
+import { NotFoundError } from "../lib/errors.js"
+
+/**
+ * Sends the WhatsApp reminder for a single appointment and marks it as sent.
+ * Shared by the windowed cron job below and by the staff "send now" action
+ * so both paths compose the exact same message.
+ */
+async function deliverReminder(appointment: Appointment, which: "24h" | "2h"): Promise<void> {
+  const patient = await patientRepository.findById(appointment.patient_id)
+  if (!patient) throw new NotFoundError("Patient not found")
+
+  const conversation = await conversationRepository.getOrCreate(patient.phone_e164)
+  const zoned = toZonedTime(new Date(appointment.starts_at), CLINIC_TIMEZONE)
+  const date = format(zoned, "EEEE d MMMM")
+  const time = format(zoned, "h:mm a")
+
+  if (which === "24h") {
+    await templateService.send({
+      key: "appointmentReminder24h",
+      to: patient.phone_e164,
+      conversationId: conversation.id,
+      language: patient.language,
+      params: [patient.full_name, date, time],
+    })
+  } else {
+    const settings = await clinicSettingsRepository.get()
+    const clinicShortName = settings.clinic_name.split(" ")[0] ?? settings.clinic_name
+    await templateService.send({
+      key: "appointmentReminder2h",
+      to: patient.phone_e164,
+      conversationId: conversation.id,
+      language: patient.language,
+      params: [patient.full_name, settings.doctor_name, date, time, settings.clinic_name, clinicShortName],
+    })
+
+    // The 2h reminder is the one whose template carries Confirm/Reschedule/Cancel
+    // quick-reply buttons — park the conversation on a dedicated state so the next
+    // inbound message (the button tap) is routed straight to this appointment
+    // instead of falling into whatever flow state happened to be left over.
+    const { context: loaded } = await redisStateService.get(patient.phone_e164, conversation.id)
+    await redisStateService.save(patient.phone_e164, {
+      ...loaded,
+      language: loaded.language ?? patient.language,
+      state: ConversationState.AWAITING_REMINDER_RESPONSE,
+      activeFlow: FlowType.NONE,
+      reminder: { appointmentId: appointment.id },
+    })
+  }
+
+  await appointmentRepository.markReminderSent(appointment.id, which)
+}
 
 /**
  * Triggered by Vercel Cron (see apps/api/vercel.json) every 10-15 minutes.
@@ -32,35 +84,7 @@ export async function runReminderJob(which: "24h" | "2h"): Promise<{ sent: numbe
 
   for (const appointment of appointments) {
     try {
-      const patient = await patientRepository.findById(appointment.patient_id)
-      if (!patient) continue
-
-      const conversation = await conversationRepository.getOrCreate(patient.phone_e164)
-      const zoned = toZonedTime(new Date(appointment.starts_at), CLINIC_TIMEZONE)
-      const date = format(zoned, "EEEE d MMMM")
-      const time = format(zoned, "h:mm a")
-
-      if (which === "24h") {
-        await templateService.send({
-          key: "appointmentReminder24h",
-          to: patient.phone_e164,
-          conversationId: conversation.id,
-          language: patient.language,
-          params: [patient.full_name, date, time],
-        })
-      } else {
-        const settings = await clinicSettingsRepository.get()
-        const clinicShortName = settings.clinic_name.split(" ")[0] ?? settings.clinic_name
-        await templateService.send({
-          key: "appointmentReminder2h",
-          to: patient.phone_e164,
-          conversationId: conversation.id,
-          language: patient.language,
-          params: [patient.full_name, settings.doctor_name, date, time, settings.clinic_name, clinicShortName],
-        })
-      }
-
-      await appointmentRepository.markReminderSent(appointment.id, which)
+      await deliverReminder(appointment, which)
       sent++
     } catch (err) {
       failed++
@@ -69,6 +93,17 @@ export async function runReminderJob(which: "24h" | "2h"): Promise<{ sent: numbe
   }
 
   return { sent, failed }
+}
+
+/**
+ * Staff-triggered manual send from the dashboard — bypasses the time-window
+ * check entirely so a reminder can go out whenever staff wants, not just
+ * within the 24h/2h cron window.
+ */
+export async function sendReminderNow(appointmentId: string, which: "24h" | "2h"): Promise<void> {
+  const appointment = await appointmentRepository.findById(appointmentId)
+  if (!appointment) throw new NotFoundError("Appointment not found")
+  await deliverReminder(appointment, which)
 }
 
 /**

@@ -190,6 +190,7 @@ export type CallTranscript = {
 
 export type AuditAction =
   | "appointment.created"
+  | "appointment.confirmed"
   | "appointment.rescheduled"
   | "appointment.cancelled"
   | "appointment.completed"

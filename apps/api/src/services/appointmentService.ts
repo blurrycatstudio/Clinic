@@ -145,6 +145,19 @@ export const appointmentService = {
     return updated
   },
 
+  async confirmAppointment(appointmentId: string): Promise<Appointment> {
+    const updated = await appointmentRepository.updateStatus(appointmentId, "confirmed")
+
+    await auditLogRepository.record({
+      actorType: "patient",
+      action: "appointment.confirmed",
+      entityType: "appointment",
+      entityId: appointmentId,
+    })
+
+    return updated
+  },
+
   async cancelAppointment(appointmentId: string, reason?: string): Promise<Appointment> {
     const updated = await appointmentRepository.cancel(appointmentId, reason)
 

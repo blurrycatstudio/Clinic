@@ -13,3 +13,4 @@ appointmentsRouter.patch("/:id/reschedule", asyncHandler(async (req, res) => app
 appointmentsRouter.patch("/:id/cancel", asyncHandler(async (req, res) => appointmentsController.cancel(req, res)))
 appointmentsRouter.patch("/:id/status", asyncHandler(async (req, res) => appointmentsController.updateStatus(req, res)))
 appointmentsRouter.post("/:id/call", asyncHandler(async (req, res) => appointmentsController.callToConfirm(req, res)))
+appointmentsRouter.post("/:id/reminder", asyncHandler(async (req, res) => appointmentsController.sendReminder(req, res)))

@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react"
-import { useQuery } from "@tanstack/react-query"
+import { useMutation, useQuery } from "@tanstack/react-query"
 import { useNavigate } from "react-router-dom"
-import { Calendar, ChevronLeft, ChevronRight, Search, ChevronRight as ChevronRightIcon } from "lucide-react"
+import { Calendar, ChevronLeft, ChevronRight, Search, ChevronRight as ChevronRightIcon, BellRing } from "lucide-react"
 import { MobileShell } from "@/components/mobile/MobileShell"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Card } from "@/components/ui/card"
@@ -9,8 +9,9 @@ import { Input } from "@/components/ui/input"
 import { useLang } from "@/lib/i18n"
 import { api } from "@/lib/api"
 import { STATUS_COLORS, type AppointmentStatus } from "@/lib/data"
-import { toDisplayAppointment, type ApiAppointment } from "@/lib/appointments"
+import { toDisplayAppointment, type ApiAppointment, type DisplayAppointment } from "@/lib/appointments"
 import { cn } from "@/lib/utils"
+import { useToast } from "@/lib/toast"
 
 type StatusFilter = "all" | AppointmentStatus
 
@@ -29,6 +30,7 @@ function toDateParam(date: Date): string {
 export default function MobileSchedule() {
   const { t } = useLang()
   const navigate = useNavigate()
+  const toast = useToast()
   const [dayOffset, setDayOffset] = useState(0)
   const [query, setQuery] = useState("")
   const [status, setStatus] = useState<StatusFilter>("all")
@@ -48,6 +50,17 @@ export default function MobileSchedule() {
     () => (data?.rows ?? []).map(toDisplayAppointment).sort((a, b) => a.startsAt.getTime() - b.startsAt.getTime()),
     [data],
   )
+
+  const reminderMutation = useMutation({
+    mutationFn: (id: string) => api.post(`/appointments/${id}/reminder`, { which: "24h" }),
+    onSuccess: () => toast(t.mobileDashboardReminderSent),
+    onError: (err: unknown) => toast(err instanceof Error ? err.message : "Failed to send reminder"),
+  })
+
+  function sendReminder(a: DisplayAppointment) {
+    if (!window.confirm(`Send a reminder to ${a.child} now?`)) return
+    reminderMutation.mutate(a.id)
+  }
 
   const filtered = useMemo(
     () =>
@@ -148,6 +161,17 @@ export default function MobileSchedule() {
                       <div className="truncate text-[13.5px] font-bold">{a.child}</div>
                       <div className="truncate text-[11.5px] text-muted-foreground">{a.reason || "—"}</div>
                     </div>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        sendReminder(a)
+                      }}
+                      disabled={!a.phone || (reminderMutation.isPending && reminderMutation.variables === a.id)}
+                      title={t.mobileDashboardSendReminder}
+                      className="flex size-7 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-muted disabled:opacity-40"
+                    >
+                      <BellRing className="size-3.5" strokeWidth={2.2} />
+                    </button>
                     <ChevronRightIcon className="size-4 shrink-0 text-muted-foreground/60" />
                   </div>
                 </Card>

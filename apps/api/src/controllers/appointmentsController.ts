@@ -6,6 +6,7 @@ import { notifyPatientOfAppointmentChange } from "../services/notificationServic
 import { patientRepository } from "../repositories/patientRepository.js"
 import { voiceCallRepository } from "../repositories/voiceCallRepository.js"
 import { vapiService } from "../services/vapiService.js"
+import { sendReminderNow } from "../cron/reminders.js"
 import { env } from "../config/env.js"
 import { NotFoundError } from "../lib/errors.js"
 import { buildReminderCallOverrides } from "../lib/reminderCallGreeting.js"
@@ -104,5 +105,15 @@ export const appointmentsController = {
     })
 
     res.status(201).json({ call })
+  },
+
+  /** Staff-triggered manual reminder send — bypasses the cron time-window so it can go out any time. */
+  async sendReminder(req: Request, res: Response) {
+    const params = z.object({ id: z.string().uuid() }).parse(req.params)
+    const body = z.object({ which: z.enum(["24h", "2h"]).default("24h") }).parse(req.body)
+
+    await sendReminderNow(params.id, body.which)
+
+    res.status(200).json({ ok: true })
   },
 }

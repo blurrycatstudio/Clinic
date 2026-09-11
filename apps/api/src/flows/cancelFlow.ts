@@ -1,10 +1,44 @@
 import { format } from "date-fns"
 import { toZonedTime } from "date-fns-tz"
-import { CLINIC_TIMEZONE, ConversationState, FlowType, t, type ConversationContext, type Language } from "@clinic/shared"
+import {
+  CLINIC_TIMEZONE,
+  ConversationState,
+  FlowType,
+  Intent,
+  t,
+  type ClinicSettings,
+  type ConversationContext,
+  type Language,
+} from "@clinic/shared"
 import type { FlowHandler, FlowReply, FlowResult } from "./types.js"
 import { appointmentService } from "../services/appointmentService.js"
 import { appointmentRepository } from "../repositories/appointmentRepository.js"
 import { tryAnswerOffScript } from "../lib/offScript.js"
+import { startBookingFromFreeText } from "./bookAppointmentFlow.js"
+import { enterRescheduleFlow } from "./rescheduleFlow.js"
+import { openaiService } from "../services/openaiService.js"
+
+/**
+ * A patient mid-cancellation often just restates their whole request instead of
+ * answering the current prompt ("actually reschedule it to next week", "book me
+ * for the 20th at 2pm") — this detects that and returns a FlowResult that abandons
+ * the in-progress cancellation and starts the newly-stated one, instead of making
+ * them answer the stale appointment-selection prompt first. Returns null when the
+ * text doesn't clearly express a different actionable request.
+ */
+async function tryRestateIntent(
+  rawText: string,
+  context: ConversationContext,
+  lang: Language,
+  settings: ClinicSettings,
+): Promise<FlowResult | null> {
+  const bookingResult = await startBookingFromFreeText(context, rawText)
+  if (bookingResult) return bookingResult
+
+  const { intent } = await openaiService.classifyAndAnswer(rawText, lang, settings)
+  if (intent === Intent.RESCHEDULE_APPOINTMENT) return enterRescheduleFlow(context)
+  return null
+}
 
 /** Each appointment is a tappable WhatsApp list row — the patient selects with one tap; a typed number still works too. */
 function appointmentListReply(lang: Language, options: { label: string }[]): FlowReply {
@@ -42,6 +76,36 @@ export async function enterCancelFlow(context: ConversationContext): Promise<Flo
   }
 }
 
+/** Called from the reminder-response flow, where the appointment is already known (from the reminder itself) — skips straight to the confirm step instead of re-asking "which appointment?". */
+export async function enterCancelFlowForAppointment(context: ConversationContext, appointmentId: string): Promise<FlowResult> {
+  const lang = context.language ?? "es"
+  const appointment = await appointmentRepository.findById(appointmentId)
+
+  if (!appointment || !["scheduled", "confirmed"].includes(appointment.status)) {
+    return {
+      context: { ...context, state: ConversationState.AWAITING_MENU_SELECTION, activeFlow: FlowType.NONE },
+      reply: { text: t(lang, "reminderAppointmentGone") },
+    }
+  }
+
+  const zoned = toZonedTime(new Date(appointment.starts_at), CLINIC_TIMEZONE)
+  return {
+    context: {
+      ...context,
+      state: ConversationState.AWAITING_CANCELLATION_CONFIRMATION,
+      activeFlow: FlowType.CANCEL,
+      cancellation: { targetAppointmentId: appointmentId },
+    },
+    reply: {
+      text: t(lang, "confirmCancellation", { date: format(zoned, "EEEE d MMMM"), time: format(zoned, "h:mm a") }),
+      buttons: [
+        { id: "yes", title: t(lang, "confirmYesButton") },
+        { id: "no", title: t(lang, "confirmNoButton") },
+      ],
+    },
+  }
+}
+
 export const cancelFlow: FlowHandler = async ({ text, buttonId, context, settings }) => {
   const lang = context.language ?? "es"
   const draft = context.cancellation ?? {}
@@ -52,6 +116,9 @@ export const cancelFlow: FlowHandler = async ({ text, buttonId, context, setting
       const index = Number.parseInt((buttonId ?? text).trim(), 10) - 1
       const chosen = options[index]
       if (!chosen) {
+        const restated = await tryRestateIntent(text, context, lang, settings)
+        if (restated) return restated
+
         const offScript = await tryAnswerOffScript(text, lang, settings)
         if (offScript) {
           const listReply = appointmentListReply(lang, options)

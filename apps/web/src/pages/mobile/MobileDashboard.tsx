@@ -1,7 +1,7 @@
 import { useMemo } from "react"
 import { useMutation, useQuery } from "@tanstack/react-query"
 import { useNavigate } from "react-router-dom"
-import { Phone, MessageCircle, Stethoscope, ChevronRight, CalendarDays } from "lucide-react"
+import { Phone, MessageCircle, Stethoscope, ChevronRight, CalendarDays, BellRing } from "lucide-react"
 import { MobileShell } from "@/components/mobile/MobileShell"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -34,6 +34,12 @@ export default function MobileDashboard() {
     onError: (err: unknown) => toast(err instanceof Error ? err.message : "Failed to place call"),
   })
 
+  const reminderMutation = useMutation({
+    mutationFn: (id: string) => api.post(`/appointments/${id}/reminder`, { which: "24h" }),
+    onSuccess: () => toast(t.mobileDashboardReminderSent),
+    onError: (err: unknown) => toast(err instanceof Error ? err.message : "Failed to send reminder"),
+  })
+
   const schedule = useMemo(() => (data?.rows ?? []).map(toDisplayAppointment).sort((a, b) => a.startsAt.getTime() - b.startsAt.getTime()), [data])
 
   const upNext = useMemo(() => {
@@ -47,6 +53,11 @@ export default function MobileDashboard() {
   function call(a: DisplayAppointment) {
     if (!window.confirm(`Call ${a.child} at ${a.phone} now?`)) return
     callMutation.mutate(a.id)
+  }
+
+  function sendReminder(a: DisplayAppointment) {
+    if (!window.confirm(`Send a reminder to ${a.child} now?`)) return
+    reminderMutation.mutate(a.id)
   }
 
   return (
@@ -108,6 +119,15 @@ export default function MobileDashboard() {
                 {t.mobileDashboardWhatsApp}
               </Button>
             </div>
+            <Button
+              onClick={() => sendReminder(upNext)}
+              disabled={!upNext.phone || (reminderMutation.isPending && reminderMutation.variables === upNext.id)}
+              variant="outline"
+              className="mt-2 w-full gap-1.5 rounded-xl border-white/30 bg-transparent font-semibold text-white hover:bg-white/10"
+            >
+              <BellRing className="size-3.5" strokeWidth={2.2} />
+              {t.mobileDashboardSendReminder}
+            </Button>
           </Card>
         )}
 
@@ -155,6 +175,17 @@ export default function MobileDashboard() {
                     <span className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold whitespace-nowrap" style={{ background: sc.bg, color: sc.color }}>
                       {t[a.status]}
                     </span>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        sendReminder(a)
+                      }}
+                      disabled={!a.phone || (reminderMutation.isPending && reminderMutation.variables === a.id)}
+                      title={t.mobileDashboardSendReminder}
+                      className="flex size-7 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-muted disabled:opacity-40"
+                    >
+                      <BellRing className="size-3.5" strokeWidth={2.2} />
+                    </button>
                     <ChevronRight className="size-4 shrink-0 text-muted-foreground/60" />
                   </div>
                 </Card>

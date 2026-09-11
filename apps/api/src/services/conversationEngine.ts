@@ -12,6 +12,7 @@ import { mainMenuFlow, buildMainMenu } from "../flows/mainMenuFlow.js"
 import { bookAppointmentFlow } from "../flows/bookAppointmentFlow.js"
 import { rescheduleFlow } from "../flows/rescheduleFlow.js"
 import { cancelFlow } from "../flows/cancelFlow.js"
+import { reminderResponseFlow } from "../flows/reminderResponseFlow.js"
 import { clinicInfoFlow } from "../flows/clinicInfoFlow.js"
 import { humanSupportFlow } from "../flows/humanSupportFlow.js"
 import type { FlowHandler } from "../flows/types.js"
@@ -44,6 +45,7 @@ const FLOW_BY_STATE: Partial<Record<ConversationState, FlowHandler>> = {
   [ConversationState.AWAITING_RESCHEDULE_CONFIRMATION]: rescheduleFlow,
   [ConversationState.AWAITING_CANCELLATION_TARGET_SELECTION]: cancelFlow,
   [ConversationState.AWAITING_CANCELLATION_CONFIRMATION]: cancelFlow,
+  [ConversationState.AWAITING_REMINDER_RESPONSE]: reminderResponseFlow,
   [ConversationState.AWAITING_FAQ_QUESTION]: clinicInfoFlow,
   [ConversationState.ESCALATED_TO_HUMAN]: humanSupportFlow,
 }
