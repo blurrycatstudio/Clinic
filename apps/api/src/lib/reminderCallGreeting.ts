@@ -30,6 +30,16 @@ export function buildReminderCallOverrides(
 
   return {
     firstMessage,
-    variableValues: { appointmentId: appointment.id, callPurpose: "appointment_reminder_call" },
+    variableValues: {
+      appointmentId: appointment.id,
+      callPurpose: "appointment_reminder_call",
+      // Exposed separately from firstMessage so the assistant can restate
+      // them verbatim if asked to repeat/confirm/translate the reminder —
+      // it can't reliably reconstruct these from parsing its own prior
+      // spoken line alone.
+      patientName: patient.full_name,
+      appointmentDate: date,
+      appointmentTime: time,
+    },
   }
 }
