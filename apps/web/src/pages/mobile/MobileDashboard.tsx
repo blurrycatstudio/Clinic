@@ -1,7 +1,7 @@
 import { useMemo } from "react"
 import { useMutation, useQuery } from "@tanstack/react-query"
 import { useNavigate } from "react-router-dom"
-import { Phone, MessageCircle, Stethoscope, BellRing } from "lucide-react"
+import { Phone, MessageCircle, Stethoscope, BellRing, Clock, ChevronRight } from "lucide-react"
 import { MobileShell } from "@/components/mobile/MobileShell"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -62,71 +62,92 @@ export default function MobileDashboard() {
   return (
     <MobileShell>
       <div className="flex flex-col gap-4 px-4 py-4">
-        <div>
-          <div className="text-[13px] text-muted-foreground">{t.mobileDashboardGreeting}</div>
-          <h1 className="font-heading text-lg font-bold">{t.mobileDashboardUpNext}</h1>
+        <div
+          className="relative overflow-hidden rounded-3xl p-4.5"
+          style={{ background: "linear-gradient(135deg, #FFF0E9 0%, #FDE8F0 55%, #F3E8FE 100%)" }}
+        >
+          <div
+            className="pointer-events-none absolute -top-8 -right-10 size-32 rounded-full opacity-60"
+            style={{ background: "radial-gradient(circle, #FBCFE8 0%, transparent 70%)" }}
+          />
+          <div className="relative text-[13px] font-medium text-[#B4839A]">{t.mobileDashboardGreeting}</div>
+          <h1 className="relative font-heading text-xl font-extrabold text-[#4C1D3D]">{t.mobileDashboardUpNext}</h1>
         </div>
 
         {isLoading ? (
-          <Card className="gap-0 rounded-2xl border p-4.5 shadow-none">
+          <Card className="gap-0 rounded-3xl border-0 p-4.5 shadow-none">
             <div className="h-24 animate-pulse rounded-xl bg-muted" />
           </Card>
         ) : error ? (
-          <Card className="gap-0 rounded-2xl border p-4.5 text-center text-[13px] text-destructive shadow-none">{t.mobileDashboardError}</Card>
+          <Card className="gap-0 rounded-3xl border-0 p-4.5 text-center text-[13px] text-destructive shadow-none">{t.mobileDashboardError}</Card>
         ) : !upNext ? (
-          <Card className="gap-0 rounded-2xl border p-6 text-center text-[13px] text-muted-foreground shadow-none">{t.mobileDashboardNoUpcoming}</Card>
+          <Card className="gap-0 rounded-3xl border-0 p-6 text-center text-[13px] text-muted-foreground shadow-none">{t.mobileDashboardNoUpcoming}</Card>
         ) : (
-          <Card className="gap-0 overflow-hidden rounded-2xl border-0 bg-gradient-to-br from-[#2563EB] to-[#1D4ED8] p-4.5 text-white shadow-atelier">
+          <Card className="gap-0 overflow-hidden rounded-3xl border-0 bg-white p-4.5 shadow-[0_12px_28px_-14px_rgba(219,39,119,0.25)]">
             <div className="mb-3 flex items-center justify-between">
-              <span className="rounded-full bg-white/20 px-2.5 py-1 text-[10.5px] font-bold whitespace-nowrap">
+              <span className="text-[15px] font-bold text-[#1F2937]">
                 {upNext.status === "statusConfirmed" || upNext.status === "statusCheckedIn" ? t.mobileDashboardInSession : t.mobileDashboardUpNext}
               </span>
-              <span className="font-mono text-[13px] font-bold">{upNext.time}</span>
+              <span className="flex items-center gap-1 rounded-full bg-[#FDF0F5] px-2.5 py-1 text-[12px] font-bold text-[#DB2777]">
+                <Clock className="size-3" strokeWidth={2.4} />
+                {upNext.time}
+              </span>
             </div>
             <div className="mb-4 flex items-center gap-3">
               <Avatar className="size-11 shrink-0">
-                <AvatarFallback className="bg-white/25 text-[13px] font-bold text-white">{upNext.initials}</AvatarFallback>
+                <AvatarFallback
+                  className="text-[13px] font-bold text-white"
+                  style={{ background: "linear-gradient(135deg, #FB923C 0%, #EC4899 100%)" }}
+                >
+                  {upNext.initials}
+                </AvatarFallback>
               </Avatar>
               <div className="min-w-0 flex-1">
-                <div className="truncate text-[15px] font-bold">{upNext.child}</div>
-                <div className="truncate text-[12px] text-white/80">{upNext.reason || "—"}</div>
+                <div className="truncate text-[15px] font-bold text-[#1F2937]">{upNext.child}</div>
+                <div className="truncate text-[12px] text-muted-foreground">{upNext.reason || "—"}</div>
               </div>
             </div>
             <Button
               onClick={() => navigate(`/mobile/consultation/${upNext.id}`)}
-              className="mb-2.5 w-full gap-1.5 rounded-xl bg-white font-bold text-primary hover:bg-white/90"
+              className="mb-2.5 w-full gap-1.5 rounded-2xl border-0 font-bold text-white hover:opacity-90"
+              style={{ background: "linear-gradient(90deg, #FB923C 0%, #EC4899 55%, #A855F7 100%)" }}
             >
               <Stethoscope className="size-4" strokeWidth={2.2} />
               {t.mobileDashboardStartConsult}
+              <ChevronRight className="ml-auto size-4" strokeWidth={2.4} />
             </Button>
-            <div className="flex gap-2">
-              <Button
+            <div className="grid grid-cols-3 gap-2">
+              <button
                 onClick={() => call(upNext)}
                 disabled={!callingEnabled || !upNext.phone || (callMutation.isPending && callMutation.variables === upNext.id)}
-                variant="outline"
-                className="flex-1 gap-1.5 rounded-xl border-white/30 bg-transparent font-semibold text-white hover:bg-white/10"
+                className="flex flex-col items-center gap-1.5 rounded-2xl border border-[#F1E4E4] bg-white py-3 text-center disabled:opacity-40"
               >
-                <Phone className="size-3.5" strokeWidth={2.2} />
-                {t.mobileDashboardCallParent}
-              </Button>
-              <Button
+                <span className="flex size-9 items-center justify-center rounded-full bg-[#DCFCE7] text-[#16A34A]">
+                  <Phone className="size-4" strokeWidth={2.2} />
+                </span>
+                <span className="text-[11px] font-bold text-[#1F2937]">{t.mobileDashboardCallParent}</span>
+              </button>
+              <button
                 onClick={() => navigate("/mobile/messages", { state: { patientId: upNext.patientId } })}
-                variant="outline"
-                className="flex-1 gap-1.5 rounded-xl border-white/30 bg-transparent font-semibold text-white hover:bg-white/10"
+                className="flex flex-col items-center gap-1.5 rounded-2xl border border-[#F1E4E4] bg-white py-3 text-center"
               >
-                <MessageCircle className="size-3.5" strokeWidth={2.2} />
-                {t.mobileDashboardWhatsApp}
-              </Button>
+                <span className="flex size-9 items-center justify-center rounded-full bg-[#DCFCE7] text-[#16A34A]">
+                  <MessageCircle className="size-4" strokeWidth={2.2} />
+                </span>
+                <span className="text-[11px] font-bold text-[#1F2937]">{t.mobileDashboardWhatsApp}</span>
+              </button>
+              <button
+                onClick={() => sendReminder(upNext)}
+                disabled={!upNext.phone || (reminderMutation.isPending && reminderMutation.variables === upNext.id)}
+                className="flex flex-col items-center gap-1.5 rounded-2xl border border-[#F1E4E4] bg-white py-3 text-center disabled:opacity-40"
+              >
+                <span className="relative flex size-9 items-center justify-center rounded-full bg-[#FFEDD5] text-[#EA580C]">
+                  <BellRing className="size-4" strokeWidth={2.2} />
+                  <span className="absolute top-0 right-0 size-1.5 rounded-full bg-[#DB2777]" />
+                </span>
+                <span className="text-[11px] font-bold text-[#1F2937]">{t.mobileDashboardSendReminder}</span>
+              </button>
             </div>
-            <Button
-              onClick={() => sendReminder(upNext)}
-              disabled={!upNext.phone || (reminderMutation.isPending && reminderMutation.variables === upNext.id)}
-              variant="outline"
-              className="mt-2 w-full gap-1.5 rounded-xl border-white/30 bg-transparent font-semibold text-white hover:bg-white/10"
-            >
-              <BellRing className="size-3.5" strokeWidth={2.2} />
-              {t.mobileDashboardSendReminder}
-            </Button>
           </Card>
         )}
       </div>

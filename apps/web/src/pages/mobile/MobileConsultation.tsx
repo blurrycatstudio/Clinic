@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useNavigate, useParams } from "react-router-dom"
-import { MessageCircle, Plus, Save, TriangleAlert, Trash2 } from "lucide-react"
+import { MessageCircle, Plus, Save, TriangleAlert, Trash2, Shield, Pill, ChevronRight, FileText, Stethoscope, Weight, Ruler, Thermometer } from "lucide-react"
 import { MobileShell } from "@/components/mobile/MobileShell"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -13,6 +13,7 @@ import { COMMON_MEDICATIONS, type Medication } from "@/lib/data"
 import { toDisplayAppointment, type ApiAppointment } from "@/lib/appointments"
 import { useToast } from "@/lib/toast"
 import { cn } from "@/lib/utils"
+import vitalHeart from "@/assests/vital-heart.png"
 
 function medicationsMatching(query: string): string[] {
   const q = query.trim().toLowerCase()
@@ -178,38 +179,62 @@ export default function MobileConsultation() {
   return (
     <MobileShell title={t.mobileConsultTitle} onBack={() => navigate(-1)}>
       <div className="flex flex-col gap-4 px-4 py-4">
-        <Card className="gap-0 rounded-2xl border p-4 shadow-none">
+        <Card className="gap-0 rounded-3xl border-0 p-4 shadow-[0_12px_28px_-16px_rgba(219,39,119,0.22)]">
           <div className="flex items-center gap-3">
             <Avatar className="size-12 shrink-0">
-              <AvatarFallback style={{ background: appointment.color }} className="text-[13px] font-bold text-white">
+              <AvatarFallback
+                style={{ background: appointment.color ?? "linear-gradient(135deg, #FB923C 0%, #EC4899 100%)" }}
+                className="text-[13px] font-bold text-white"
+              >
                 {appointment.initials}
               </AvatarFallback>
             </Avatar>
             <div className="min-w-0 flex-1">
-              <div className="truncate text-[15px] font-bold">{patient.full_name}</div>
-              <div className="truncate text-[11.5px] text-muted-foreground">
-                {age ? `${age} · ` : ""}
-                {patient.phone_e164}
-              </div>
+              <div className="truncate text-[15px] font-bold text-[#1F2937]">{patient.full_name}</div>
+              <div className="truncate text-[11.5px] text-muted-foreground">{patient.phone_e164}</div>
             </div>
+            <span className="shrink-0 rounded-full bg-[#F1F5F9] px-2.5 py-1 text-[11px] font-bold text-[#64748B]">
+              {t.patientAgeLabel} {age ?? "N/A"}
+            </span>
           </div>
 
-          <div className="mt-3.5 rounded-xl px-3 py-2.5 text-[12.5px] font-semibold" style={patient.allergies.length ? { background: "#FEF2F2", color: "#DC2626" } : { background: "#DCFCE7", color: "#16A34A" }}>
-            <div className="mb-0.5 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide">
-              <TriangleAlert className="size-3.5" strokeWidth={2.2} />
-              {t.mobileConsultAllergyAlert}
-            </div>
-            {patient.allergies.length ? patient.allergies.join(", ") : t.noKnownAllergies}
-          </div>
+          <button
+            type="button"
+            className="mt-3.5 flex w-full items-center gap-2.5 rounded-2xl px-3.5 py-3 text-left"
+            style={patient.allergies.length ? { background: "#FEF2F2" } : { background: "#DCFCE7" }}
+          >
+            <span
+              className="flex size-8 shrink-0 items-center justify-center rounded-full"
+              style={patient.allergies.length ? { background: "#FEE2E2", color: "#DC2626" } : { background: "#BBF7D0", color: "#16A34A" }}
+            >
+              {patient.allergies.length ? <TriangleAlert className="size-4" strokeWidth={2.2} /> : <Shield className="size-4" strokeWidth={2.2} />}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-[12.5px] font-bold" style={{ color: patient.allergies.length ? "#DC2626" : "#16A34A" }}>
+                {patient.allergies.length ? patient.allergies.join(", ") : t.noKnownAllergies}
+              </span>
+              <span className="block text-[10.5px] font-semibold text-[#64748B]">{t.mobileConsultAllergyAlert}</span>
+            </span>
+            <ChevronRight className="size-4 shrink-0 text-[#94A3B8]" strokeWidth={2.2} />
+          </button>
 
-          <div className="mt-3">
-            <div className="mb-1 text-[11px] font-bold text-muted-foreground uppercase">{t.mobileConsultCurrentMeds}</div>
-            <div className="text-[12.5px]">{patient.current_medications.length ? patient.current_medications.join(", ") : t.mobileConsultNoMeds}</div>
-          </div>
+          <button type="button" className="mt-2 flex w-full items-center gap-2.5 rounded-2xl px-3.5 py-3 text-left" style={{ background: "#EFF6FF" }}>
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-full" style={{ background: "#DBEAFE", color: "#2563EB" }}>
+              <Pill className="size-4" strokeWidth={2.2} />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-[12.5px] font-bold text-[#2563EB]">{t.mobileConsultCurrentMeds}</span>
+              <span className="block truncate text-[10.5px] font-semibold text-[#64748B]">
+                {patient.current_medications.length ? patient.current_medications.join(", ") : t.mobileConsultNoMeds}
+              </span>
+            </span>
+            <ChevronRight className="size-4 shrink-0 text-[#94A3B8]" strokeWidth={2.2} />
+          </button>
         </Card>
 
         <div>
-          <label className="mb-1.5 block text-xs font-bold">
+          <label className="mb-1.5 flex items-center gap-1.5 text-xs font-bold text-[#1F2937]">
+            <FileText className="size-3.5 text-[#A855F7]" strokeWidth={2.2} />
             {t.consultChiefComplaint} <span className="text-destructive">*</span>
           </label>
           <Input
@@ -217,30 +242,55 @@ export default function MobileConsultation() {
             onChange={(e) => setChiefComplaint(e.target.value)}
             placeholder={t.consultChiefComplaintPh}
             aria-invalid={attempted && chiefComplaint.trim() === ""}
-            className={cn("h-10", attempted && chiefComplaint.trim() === "" && "border-destructive")}
+            className={cn("h-10 rounded-xl border-0 bg-[#F8FAFC]", attempted && chiefComplaint.trim() === "" && "border border-destructive")}
           />
         </div>
 
         <div>
-          <label className="mb-2 block text-xs font-bold">{t.mobileConsultVitals}</label>
+          <div className="mb-2 flex items-center gap-2">
+            <img src={vitalHeart} alt="" className="size-6 shrink-0 rounded-md object-contain" />
+            <label className="text-xs font-bold text-[#1F2937]">{t.mobileConsultVitals}</label>
+          </div>
           <div className="grid grid-cols-3 gap-2.5">
-            <div>
-              <label className="mb-1 block text-[10.5px] font-bold text-muted-foreground">{t.mobileConsultWeight}</label>
-              <Input inputMode="decimal" value={weightKg} onChange={(e) => setWeightKg(e.target.value)} placeholder="17.2" className="h-9 text-[13px]" />
+            <div className="rounded-2xl p-2.5" style={{ background: "#EFF6FF" }}>
+              <Weight className="mb-1 size-4 text-[#2563EB]" strokeWidth={2.2} />
+              <label className="mb-1 block text-[10px] font-bold text-[#64748B]">{t.mobileConsultWeight}</label>
+              <Input
+                inputMode="decimal"
+                value={weightKg}
+                onChange={(e) => setWeightKg(e.target.value)}
+                placeholder="17.2"
+                className="h-8 rounded-lg border-0 bg-white px-2 text-[13px] font-bold"
+              />
             </div>
-            <div>
-              <label className="mb-1 block text-[10.5px] font-bold text-muted-foreground">{t.mobileConsultHeight}</label>
-              <Input inputMode="decimal" value={heightCm} onChange={(e) => setHeightCm(e.target.value)} placeholder="104" className="h-9 text-[13px]" />
+            <div className="rounded-2xl p-2.5" style={{ background: "#F3E8FE" }}>
+              <Ruler className="mb-1 size-4 text-[#A855F7]" strokeWidth={2.2} />
+              <label className="mb-1 block text-[10px] font-bold text-[#64748B]">{t.mobileConsultHeight}</label>
+              <Input
+                inputMode="decimal"
+                value={heightCm}
+                onChange={(e) => setHeightCm(e.target.value)}
+                placeholder="104"
+                className="h-8 rounded-lg border-0 bg-white px-2 text-[13px] font-bold"
+              />
             </div>
-            <div>
-              <label className="mb-1 block text-[10.5px] font-bold text-muted-foreground">{t.mobileConsultTemp}</label>
-              <Input inputMode="decimal" value={tempC} onChange={(e) => setTempC(e.target.value)} placeholder="36.8" className="h-9 text-[13px]" />
+            <div className="rounded-2xl p-2.5" style={{ background: "#FFEDD5" }}>
+              <Thermometer className="mb-1 size-4 text-[#EA580C]" strokeWidth={2.2} />
+              <label className="mb-1 block text-[10px] font-bold text-[#64748B]">{t.mobileConsultTemp}</label>
+              <Input
+                inputMode="decimal"
+                value={tempC}
+                onChange={(e) => setTempC(e.target.value)}
+                placeholder="36.8"
+                className="h-8 rounded-lg border-0 bg-white px-2 text-[13px] font-bold"
+              />
             </div>
           </div>
         </div>
 
         <div>
-          <label className="mb-1.5 block text-xs font-bold">
+          <label className="mb-1.5 flex items-center gap-1.5 text-xs font-bold text-[#1F2937]">
+            <Stethoscope className="size-3.5 text-[#EC4899]" strokeWidth={2.2} />
             {t.consultDiagnosis} <span className="text-destructive">*</span>
           </label>
           <Input
@@ -248,18 +298,21 @@ export default function MobileConsultation() {
             onChange={(e) => setDiagnosis(e.target.value)}
             placeholder={t.consultDiagnosisPh}
             aria-invalid={attempted && diagnosis.trim() === ""}
-            className={cn("h-10", attempted && diagnosis.trim() === "" && "border-destructive")}
+            className={cn("h-10 rounded-xl border-0 bg-[#F8FAFC]", attempted && diagnosis.trim() === "" && "border border-destructive")}
           />
         </div>
 
         <div>
-          <label className="mb-1.5 block text-xs font-bold">{t.consultNotes}</label>
+          <label className="mb-1.5 flex items-center gap-1.5 text-xs font-bold text-[#1F2937]">
+            <FileText className="size-3.5 text-[#16A34A]" strokeWidth={2.2} />
+            {t.consultNotes}
+          </label>
           <textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             placeholder={t.consultNotesPh}
             rows={3}
-            className="w-full resize-none rounded-lg border border-border bg-transparent px-2.5 py-2 text-sm outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+            className="w-full resize-none rounded-xl border-0 bg-[#F8FAFC] px-2.5 py-2 text-sm outline-none placeholder:text-muted-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
           />
         </div>
 
@@ -268,7 +321,7 @@ export default function MobileConsultation() {
             <label className="text-xs font-bold">
               {t.mobileConsultDiagnosisRx} <span className="text-destructive">*</span>
             </label>
-            <button type="button" onClick={() => setMeds((prev) => [...prev, emptyMed()])} className="flex items-center gap-1 text-xs font-bold text-primary">
+            <button type="button" onClick={() => setMeds((prev) => [...prev, emptyMed()])} className="flex items-center gap-1 text-xs font-bold text-[#DB2777]">
               <Plus className="size-3.5" strokeWidth={2.4} />
               {t.mobileConsultAddMed}
             </button>
@@ -380,7 +433,7 @@ export default function MobileConsultation() {
             }}
             disabled={draftMutation.isPending}
             variant="outline"
-            className="flex-1 gap-1.5 rounded-xl font-bold"
+            className="flex-1 gap-1.5 rounded-xl border-[#F1E4E4] font-bold text-[#1F2937] hover:bg-[#FDF0F5]"
           >
             <Save className="size-4" strokeWidth={2.2} />
             {draftMutation.isPending ? t.mobileConsultSaving : t.mobileConsultSaveDraft}
@@ -394,7 +447,8 @@ export default function MobileConsultation() {
               completeMutation.mutate()
             }}
             disabled={completeMutation.isPending}
-            className="flex-1 gap-1.5 rounded-xl bg-gradient-to-r from-[#2563EB] to-[#16A34A] font-bold text-white hover:opacity-90"
+            className="flex-1 gap-1.5 rounded-xl border-0 font-bold text-white hover:opacity-90"
+            style={{ background: "linear-gradient(90deg, #FB923C 0%, #EC4899 55%, #A855F7 100%)" }}
           >
             <MessageCircle className="size-4" strokeWidth={2.2} />
             {completeMutation.isPending ? t.mobileConsultSending : t.mobileConsultCompleteSend}

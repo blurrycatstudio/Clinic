@@ -139,7 +139,12 @@ function ProfileSidebar({ open, onOpenChange }: { open: boolean; onOpenChange: (
         <Dialog.Content className="fixed inset-y-0 left-0 z-50 flex w-[82%] max-w-[320px] flex-col bg-white pb-[env(safe-area-inset-bottom)] shadow-2xl outline-none">
           <div className="flex items-center gap-2.5 border-b border-border/60 px-4 py-4">
             <Avatar className="size-10 shrink-0">
-              <AvatarFallback className="bg-gradient-to-br from-primary to-sidebar text-[12px] font-bold text-primary-foreground">GR</AvatarFallback>
+              <AvatarFallback
+                className="text-[12px] font-bold text-white"
+                style={{ background: "linear-gradient(135deg, #FB923C 0%, #EC4899 55%, #A855F7 100%)" }}
+              >
+                GR
+              </AvatarFallback>
             </Avatar>
             <div className="min-w-0 flex-1">
               <Dialog.Title className="truncate text-[13.5px] font-bold">Dr. Gamaliel Rodríguez</Dialog.Title>
@@ -159,7 +164,7 @@ function ProfileSidebar({ open, onOpenChange }: { open: boolean; onOpenChange: (
                 className={({ isActive }) =>
                   cn(
                     "flex items-center gap-3 rounded-lg px-3 py-2.5 text-[13.5px] font-semibold transition-colors",
-                    isActive ? "bg-accent text-primary" : "text-foreground hover:bg-muted",
+                    isActive ? "bg-[#FDF0F5] text-[#DB2777]" : "text-foreground hover:bg-muted",
                   )
                 }
               >
@@ -177,7 +182,7 @@ function ProfileSidebar({ open, onOpenChange }: { open: boolean; onOpenChange: (
                   onClick={() => setLang(code)}
                   className={cn(
                     "rounded-full px-3 py-1 text-[11px] font-bold transition-colors",
-                    lang === code ? "bg-[#2563EB] text-white shadow-sm" : "text-[#64748B] hover:text-foreground",
+                    lang === code ? "bg-[#A855F7] text-white shadow-sm" : "text-[#64748B] hover:text-foreground",
                   )}
                 >
                   {code === "en" ? "EN" : "ES"}
@@ -237,8 +242,8 @@ export function MobileShell({
     // h-dvh + overflow-hidden (not min-h-dvh) so this is a fixed-height frame — <main> below
     // is then the one thing that actually scrolls internally, instead of the whole window
     // growing past the viewport and carrying its scroll position between screens.
-    <div className="h-dvh overflow-hidden bg-[#F8FAFC]">
-      <div className="mx-auto flex h-dvh w-full max-w-[430px] flex-col overflow-hidden bg-[#F8FAFC]">
+    <div className="h-dvh overflow-hidden bg-[#FFF8F5]">
+      <div className="mx-auto flex h-dvh w-full max-w-[430px] flex-col overflow-hidden bg-[#FFF8F5]">
         <header
           className={cn(
             "sticky top-0 z-40 flex h-14 shrink-0 items-center justify-between gap-2 border-b px-4",
@@ -261,7 +266,10 @@ export function MobileShell({
             <>
               <button onClick={() => setSidebarOpen(true)} className="flex min-w-0 items-center gap-2.5 rounded-lg text-left">
                 <Avatar className="size-8.5 shrink-0">
-                  <AvatarFallback className="bg-gradient-to-br from-primary to-sidebar text-[11px] font-bold text-primary-foreground">
+                  <AvatarFallback
+                    className="text-[11px] font-bold text-white"
+                    style={{ background: "linear-gradient(135deg, #FB923C 0%, #EC4899 55%, #A855F7 100%)" }}
+                  >
                     GR
                   </AvatarFallback>
                 </Avatar>
@@ -270,14 +278,14 @@ export function MobileShell({
                   <div className="truncate text-[11px] text-muted-foreground">{t.doctorSpecialty}</div>
                 </div>
               </button>
-              <div className="flex shrink-0 items-center gap-1 rounded-full bg-[#F1F5F9] p-[3px]">
+              <div className="flex shrink-0 items-center gap-1 rounded-full bg-[#FDF0F5] p-[3px]">
                 {(["en", "es"] as const).map((code) => (
                   <button
                     key={code}
                     onClick={() => setLang(code)}
                     className={cn(
                       "rounded-full px-2 py-1 text-[10.5px] font-bold transition-colors",
-                      lang === code ? "bg-[#2563EB] text-white shadow-sm" : "text-[#64748B] hover:text-foreground",
+                      lang === code ? "bg-[#A855F7] text-white shadow-sm" : "text-[#B4839A] hover:text-foreground",
                     )}
                   >
                     {code === "en" ? "EN" : "ES"}
@@ -339,8 +347,8 @@ export function MobileShell({
 
         <main className="flex-1 overflow-y-auto pb-[calc(4.25rem+env(safe-area-inset-bottom))]">{children}</main>
 
-        <nav className="fixed inset-x-0 bottom-0 z-40 mx-auto w-full max-w-[430px] border-t border-border/60 bg-white pb-[env(safe-area-inset-bottom)]">
-          <div className="flex h-16 items-center justify-around px-1">
+        <nav className="fixed inset-x-0 bottom-0 z-40 mx-auto w-full max-w-[430px] pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
+          <div className="mx-3 flex h-16 items-center justify-around rounded-[26px] border border-[#F1E4E4] bg-white px-1 shadow-[0_-6px_24px_-8px_rgba(190,80,120,0.18)]">
             {TABS.slice(0, 2).map((tab) => (
               <NavLink
                 key={tab.path}
@@ -348,7 +356,7 @@ export function MobileShell({
                 className={({ isActive }) =>
                   cn(
                     "flex flex-1 flex-col items-center justify-center gap-0.5 rounded-lg py-1.5 text-[10.5px] font-semibold transition-colors",
-                    isActive ? "text-primary" : "text-muted-foreground hover:text-foreground",
+                    isActive ? "text-[#DB2777]" : "text-muted-foreground hover:text-foreground",
                   )
                 }
               >
@@ -361,10 +369,15 @@ export function MobileShell({
               onClick={() => setNewApptOpen(true)}
               aria-label={t.mobileNavAddAppt}
               title={t.mobileNavAddAppt}
-              className="flex flex-1 flex-col items-center justify-center gap-0.5 rounded-lg py-1.5 text-[10.5px] font-semibold text-muted-foreground transition-colors hover:text-foreground"
+              className="flex flex-1 flex-col items-center justify-center gap-1"
             >
-              <CalendarPlus className="size-5" strokeWidth={2} />
-              <span className="truncate">{t.mobileNavAdd}</span>
+              <span
+                className="flex size-11 -translate-y-3.5 items-center justify-center rounded-full text-white shadow-[0_8px_16px_-4px_rgba(219,39,119,0.55)]"
+                style={{ background: "linear-gradient(135deg, #FB923C 0%, #EC4899 55%, #A855F7 100%)" }}
+              >
+                <CalendarPlus className="size-5" strokeWidth={2.2} />
+              </span>
+              <span className="-mt-2 truncate text-[10.5px] font-semibold text-muted-foreground">{t.mobileNavAdd}</span>
             </button>
 
             {TABS.slice(2).map((tab) => (
@@ -374,7 +387,7 @@ export function MobileShell({
                 className={({ isActive }) =>
                   cn(
                     "flex flex-1 flex-col items-center justify-center gap-0.5 rounded-lg py-1.5 text-[10.5px] font-semibold transition-colors",
-                    isActive ? "text-primary" : "text-muted-foreground hover:text-foreground",
+                    isActive ? "text-[#DB2777]" : "text-muted-foreground hover:text-foreground",
                   )
                 }
               >
