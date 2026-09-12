@@ -1,5 +1,10 @@
 import type { AppointmentStatus } from "@/lib/data"
 
+export type CallStatus = "in_progress" | "completed" | "failed" | "no_answer"
+export type MessageStatus = "sent" | "delivered" | "read" | "failed" | "received" | null
+
+export type ActivitySummary<S> = { count: number; lastStatus: S | null }
+
 export type ApiAppointment = {
   id: string
   patient_id: string
@@ -9,6 +14,8 @@ export type ApiAppointment = {
   status: "scheduled" | "confirmed" | "cancelled" | "completed" | "no_show"
   source: "whatsapp" | "voice" | "dashboard"
   patients: { full_name: string; phone_e164: string } | null
+  callsSummary?: ActivitySummary<CallStatus>
+  messagesSummary?: ActivitySummary<MessageStatus>
 }
 
 export type DisplayAppointment = {
@@ -25,6 +32,8 @@ export type DisplayAppointment = {
   reason: string
   source: ApiAppointment["source"]
   status: AppointmentStatus
+  calls: ActivitySummary<CallStatus>
+  messages: ActivitySummary<MessageStatus>
 }
 
 /** Local calendar date (YYYY-MM-DD) — not `toISOString().slice(0, 10)`, which reports the UTC date and drifts a day off whenever local time is ahead of UTC midnight. */
@@ -58,6 +67,38 @@ export function mapStatus(status: ApiAppointment["status"]): AppointmentStatus {
   }
 }
 
+export function callStatusLabel(status: CallStatus | null): string {
+  switch (status) {
+    case "in_progress":
+      return "Calling…"
+    case "completed":
+      return "Answered"
+    case "no_answer":
+      return "No answer"
+    case "failed":
+      return "Failed"
+    default:
+      return "—"
+  }
+}
+
+export function messageStatusLabel(status: MessageStatus): string {
+  switch (status) {
+    case "read":
+      return "Seen"
+    case "delivered":
+      return "Delivered"
+    case "sent":
+      return "Sent"
+    case "received":
+      return "Replied"
+    case "failed":
+      return "Failed"
+    default:
+      return "—"
+  }
+}
+
 export function toDisplayAppointment(a: ApiAppointment): DisplayAppointment {
   const startsAt = new Date(a.starts_at)
   const endsAt = new Date(a.ends_at)
@@ -77,5 +118,7 @@ export function toDisplayAppointment(a: ApiAppointment): DisplayAppointment {
     reason: a.reason,
     source: a.source,
     status: mapStatus(a.status),
+    calls: a.callsSummary ?? { count: 0, lastStatus: null },
+    messages: a.messagesSummary ?? { count: 0, lastStatus: null },
   }
 }

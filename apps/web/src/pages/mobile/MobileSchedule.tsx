@@ -2,7 +2,18 @@ import { useMemo, useRef, useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useNavigate } from "react-router-dom"
 import { Dialog } from "radix-ui"
-import { Calendar, ChevronLeft, ChevronRight, Search, ChevronRight as ChevronRightIcon, Phone, CheckCircle2, XCircle, X } from "lucide-react"
+import {
+  Calendar,
+  ChevronLeft,
+  ChevronRight,
+  Search,
+  ChevronRight as ChevronRightIcon,
+  Phone,
+  MessageCircle,
+  CheckCircle2,
+  XCircle,
+  X,
+} from "lucide-react"
 import { MobileShell } from "@/components/mobile/MobileShell"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -11,7 +22,14 @@ import { Input } from "@/components/ui/input"
 import { useLang } from "@/lib/i18n"
 import { api } from "@/lib/api"
 import { STATUS_COLORS, type AppointmentStatus } from "@/lib/data"
-import { toDateParam, toDisplayAppointment, type ApiAppointment, type DisplayAppointment } from "@/lib/appointments"
+import {
+  callStatusLabel,
+  messageStatusLabel,
+  toDateParam,
+  toDisplayAppointment,
+  type ApiAppointment,
+  type DisplayAppointment,
+} from "@/lib/appointments"
 import { useDashboardStats } from "@/hooks/useDashboardStats"
 import { cn } from "@/lib/utils"
 import { useToast } from "@/lib/toast"
@@ -43,10 +61,12 @@ function AppointmentActionsDialog({
   onOpenChange,
   callingEnabled,
   onCall,
+  onMessage,
   onConfirm,
   onReschedule,
   onCancel,
   callPending,
+  messagePending,
   confirmPending,
   reschedulePending,
   cancelPending,
@@ -55,10 +75,12 @@ function AppointmentActionsDialog({
   onOpenChange: (v: boolean) => void
   callingEnabled: boolean
   onCall: (a: DisplayAppointment) => void
+  onMessage: (a: DisplayAppointment) => void
   onConfirm: (a: DisplayAppointment) => void
   onReschedule: (a: DisplayAppointment, startsAtIso: string) => void
   onCancel: (a: DisplayAppointment) => void
   callPending: boolean
+  messagePending: boolean
   confirmPending: boolean
   reschedulePending: boolean
   cancelPending: boolean
@@ -116,6 +138,31 @@ function AppointmentActionsDialog({
                     <Phone className="size-3.5" strokeWidth={2.2} />
                     Call patient
                   </Button>
+                  <Button
+                    onClick={() => onMessage(appointment)}
+                    disabled={!appointment.phone || messagePending}
+                    variant="outline"
+                    className="w-full justify-center gap-1.5 rounded-lg font-bold"
+                  >
+                    <MessageCircle className="size-3.5" strokeWidth={2.2} />
+                    Send WhatsApp reminder
+                  </Button>
+                  {(appointment.calls.count > 0 || appointment.messages.count > 0) && (
+                    <div className="flex items-center justify-center gap-3 text-[11px] font-semibold text-muted-foreground">
+                      {appointment.calls.count > 0 && (
+                        <span className="flex items-center gap-1">
+                          <Phone className="size-3" strokeWidth={2.2} />
+                          {appointment.calls.count} · {callStatusLabel(appointment.calls.lastStatus)}
+                        </span>
+                      )}
+                      {appointment.messages.count > 0 && (
+                        <span className="flex items-center gap-1">
+                          <MessageCircle className="size-3" strokeWidth={2.2} />
+                          {appointment.messages.count} · {messageStatusLabel(appointment.messages.lastStatus)}
+                        </span>
+                      )}
+                    </div>
+                  )}
                   {appointment.status === "statusPending" && (
                     <Button
                       onClick={() => onConfirm(appointment)}
@@ -229,6 +276,23 @@ export default function MobileSchedule() {
     },
     onError: (err: unknown) => toast(err instanceof Error ? err.message : "Failed to place call"),
   })
+
+  const messageMutation = useMutation({
+    mutationFn: ({ id, which }: { id: string; which: "24h" | "2h" }) => api.post(`/appointments/${id}/reminder`, { which }),
+    onSuccess: () => {
+      invalidate()
+      setActionsFor(null)
+      toast("Reminder message sent")
+    },
+    onError: (err: unknown) => toast(err instanceof Error ? err.message : "Failed to send message"),
+  })
+
+  function sendMessage(a: DisplayAppointment) {
+    // Within 3h of the appointment, send the same same-day template the 2h cron job
+    // uses (includes Confirm/Reschedule/Cancel buttons); otherwise the day-ahead one.
+    const hoursAway = (a.startsAt.getTime() - Date.now()) / 3_600_000
+    messageMutation.mutate({ id: a.id, which: hoursAway <= 3 ? "2h" : "24h" })
+  }
 
   const confirmMutation = useMutation({
     mutationFn: (id: string) => api.patch(`/appointments/${id}/status`, { status: "confirmed" }),
@@ -379,6 +443,22 @@ export default function MobileSchedule() {
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-[13.5px] font-bold">{a.child}</div>
                       <div className="truncate text-[11.5px] text-muted-foreground">{a.reason || "—"}</div>
+                      {(a.calls.count > 0 || a.messages.count > 0) && (
+                        <div className="mt-0.5 flex items-center gap-2 text-[10px] font-semibold text-muted-foreground">
+                          {a.calls.count > 0 && (
+                            <span className="flex items-center gap-0.5">
+                              <Phone className="size-2.5" strokeWidth={2.4} />
+                              {a.calls.count} {callStatusLabel(a.calls.lastStatus)}
+                            </span>
+                          )}
+                          {a.messages.count > 0 && (
+                            <span className="flex items-center gap-0.5">
+                              <MessageCircle className="size-2.5" strokeWidth={2.4} />
+                              {a.messages.count} {messageStatusLabel(a.messages.lastStatus)}
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </div>
                     <button
                       onClick={(e) => {
@@ -386,7 +466,7 @@ export default function MobileSchedule() {
                         setActionsFor(a)
                       }}
                       disabled={!a.phone}
-                      title="Call"
+                      title="Call or message"
                       className="flex size-7 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-muted disabled:opacity-40"
                     >
                       <Phone className="size-3.5" strokeWidth={2.2} />
@@ -405,10 +485,12 @@ export default function MobileSchedule() {
         onOpenChange={(v) => !v && setActionsFor(null)}
         callingEnabled={callingEnabled}
         onCall={(a) => callMutation.mutate(a.id)}
+        onMessage={sendMessage}
         onConfirm={(a) => confirmMutation.mutate(a.id)}
         onReschedule={(a, startsAtIso) => rescheduleMutation.mutate({ id: a.id, startsAtIso })}
         onCancel={(a) => cancelMutation.mutate(a.id)}
         callPending={callMutation.isPending}
+        messagePending={messageMutation.isPending}
         confirmPending={confirmMutation.isPending}
         reschedulePending={rescheduleMutation.isPending}
         cancelPending={cancelMutation.isPending}

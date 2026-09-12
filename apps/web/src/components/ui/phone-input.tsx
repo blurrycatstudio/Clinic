@@ -57,12 +57,13 @@ export function PhoneInput({
   const { country, local } = parseValue(value)
 
   function setCountry(next: Country) {
-    onChange(local ? `${next.dial} ${local}` : `${next.dial} `)
+    onChange(local ? `${next.dial}${local}` : "")
     setOpen(false)
   }
 
   function setLocal(next: string) {
-    onChange(next.trim() ? `${country.dial} ${next}` : "")
+    const digits = next.replace(/\s+/g, "")
+    onChange(digits ? `${country.dial}${digits}` : "")
   }
 
   return (

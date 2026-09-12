@@ -55,6 +55,18 @@ export const voiceCallRepository = {
     if (error) throw new AppError(`Failed to finalize voice call: ${error.message}`)
   },
 
+  /** Bulk status/count lookup for the dashboard Schedule row — one query for all appointments on the visible day instead of N. */
+  async listForAppointmentIds(appointmentIds: string[]): Promise<VoiceCall[]> {
+    if (appointmentIds.length === 0) return []
+    const { data, error } = await supabase
+      .from("voice_calls")
+      .select("*")
+      .in("appointment_id", appointmentIds)
+      .order("started_at", { ascending: true })
+    if (error) throw new AppError(`Failed to list voice calls for appointments: ${error.message}`)
+    return data ?? []
+  },
+
   async list(params: { limit?: number; offset?: number }) {
     const limit = params.limit ?? 50
     const offset = params.offset ?? 0

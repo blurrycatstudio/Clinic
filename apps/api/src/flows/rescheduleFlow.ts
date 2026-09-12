@@ -13,6 +13,7 @@ import {
 } from "@clinic/shared"
 import type { FlowHandler, FlowReply, FlowResult } from "./types.js"
 import { appointmentService, type AvailableSlot } from "../services/appointmentService.js"
+import { appointmentRepository } from "../repositories/appointmentRepository.js"
 import { tryAnswerOffScript } from "../lib/offScript.js"
 import { startBookingFromFreeText } from "./bookAppointmentFlow.js"
 import { enterCancelFlow } from "./cancelFlow.js"
@@ -108,6 +109,15 @@ export async function enterRescheduleFlow(context: ConversationContext): Promise
 /** Called from the reminder-response flow, where the appointment is already known (from the reminder itself) — skips straight to slot selection instead of re-asking "which appointment?". */
 export async function enterRescheduleFlowForAppointment(context: ConversationContext, appointmentId: string): Promise<FlowResult> {
   const lang = context.language ?? "es"
+  const appointment = await appointmentRepository.findById(appointmentId)
+
+  if (!appointment || !["scheduled", "confirmed"].includes(appointment.status)) {
+    return {
+      context: { ...context, state: ConversationState.AWAITING_MENU_SELECTION, activeFlow: FlowType.NONE },
+      reply: { text: t(lang, "reminderAppointmentGone") },
+    }
+  }
+
   const { slots, reply } = await promptForSlots(lang)
 
   if (slots.length === 0) {

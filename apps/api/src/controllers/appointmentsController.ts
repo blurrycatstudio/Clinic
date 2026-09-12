@@ -5,12 +5,35 @@ import { appointmentService } from "../services/appointmentService.js"
 import { notifyPatientOfAppointmentChange } from "../services/notificationService.js"
 import { patientRepository } from "../repositories/patientRepository.js"
 import { voiceCallRepository } from "../repositories/voiceCallRepository.js"
+import { messageRepository } from "../repositories/messageRepository.js"
 import { vapiService } from "../services/vapiService.js"
 import { sendReminderNow } from "../cron/reminders.js"
 import { env } from "../config/env.js"
 import { NotFoundError } from "../lib/errors.js"
 import { buildReminderCallOverrides } from "../lib/reminderCallGreeting.js"
 import { clinicSettingsRepository } from "../repositories/clinicSettingsRepository.js"
+
+/**
+ * Groups a flat list of calls/messages by appointment_id into a count + the most
+ * recent row's status — rows must already be in ascending chronological order, so
+ * whichever row is seen last for an appointment is the latest one.
+ */
+function summarizeByAppointment<T, S>(
+  rows: T[],
+  getAppointmentId: (row: T) => string | null,
+  getStatus: (row: T) => S,
+): Map<string, { count: number; lastStatus: S | null }> {
+  const summaries = new Map<string, { count: number; lastStatus: S | null }>()
+  for (const row of rows) {
+    const appointmentId = getAppointmentId(row)
+    if (!appointmentId) continue
+    const existing = summaries.get(appointmentId) ?? { count: 0, lastStatus: null }
+    existing.count += 1
+    existing.lastStatus = getStatus(row)
+    summaries.set(appointmentId, existing)
+  }
+  return summaries
+}
 
 export const appointmentsController = {
   async list(req: Request, res: Response) {
@@ -24,7 +47,22 @@ export const appointmentsController = {
       .parse(req.query)
 
     const result = await appointmentRepository.listForDashboard(query)
-    res.json(result)
+    const ids = result.rows.map((a) => a.id)
+    const [calls, messages] = await Promise.all([
+      voiceCallRepository.listForAppointmentIds(ids),
+      messageRepository.listForAppointmentIds(ids),
+    ])
+
+    const callSummaries = summarizeByAppointment(calls, (c) => c.appointment_id, (c) => c.status)
+    const messageSummaries = summarizeByAppointment(messages, (m) => m.appointment_id, (m) => m.status)
+
+    const rows = result.rows.map((a) => ({
+      ...a,
+      callsSummary: callSummaries.get(a.id) ?? { count: 0, lastStatus: null },
+      messagesSummary: messageSummaries.get(a.id) ?? { count: 0, lastStatus: null },
+    }))
+
+    res.json({ ...result, rows })
   },
 
   /** Single appointment with its patient joined in — used by the mobile consultation screen to skip a full-list fetch. */

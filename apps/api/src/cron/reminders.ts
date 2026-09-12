@@ -9,9 +9,11 @@ import { voiceCallRepository } from "../repositories/voiceCallRepository.js"
 import { templateService } from "../services/templateService.js"
 import { redisStateService } from "../services/redisStateService.js"
 import { vapiService } from "../services/vapiService.js"
+import { sendFlowReplyOutOfBand } from "../services/conversationEngine.js"
 import { env, isVapiOutboundConfigured } from "../config/env.js"
 import { logger } from "../config/logger.js"
 import { buildReminderCallOverrides } from "../lib/reminderCallGreeting.js"
+import { locationReply } from "../lib/offScript.js"
 import { NotFoundError } from "../lib/errors.js"
 
 /**
@@ -27,6 +29,7 @@ async function deliverReminder(appointment: Appointment, which: "24h" | "2h"): P
   const zoned = toZonedTime(new Date(appointment.starts_at), CLINIC_TIMEZONE)
   const date = format(zoned, "EEEE d MMMM")
   const time = format(zoned, "h:mm a")
+  const settings = await clinicSettingsRepository.get()
 
   if (which === "24h") {
     await templateService.send({
@@ -39,9 +42,9 @@ async function deliverReminder(appointment: Appointment, which: "24h" | "2h"): P
         patient.language === "es"
           ? `Recordatorio: tienes una cita mañana ${date} a las ${time}.`
           : `Reminder: you have an appointment tomorrow, ${date} at ${time}.`,
+      appointmentId: appointment.id,
     })
   } else {
-    const settings = await clinicSettingsRepository.get()
     const clinicShortName = settings.clinic_name.split(" ")[0] ?? settings.clinic_name
     await templateService.send({
       key: "appointmentReminder2h",
@@ -53,6 +56,7 @@ async function deliverReminder(appointment: Appointment, which: "24h" | "2h"): P
         patient.language === "es"
           ? `Recordatorio: tu cita con ${settings.doctor_name} es hoy a las ${time} en ${settings.clinic_name}.`
           : `Reminder: your appointment with ${settings.doctor_name} is today at ${time} at ${settings.clinic_name}.`,
+      appointmentId: appointment.id,
     })
 
     // The 2h reminder is the one whose template carries Confirm/Reschedule/Cancel
@@ -67,6 +71,13 @@ async function deliverReminder(appointment: Appointment, which: "24h" | "2h"): P
       activeFlow: FlowType.NONE,
       reminder: { appointmentId: appointment.id },
     })
+  }
+
+  // Attach "Get Directions" (a real tappable maps-link button, plus a native location
+  // pin when clinic_settings has coordinates) right after the reminder text so the
+  // patient doesn't have to ask where the clinic is.
+  if (settings.address) {
+    await sendFlowReplyOutOfBand(patient.phone_e164, conversation.id, locationReply(patient.language, settings))
   }
 
   await appointmentRepository.markReminderSent(appointment.id, which)

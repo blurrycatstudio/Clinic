@@ -23,6 +23,8 @@ export const templateService = {
     params: string[]
     /** Plain-text version to send instead, ONLY valid inside WhatsApp's 24h session window. */
     sessionFallbackText?: string
+    /** Links this send back to an appointment (e.g. a reminder), for dashboard delivery/read status. */
+    appointmentId?: string
   }): Promise<void> {
     if (!isTemplateReady(input.key)) {
       logger.warn({ key: input.key }, "Template not yet approved — using session fallback if provided")
@@ -34,6 +36,7 @@ export const templateService = {
           messageType: "text",
           body: input.sessionFallbackText,
           waMessageId: messageId,
+          appointmentId: input.appointmentId,
         })
       } else {
         await auditLogRepository.record({
@@ -59,6 +62,7 @@ export const templateService = {
         templateName,
         payload: { params: input.params, debug },
         waMessageId: messageId,
+        appointmentId: input.appointmentId,
       })
       await auditLogRepository.record({
         actorType: "system",

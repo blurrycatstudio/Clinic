@@ -15,7 +15,7 @@ import { cancelFlow } from "../flows/cancelFlow.js"
 import { reminderResponseFlow } from "../flows/reminderResponseFlow.js"
 import { clinicInfoFlow } from "../flows/clinicInfoFlow.js"
 import { humanSupportFlow } from "../flows/humanSupportFlow.js"
-import type { FlowHandler } from "../flows/types.js"
+import type { FlowHandler, FlowReply } from "../flows/types.js"
 import { logger } from "../config/logger.js"
 import { detectLanguageHeuristic } from "../lib/detectLanguage.js"
 
@@ -113,6 +113,39 @@ async function sendFlowReply(
   }
 }
 
+/**
+ * Sends a full FlowReply (ctaUrl button, native location pin, then text/list/buttons)
+ * outside the normal inbound-message turn — used wherever a flow's reply needs sending
+ * on its own, e.g. a voice handoff or a cron-triggered reminder attaching directions.
+ */
+export async function sendFlowReplyOutOfBand(
+  phoneE164: string,
+  conversationId: string,
+  reply: FlowReply,
+): Promise<void> {
+  // Sent first, ahead of the text, so the "Get Directions" button (or native pin, if
+  // coordinates exist) leads the reply instead of trailing behind any body text.
+  await sendCtaUrlIfPresent(phoneE164, conversationId, reply.ctaUrl)
+  if (reply.location) {
+    const { messageId } = await whatsappService.sendLocationMessage(phoneE164, reply.location)
+    messageRepository
+      .log({
+        conversationId,
+        direction: "outbound",
+        messageType: "location",
+        payload: reply.location,
+        waMessageId: messageId,
+      })
+      .catch((err) => logger.warn({ err }, "outbound location log failed"))
+  }
+
+  // suppressTextSend is set when `text` is only address+link duplicating the native
+  // location pin sent above (see locationReply) — kept for history, but not sent twice.
+  if ((reply.text && !reply.suppressTextSend) || reply.list || reply.buttons) {
+    await sendFlowReply(phoneE164, conversationId, reply)
+  }
+}
+
 export type InboundMessage = {
   phoneE164: string
   profileName?: string
@@ -159,27 +192,7 @@ export async function triggerVoiceHandoff(
           settings,
         })
 
-  // Sent first, ahead of the text, so the "Get Directions" button (or native pin, if
-  // coordinates exist) leads the reply instead of trailing behind the Hours/Parking text.
-  await sendCtaUrlIfPresent(phoneE164, conversation.id, result.reply.ctaUrl)
-  if (result.reply.location) {
-    const { messageId } = await whatsappService.sendLocationMessage(phoneE164, result.reply.location)
-    messageRepository
-      .log({
-        conversationId: conversation.id,
-        direction: "outbound",
-        messageType: "location",
-        payload: result.reply.location,
-        waMessageId: messageId,
-      })
-      .catch((err) => logger.warn({ err }, "outbound location log failed"))
-  }
-
-  // suppressTextSend is set when `text` is only address+link duplicating the native
-  // location pin sent above (see locationReply) — kept for history, but not sent twice.
-  if ((result.reply.text && !result.reply.suppressTextSend) || result.reply.list || result.reply.buttons) {
-    await sendFlowReply(phoneE164, conversation.id, result.reply)
-  }
+  await sendFlowReplyOutOfBand(phoneE164, conversation.id, result.reply)
 
   await auditLogRepository.record({
     actorType: "system",
@@ -337,27 +350,7 @@ export async function handleInboundMessage(input: InboundMessage): Promise<void>
     result.reply.text = fallback || t(context.language, "genericFallback")
   }
 
-  // Sent first, ahead of the text, so the "Get Directions" button (or native pin, if
-  // coordinates exist) leads the reply instead of trailing behind the Hours/Parking text.
-  await sendCtaUrlIfPresent(input.phoneE164, conversation.id, result.reply.ctaUrl)
-  if (result.reply.location) {
-    const { messageId } = await whatsappService.sendLocationMessage(input.phoneE164, result.reply.location)
-    messageRepository
-      .log({
-        conversationId: conversation.id,
-        direction: "outbound",
-        messageType: "location",
-        payload: result.reply.location,
-        waMessageId: messageId,
-      })
-      .catch((err) => logger.warn({ err }, "outbound location log failed"))
-  }
-
-  // suppressTextSend is set when `text` is only address+link duplicating the native
-  // location pin sent above (see locationReply) — kept for history, but not sent twice.
-  if ((result.reply.text && !result.reply.suppressTextSend) || result.reply.list || result.reply.buttons) {
-    await sendFlowReply(input.phoneE164, conversation.id, result.reply)
-  }
+  await sendFlowReplyOutOfBand(input.phoneE164, conversation.id, result.reply)
 
   if (result.context.state === ConversationState.ESCALATED_TO_HUMAN) {
     await conversationRepository.setStatus(conversation.id, "escalated")

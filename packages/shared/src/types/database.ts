@@ -138,6 +138,7 @@ export type WhatsappMessage = {
   id: UUID
   clinic_id: UUID
   conversation_id: UUID
+  appointment_id: UUID | null
   wa_message_id: string | null
   direction: MessageDirection
   message_type: MessageType

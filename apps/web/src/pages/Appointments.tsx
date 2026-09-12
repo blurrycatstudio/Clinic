@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { Calendar, CalendarPlus, CheckCircle2, ChevronLeft, ChevronRight, Phone, Search, XCircle, X } from "lucide-react"
+import { Calendar, CalendarPlus, CheckCircle2, ChevronLeft, ChevronRight, MessageCircle, Phone, Search, XCircle, X } from "lucide-react"
 import { Dialog } from "radix-ui"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -12,7 +12,14 @@ import { api } from "@/lib/api"
 import { cn } from "@/lib/utils"
 import { useToast } from "@/lib/toast"
 import { useDashboardStats } from "@/hooks/useDashboardStats"
-import { toDateParam, toDisplayAppointment, type ApiAppointment, type DisplayAppointment } from "@/lib/appointments"
+import {
+  callStatusLabel,
+  messageStatusLabel,
+  toDateParam,
+  toDisplayAppointment,
+  type ApiAppointment,
+  type DisplayAppointment,
+} from "@/lib/appointments"
 
 type StatusFilter = "all" | AppointmentStatus
 
@@ -252,6 +259,26 @@ export default function Appointments() {
     callMutation.mutate(a.id)
   }
 
+  const sendMessageMutation = useMutation({
+    mutationFn: ({ id, which }: { id: string; which: "24h" | "2h" }) => api.post(`/appointments/${id}/reminder`, { which }),
+    onSuccess: () => {
+      invalidate()
+      toast("Reminder message sent")
+    },
+    onError: (err: unknown) => {
+      const message = err instanceof Error ? err.message : "Failed to send message"
+      toast(message)
+    },
+  })
+
+  function sendMessage(a: DisplayAppointment) {
+    if (!window.confirm(`Send a WhatsApp reminder to ${a.child} at ${a.phone} now?`)) return
+    // Within 3h of the appointment, send the same same-day template the 2h cron job
+    // uses (includes Confirm/Reschedule/Cancel buttons); otherwise the day-ahead one.
+    const hoursAway = (a.startsAt.getTime() - Date.now()) / 3_600_000
+    sendMessageMutation.mutate({ id: a.id, which: hoursAway <= 3 ? "2h" : "24h" })
+  }
+
   const createMutation = useMutation({
     mutationFn: (input: { fullName: string; phone: string; reason: string; startsAtIso: string }) =>
       api.post("/appointments", { patientFullName: input.fullName, patientPhoneE164: input.phone, reason: input.reason, startsAtIso: input.startsAtIso }),
@@ -417,6 +444,25 @@ export default function Appointments() {
                             <div className="text-[11px] text-muted-foreground">
                               {a.phone} · <span className="uppercase">{a.source}</span>
                             </div>
+                            {(a.calls.count > 0 || a.messages.count > 0) && (
+                              <div className="mt-0.5 flex items-center gap-2 text-[10.5px] font-semibold text-muted-foreground">
+                                {a.calls.count > 0 && (
+                                  <span className="flex items-center gap-0.5" title={`${a.calls.count} call(s) — last: ${callStatusLabel(a.calls.lastStatus)}`}>
+                                    <Phone className="size-2.5" strokeWidth={2.4} />
+                                    {a.calls.count} {callStatusLabel(a.calls.lastStatus)}
+                                  </span>
+                                )}
+                                {a.messages.count > 0 && (
+                                  <span
+                                    className="flex items-center gap-0.5"
+                                    title={`${a.messages.count} message(s) — last: ${messageStatusLabel(a.messages.lastStatus)}`}
+                                  >
+                                    <MessageCircle className="size-2.5" strokeWidth={2.4} />
+                                    {a.messages.count} {messageStatusLabel(a.messages.lastStatus)}
+                                  </span>
+                                )}
+                              </div>
+                            )}
                           </div>
                         </button>
                       </td>
@@ -439,6 +485,18 @@ export default function Appointments() {
                               title={callingEnabled ? "Call to confirm" : "Outbound calling isn't configured yet"}
                             >
                               <Phone className="size-3.5" strokeWidth={2.2} />
+                            </Button>
+                          )}
+                          {!cancelled && (
+                            <Button
+                              onClick={() => sendMessage(a)}
+                              disabled={!a.phone || (sendMessageMutation.isPending && sendMessageMutation.variables?.id === a.id)}
+                              variant="outline"
+                              size="sm"
+                              className="gap-1 rounded-lg font-semibold"
+                              title="Send WhatsApp reminder now"
+                            >
+                              <MessageCircle className="size-3.5" strokeWidth={2.2} />
                             </Button>
                           )}
                           {a.status === "statusPending" ? (

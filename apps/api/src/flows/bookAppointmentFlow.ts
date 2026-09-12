@@ -103,9 +103,9 @@ function isPlausibleFullName(text: string): boolean {
   const trimmed = text.trim()
   if (trimmed.length < 2 || trimmed.length > 60) return false
   if (NAME_DISQUALIFIERS.test(trimmed)) return false
-  const lower = trimmed.toLowerCase()
-  if (BOOKING_INTENT_WORDS.some((w) => lower.includes(w))) return false
-  return trimmed.split(/\s+/).filter(Boolean).length <= 6
+  const words = trimmed.toLowerCase().split(/\s+/).filter(Boolean)
+  if (words.some((w) => BOOKING_INTENT_WORDS.includes(w))) return false
+  return words.length <= 6
 }
 
 /**
