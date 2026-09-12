@@ -27,6 +27,14 @@ export const appointmentsController = {
     res.json(result)
   },
 
+  /** Single appointment with its patient joined in — used by the mobile consultation screen to skip a full-list fetch. */
+  async getOne(req: Request, res: Response) {
+    const params = z.object({ id: z.string().uuid() }).parse(req.params)
+    const appointment = await appointmentRepository.findByIdWithPatient(params.id)
+    if (!appointment) throw new NotFoundError("Appointment not found")
+    res.json({ appointment })
+  },
+
   async getSlots(req: Request, res: Response) {
     const query = z.object({ days: z.coerce.number().min(1).max(60).optional() }).parse(req.query)
     const slots = await appointmentService.getAvailableSlots(query.days)

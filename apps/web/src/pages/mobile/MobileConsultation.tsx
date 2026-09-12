@@ -56,22 +56,18 @@ export default function MobileConsultation() {
   const queryClient = useQueryClient()
   const { appointmentId } = useParams<{ appointmentId: string }>()
 
-  const appointmentsQuery = useQuery({
-    queryKey: ["appointments", "mobile-consult-lookup"],
-    queryFn: () => api.get<{ rows: ApiAppointment[]; count: number }>("/appointments?limit=200"),
+  const appointmentQuery = useQuery({
+    queryKey: ["appointments", "mobile-consult-lookup", appointmentId],
+    queryFn: () => api.get<{ appointment: Omit<ApiAppointment, "patients"> & { patients: ApiPatient | null } }>(`/appointments/${appointmentId}`),
+    enabled: !!appointmentId,
   })
 
   const appointment = useMemo(() => {
-    const row = appointmentsQuery.data?.rows.find((a) => a.id === appointmentId)
+    const row = appointmentQuery.data?.appointment
     return row ? toDisplayAppointment(row) : null
-  }, [appointmentsQuery.data, appointmentId])
+  }, [appointmentQuery.data])
 
-  const patientQuery = useQuery({
-    queryKey: ["patient", appointment?.patientId],
-    queryFn: () => api.get<{ patient: ApiPatient; upcomingAppointments: unknown[] }>(`/patients/${appointment?.patientId}`),
-    enabled: !!appointment?.patientId,
-  })
-  const patient = patientQuery.data?.patient
+  const patient = appointmentQuery.data?.appointment.patients ?? undefined
 
   const [chiefComplaint, setChiefComplaint] = useState("")
   const [diagnosis, setDiagnosis] = useState("")
@@ -129,7 +125,7 @@ export default function MobileConsultation() {
       setDraftSaved(true)
       toast(t.mobileConsultSaved)
     },
-    onError: () => toast(t.mobileConsultSaveFailed),
+    onError: (err: unknown) => toast(err instanceof Error ? err.message : t.mobileConsultSaveFailed),
   })
 
   const completeMutation = useMutation({
@@ -150,10 +146,10 @@ export default function MobileConsultation() {
       toast(t.mobileConsultSentSuccess)
       navigate("/mobile/schedule")
     },
-    onError: () => toast(t.mobileConsultSendFailed),
+    onError: (err: unknown) => toast(err instanceof Error ? err.message : t.mobileConsultSendFailed),
   })
 
-  const loading = appointmentsQuery.isLoading || (!!appointment && patientQuery.isLoading)
+  const loading = appointmentQuery.isLoading
 
   if (loading) {
     return (

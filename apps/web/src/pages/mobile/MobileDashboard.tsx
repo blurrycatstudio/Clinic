@@ -11,6 +11,7 @@ import { api } from "@/lib/api"
 import { toDateParam, toDisplayAppointment, type ApiAppointment, type DisplayAppointment } from "@/lib/appointments"
 import { useDashboardStats } from "@/hooks/useDashboardStats"
 import { useToast } from "@/lib/toast"
+import heroDoctor from "@/assests/ChatGPT Image Sep 12, 2026, 05_39_12 PM.png"
 
 export default function MobileDashboard() {
   const { t } = useLang()
@@ -41,13 +42,15 @@ export default function MobileDashboard() {
 
   const schedule = useMemo(() => (data?.rows ?? []).map(toDisplayAppointment).sort((a, b) => a.startsAt.getTime() - b.startsAt.getTime()), [data])
 
+  // `schedule` is sorted by start time, so the first entry that hasn't ended yet is either
+  // the one currently in session or the next one coming up — anything fully in the past
+  // is left out, instead of wrongly sticking around as "Up Next" once its time has passed.
   const upNext = useMemo(() => {
     const now = Date.now()
-    return (
-      schedule.find((a) => a.status !== "statusCompleted" && a.status !== "statusCancelled" && a.startsAt.getTime() >= now) ??
-      schedule.find((a) => a.status !== "statusCompleted" && a.status !== "statusCancelled")
-    )
+    return schedule.find((a) => a.status !== "statusCompleted" && a.status !== "statusCancelled" && a.endsAt.getTime() >= now)
   }, [schedule])
+
+  const isInSession = !!upNext && Date.now() >= upNext.startsAt.getTime() && Date.now() <= upNext.endsAt.getTime()
 
   function call(a: DisplayAppointment) {
     if (!window.confirm(`Call ${a.child} at ${a.phone} now?`)) return
@@ -63,15 +66,17 @@ export default function MobileDashboard() {
     <MobileShell>
       <div className="flex flex-col gap-4 px-4 py-4">
         <div
-          className="relative overflow-hidden rounded-3xl p-4.5"
-          style={{ background: "linear-gradient(135deg, #FFF0E9 0%, #FDE8F0 55%, #F3E8FE 100%)" }}
+          className="relative overflow-hidden rounded-3xl py-5 pr-28 pl-4.5"
+          style={{ background: "linear-gradient(135deg, #FBF7F6 0%, #FBEEF3 55%, #F2ECFA 100%)" }}
         >
-          <div
-            className="pointer-events-none absolute -top-8 -right-10 size-32 rounded-full opacity-60"
-            style={{ background: "radial-gradient(circle, #FBCFE8 0%, transparent 70%)" }}
+          <div className="relative text-[13px] font-medium text-[#9CA3AF]">{t.mobileDashboardGreeting},</div>
+          <h1 className="relative font-heading text-2xl leading-tight font-extrabold text-[#1F2937]">Dr. Gamaliel</h1>
+          <p className="relative mt-1 text-[12px] leading-snug text-[#6B7280]">{t.mobileDashboardTagline} 💗</p>
+          <img
+            src={heroDoctor}
+            alt=""
+            className="pointer-events-none absolute -top-3 -right-2 w-32 shrink-0 mix-blend-multiply select-none"
           />
-          <div className="relative text-[13px] font-medium text-[#B4839A]">{t.mobileDashboardGreeting}</div>
-          <h1 className="relative font-heading text-xl font-extrabold text-[#4C1D3D]">{t.mobileDashboardUpNext}</h1>
         </div>
 
         {isLoading ? (
@@ -83,10 +88,13 @@ export default function MobileDashboard() {
         ) : !upNext ? (
           <Card className="gap-0 rounded-3xl border-0 p-6 text-center text-[13px] text-muted-foreground shadow-none">{t.mobileDashboardNoUpcoming}</Card>
         ) : (
-          <Card className="gap-0 overflow-hidden rounded-3xl border-0 bg-white p-4.5 shadow-[0_12px_28px_-14px_rgba(219,39,119,0.25)]">
+          <Card
+            className="gap-0 overflow-hidden rounded-3xl border-0 p-4.5 shadow-[0_12px_28px_-14px_rgba(219,39,119,0.25)]"
+            style={{ background: "linear-gradient(180deg, #FDEAF1 0%, #FFF9FB 100%)" }}
+          >
             <div className="mb-3 flex items-center justify-between">
               <span className="text-[15px] font-bold text-[#1F2937]">
-                {upNext.status === "statusConfirmed" || upNext.status === "statusCheckedIn" ? t.mobileDashboardInSession : t.mobileDashboardUpNext}
+                {isInSession ? t.mobileDashboardInSession : t.mobileDashboardUpNext}
               </span>
               <span className="flex items-center gap-1 rounded-full bg-[#FDF0F5] px-2.5 py-1 text-[12px] font-bold text-[#DB2777]">
                 <Clock className="size-3" strokeWidth={2.4} />
@@ -109,7 +117,7 @@ export default function MobileDashboard() {
             </div>
             <Button
               onClick={() => navigate(`/mobile/consultation/${upNext.id}`)}
-              className="mb-2.5 w-full gap-1.5 rounded-2xl border-0 font-bold text-white hover:opacity-90"
+              className="mb-2.5 h-12 w-full gap-2 rounded-2xl border-0 px-5 text-[14.5px] font-bold text-white hover:opacity-90"
               style={{ background: "linear-gradient(90deg, #FB923C 0%, #EC4899 55%, #A855F7 100%)" }}
             >
               <Stethoscope className="size-4" strokeWidth={2.2} />

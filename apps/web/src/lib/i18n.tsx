@@ -484,6 +484,7 @@ export const STR = {
 
     // ---------- Mobile dashboard ----------
     mobileDashboardGreeting: "Welcome back",
+    mobileDashboardTagline: "Small steps. Healthier brighter tomorrows.",
     mobileDashboardUpNext: "Up Next",
     mobileDashboardInSession: "In Session",
     mobileDashboardNoUpcoming: "No more appointments today",
@@ -521,7 +522,7 @@ export const STR = {
     mobileConsultCompleteSend: "Complete & Send",
     mobileConsultSending: "Sending…",
     mobileConsultSaving: "Saving…",
-    mobileConsultSaved: "Consultation saved",
+    mobileConsultSaved: "Draft saved to the patient's file — reopen this visit anytime to pick it back up",
     mobileConsultSaveFailed: "Failed to save consultation",
     mobileConsultSentSuccess: "Prescription sent via WhatsApp",
     mobileConsultSendFailed: "Failed to send prescription",
@@ -1045,6 +1046,7 @@ export const STR = {
 
     // ---------- Mobile dashboard ----------
     mobileDashboardGreeting: "Bienvenido de nuevo",
+    mobileDashboardTagline: "Pequeños pasos. Mañanas más saludables.",
     mobileDashboardUpNext: "Siguiente Cita",
     mobileDashboardInSession: "En Consulta",
     mobileDashboardNoUpcoming: "No hay más citas hoy",
@@ -1082,7 +1084,7 @@ export const STR = {
     mobileConsultCompleteSend: "Completar y Enviar",
     mobileConsultSending: "Enviando…",
     mobileConsultSaving: "Guardando…",
-    mobileConsultSaved: "Consulta guardada",
+    mobileConsultSaved: "Borrador guardado en el expediente del paciente — vuelve a abrir esta consulta cuando quieras para continuar",
     mobileConsultSaveFailed: "No se pudo guardar la consulta",
     mobileConsultSentSuccess: "Receta enviada por WhatsApp",
     mobileConsultSendFailed: "No se pudo enviar la receta",

@@ -1,11 +1,12 @@
 import { useState } from "react"
 import { LogOut, Mail, MapPin, Phone } from "lucide-react"
 import { useNavigate } from "react-router-dom"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Card } from "@/components/ui/card"
 import { useLang } from "@/lib/i18n"
 import { useToast } from "@/lib/toast"
 import { supabase } from "@/lib/supabaseClient"
+import doctorAvatar from "@/assests/drgamaliel.png"
 
 export function DoctorProfileCard() {
   const { t } = useLang()
@@ -36,6 +37,7 @@ export function DoctorProfileCard() {
       </div>
       <div className="mb-3.5 flex items-center gap-3">
         <Avatar className="size-14.5">
+          <AvatarImage src={doctorAvatar} alt="" className="object-top" />
           <AvatarFallback className="bg-gradient-to-br from-primary to-sidebar text-lg font-bold text-primary-foreground">
             GR
           </AvatarFallback>

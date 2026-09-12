@@ -79,7 +79,13 @@ export function PhoneInput({
           </button>
         </Popover.Trigger>
         <Popover.Portal>
-          <Popover.Content align="start" sideOffset={4} className="z-50 max-h-64 w-56 overflow-y-auto rounded-lg border border-border bg-popover p-1 shadow-lg">
+          <Popover.Content
+            align="start"
+            sideOffset={4}
+            className="z-50 max-h-64 w-56 overflow-y-auto overscroll-contain rounded-lg border border-border bg-popover p-1 shadow-lg"
+            onWheel={(e) => e.stopPropagation()}
+            onTouchMove={(e) => e.stopPropagation()}
+          >
             {COUNTRIES.map((c) => (
               <button
                 key={c.iso}

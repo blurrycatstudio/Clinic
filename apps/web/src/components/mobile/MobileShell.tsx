@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { Dialog } from "radix-ui"
 import { ChevronLeft, House, Calendar, Baby, MessageCircle, FileText, Bell, CalendarPlus, X, LogOut } from "lucide-react"
 import { NavLink, useNavigate } from "react-router-dom"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { PhoneInput } from "@/components/ui/phone-input"
@@ -13,17 +13,21 @@ import { useToast } from "@/lib/toast"
 import { cn } from "@/lib/utils"
 import { supabase } from "@/lib/supabaseClient"
 import { toDateParam, toDisplayAppointment, type ApiAppointment } from "@/lib/appointments"
+import doctorAvatar from "@/assests/drgamaliel.png"
 
 // All five point within /mobile/* — tabs used to jump out to the desktop AppShell pages
 // (/patients, /whatsapp, /records), which don't render this bar, so it looked like the
 // bottom toolbar "disappeared" the moment you tapped one.
-const TABS = [
+// Messages lives only in the profile drawer (ALL_TABS) — the bottom bar (TOOLBAR_TABS)
+// keeps just 5 slots total (4 tabs + the center "+" add button).
+const ALL_TABS = [
   { path: "/mobile/dashboard", labelKey: "mobileNavDashboard" as const, icon: House },
   { path: "/mobile/schedule", labelKey: "mobileNavSchedule" as const, icon: Calendar },
   { path: "/mobile/patients", labelKey: "mobileNavPatients" as const, icon: Baby },
   { path: "/mobile/messages", labelKey: "mobileNavMessages" as const, icon: MessageCircle },
   { path: "/mobile/records", labelKey: "mobileNavRecords" as const, icon: FileText },
 ]
+const TOOLBAR_TABS = ALL_TABS.filter((tab) => tab.path !== "/mobile/messages")
 
 /** Mobile-styled bottom sheet for booking a new appointment, reachable from the toolbar's "+" button on every mobile screen. */
 function NewAppointmentSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
@@ -139,6 +143,7 @@ function ProfileSidebar({ open, onOpenChange }: { open: boolean; onOpenChange: (
         <Dialog.Content className="fixed inset-y-0 left-0 z-50 flex w-[82%] max-w-[320px] flex-col bg-white pb-[env(safe-area-inset-bottom)] shadow-2xl outline-none">
           <div className="flex items-center gap-2.5 border-b border-border/60 px-4 py-4">
             <Avatar className="size-10 shrink-0">
+              <AvatarImage src={doctorAvatar} alt="" className="object-top" />
               <AvatarFallback
                 className="text-[12px] font-bold text-white"
                 style={{ background: "linear-gradient(135deg, #FB923C 0%, #EC4899 55%, #A855F7 100%)" }}
@@ -156,7 +161,7 @@ function ProfileSidebar({ open, onOpenChange }: { open: boolean; onOpenChange: (
           </div>
 
           <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto p-2">
-            {TABS.map((tab) => (
+            {ALL_TABS.map((tab) => (
               <NavLink
                 key={tab.path}
                 to={tab.path}
@@ -242,8 +247,8 @@ export function MobileShell({
     // h-dvh + overflow-hidden (not min-h-dvh) so this is a fixed-height frame — <main> below
     // is then the one thing that actually scrolls internally, instead of the whole window
     // growing past the viewport and carrying its scroll position between screens.
-    <div className="h-dvh overflow-hidden bg-[#FFF8F5]">
-      <div className="mx-auto flex h-dvh w-full max-w-[430px] flex-col overflow-hidden bg-[#FFF8F5]">
+    <div className="h-dvh overflow-hidden bg-[#FAFAFB]">
+      <div className="mx-auto flex h-dvh w-full max-w-[430px] flex-col overflow-hidden bg-[#FAFAFB]">
         <header
           className={cn(
             "sticky top-0 z-40 flex h-14 shrink-0 items-center justify-between gap-2 border-b px-4",
@@ -266,6 +271,7 @@ export function MobileShell({
             <>
               <button onClick={() => setSidebarOpen(true)} className="flex min-w-0 items-center gap-2.5 rounded-lg text-left">
                 <Avatar className="size-8.5 shrink-0">
+                  <AvatarImage src={doctorAvatar} alt="" className="object-top" />
                   <AvatarFallback
                     className="text-[11px] font-bold text-white"
                     style={{ background: "linear-gradient(135deg, #FB923C 0%, #EC4899 55%, #A855F7 100%)" }}
@@ -349,7 +355,7 @@ export function MobileShell({
 
         <nav className="fixed inset-x-0 bottom-0 z-40 mx-auto w-full max-w-[430px] pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
           <div className="mx-3 flex h-16 items-center justify-around rounded-[26px] border border-[#F1E4E4] bg-white px-1 shadow-[0_-6px_24px_-8px_rgba(190,80,120,0.18)]">
-            {TABS.slice(0, 2).map((tab) => (
+            {TOOLBAR_TABS.slice(0, 2).map((tab) => (
               <NavLink
                 key={tab.path}
                 to={tab.path}
@@ -372,15 +378,15 @@ export function MobileShell({
               className="flex flex-1 flex-col items-center justify-center gap-1"
             >
               <span
-                className="flex size-11 -translate-y-3.5 items-center justify-center rounded-full text-white shadow-[0_8px_16px_-4px_rgba(219,39,119,0.55)]"
+                className="flex size-9 items-center justify-center rounded-full text-white shadow-[0_8px_16px_-4px_rgba(219,39,119,0.55)]"
                 style={{ background: "linear-gradient(135deg, #FB923C 0%, #EC4899 55%, #A855F7 100%)" }}
               >
-                <CalendarPlus className="size-5" strokeWidth={2.2} />
+                <CalendarPlus className="size-[18px]" strokeWidth={2.2} />
               </span>
-              <span className="-mt-2 truncate text-[10.5px] font-semibold text-muted-foreground">{t.mobileNavAdd}</span>
+              <span className="truncate text-[10.5px] font-semibold text-muted-foreground">{t.mobileNavAdd}</span>
             </button>
 
-            {TABS.slice(2).map((tab) => (
+            {TOOLBAR_TABS.slice(2).map((tab) => (
               <NavLink
                 key={tab.path}
                 to={tab.path}

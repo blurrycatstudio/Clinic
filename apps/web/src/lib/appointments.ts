@@ -15,6 +15,7 @@ export type DisplayAppointment = {
   id: string
   patientId: string
   startsAt: Date
+  endsAt: Date
   time: string
   duration: string
   child: string
@@ -59,12 +60,14 @@ export function mapStatus(status: ApiAppointment["status"]): AppointmentStatus {
 
 export function toDisplayAppointment(a: ApiAppointment): DisplayAppointment {
   const startsAt = new Date(a.starts_at)
-  const minutes = Math.round((new Date(a.ends_at).getTime() - startsAt.getTime()) / 60000)
+  const endsAt = new Date(a.ends_at)
+  const minutes = Math.round((endsAt.getTime() - startsAt.getTime()) / 60000)
   const name = a.patients?.full_name ?? "Unknown patient"
   return {
     id: a.id,
     patientId: a.patient_id,
     startsAt,
+    endsAt,
     time: startsAt.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }),
     duration: `${minutes} min`,
     child: name,

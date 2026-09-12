@@ -1,4 +1,4 @@
-import type { Appointment, AppointmentStatus } from "@clinic/shared"
+import type { Appointment, AppointmentStatus, Patient } from "@clinic/shared"
 import { CLINIC_TIMEZONE } from "@clinic/shared"
 import { fromZonedTime } from "date-fns-tz"
 import { supabase } from "../config/supabase.js"
@@ -11,6 +11,13 @@ export const appointmentRepository = {
     const { data, error } = await supabase.from("appointments").select("*").eq("id", id).maybeSingle()
     if (error) throw new AppError(`Failed to load appointment: ${error.message}`)
     return data
+  },
+
+  /** Single appointment + its patient in one round trip — avoids fetching the whole list to look up one row. */
+  async findByIdWithPatient(id: string): Promise<(Appointment & { patients: Patient | null }) | null> {
+    const { data, error } = await supabase.from("appointments").select("*, patients(*)").eq("id", id).maybeSingle()
+    if (error) throw new AppError(`Failed to load appointment: ${error.message}`)
+    return data as never
   },
 
   async listUpcomingForPatient(patientId: string): Promise<Appointment[]> {
@@ -57,9 +64,11 @@ export const appointmentRepository = {
     limit?: number
     offset?: number
   }): Promise<{ rows: (Appointment & { patients: { full_name: string; phone_e164: string } | null })[]; count: number }> {
+    // No frontend caller reads the returned `count`, so skip Postgres's exact
+    // COUNT(*) — it's a full scan on every poll and was the main cost here.
     let query = supabase
       .from("appointments")
-      .select("*, patients(full_name, phone_e164)", { count: "exact" })
+      .select("*, patients(full_name, phone_e164)")
       .order("starts_at", { ascending: true })
 
     if (params.date) {
