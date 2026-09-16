@@ -1,6 +1,6 @@
 import { format } from "date-fns"
 import { toZonedTime } from "date-fns-tz"
-import { CLINIC_TIMEZONE, ConversationState, FlowType, type Appointment } from "@clinic/shared"
+import { CLINIC_TIMEZONE, ConversationState, FlowType, t, type Appointment } from "@clinic/shared"
 import { appointmentRepository } from "../repositories/appointmentRepository.js"
 import { patientRepository } from "../repositories/patientRepository.js"
 import { conversationRepository } from "../repositories/conversationRepository.js"
@@ -30,18 +30,28 @@ async function deliverReminder(appointment: Appointment, which: "24h" | "2h"): P
   const date = format(zoned, "EEEE d MMMM")
   const time = format(zoned, "h:mm a")
   const settings = await clinicSettingsRepository.get()
+  const lang = patient.language
+
+  // Both reminders carry live Confirm/Reschedule/Cancel buttons — via the approved
+  // Meta template once one exists, or (today, since templates are still pending
+  // approval — see packages/shared/templates/registry.ts) via these same three
+  // buttons attached to the plain session fallback, so the patient always gets a
+  // tappable way to act on the reminder instead of a dead block of text.
+  const reminderButtons = [
+    { id: "confirm", title: t(lang, "reminderConfirmButton") },
+    { id: "reschedule", title: t(lang, "reminderRescheduleButton") },
+    { id: "cancel", title: t(lang, "reminderCancelButton") },
+  ]
 
   if (which === "24h") {
     await templateService.send({
       key: "appointmentReminder24h",
       to: patient.phone_e164,
       conversationId: conversation.id,
-      language: patient.language,
+      language: lang,
       params: [patient.full_name, date, time],
-      sessionFallbackText:
-        patient.language === "es"
-          ? `Recordatorio: tienes una cita mañana ${date} a las ${time}.`
-          : `Reminder: you have an appointment tomorrow, ${date} at ${time}.`,
+      sessionFallbackText: t(lang, "reminder24hText", { date, time, doctorName: settings.doctor_name }),
+      sessionFallbackButtons: reminderButtons,
       appointmentId: appointment.id,
     })
   } else {
@@ -50,28 +60,26 @@ async function deliverReminder(appointment: Appointment, which: "24h" | "2h"): P
       key: "appointmentReminder2h",
       to: patient.phone_e164,
       conversationId: conversation.id,
-      language: patient.language,
+      language: lang,
       params: [patient.full_name, settings.doctor_name, date, time, settings.clinic_name, clinicShortName],
-      sessionFallbackText:
-        patient.language === "es"
-          ? `Recordatorio: tu cita con ${settings.doctor_name} es hoy a las ${time} en ${settings.clinic_name}.`
-          : `Reminder: your appointment with ${settings.doctor_name} is today at ${time} at ${settings.clinic_name}.`,
+      sessionFallbackText: t(lang, "reminder2hText", { date, time, doctorName: settings.doctor_name, clinicName: settings.clinic_name }),
+      sessionFallbackButtons: reminderButtons,
       appointmentId: appointment.id,
     })
-
-    // The 2h reminder is the one whose template carries Confirm/Reschedule/Cancel
-    // quick-reply buttons — park the conversation on a dedicated state so the next
-    // inbound message (the button tap) is routed straight to this appointment
-    // instead of falling into whatever flow state happened to be left over.
-    const { context: loaded } = await redisStateService.get(patient.phone_e164, conversation.id)
-    await redisStateService.save(patient.phone_e164, {
-      ...loaded,
-      language: loaded.language ?? patient.language,
-      state: ConversationState.AWAITING_REMINDER_RESPONSE,
-      activeFlow: FlowType.NONE,
-      reminder: { appointmentId: appointment.id },
-    })
   }
+
+  // Park the conversation on a dedicated state so the next inbound message (the
+  // button tap, or its typed equivalent) is routed straight to this appointment
+  // instead of falling into whatever flow state happened to be left over —
+  // needed for both reminders now that both carry actionable buttons.
+  const { context: loaded } = await redisStateService.get(patient.phone_e164, conversation.id)
+  await redisStateService.save(patient.phone_e164, {
+    ...loaded,
+    language: loaded.language ?? lang,
+    state: ConversationState.AWAITING_REMINDER_RESPONSE,
+    activeFlow: FlowType.NONE,
+    reminder: { appointmentId: appointment.id },
+  })
 
   // Attach "Get Directions" (a real tappable maps-link button, plus a native location
   // pin when clinic_settings has coordinates) right after the reminder text so the

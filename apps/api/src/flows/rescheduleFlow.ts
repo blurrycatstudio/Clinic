@@ -14,6 +14,7 @@ import {
 import type { FlowHandler, FlowReply, FlowResult } from "./types.js"
 import { appointmentService, type AvailableSlot } from "../services/appointmentService.js"
 import { appointmentRepository } from "../repositories/appointmentRepository.js"
+import { parseBookingRequest } from "../lib/parseBookingRequest.js"
 import { tryAnswerOffScript } from "../lib/offScript.js"
 import { startBookingFromFreeText } from "./bookAppointmentFlow.js"
 import { enterCancelFlow } from "./cancelFlow.js"
@@ -76,6 +77,73 @@ async function promptForSlots(lang: Language, offset = 0): Promise<{ slots: Avai
   const hasMore = fetched.length > SLOTS_PER_PAGE
   const slots = fetched.slice(0, SLOTS_PER_PAGE)
   return { slots, hasMore, reply: buildSlotListReply(lang, slots, hasMore) }
+}
+
+/**
+ * A patient picking a new slot for the appointment they're rescheduling may
+ * type a date/time instead of tapping a list row ("actually the 20th at
+ * 2pm") — this resolves that text against real availability and keeps
+ * `targetAppointmentId` intact, so it moves the SAME appointment instead of
+ * falling through to tryRestateIntent, which would abandon this reschedule
+ * and start booking an unrelated new appointment. Returns null when the text
+ * doesn't parse as a date/time at all, so the caller can fall through to its
+ * normal restate/off-script handling.
+ */
+async function resolveRescheduleDate(
+  context: ConversationContext,
+  rawText: string,
+  lang: Language,
+  draft: { targetAppointmentId?: string },
+): Promise<FlowResult | null> {
+  const parsed = parseBookingRequest(rawText, lang, new Date())
+  if (!parsed) return null
+
+  const dayMatches =
+    parsed.kind === "asap"
+      ? await appointmentService.getAvailableSlots(BOOKING_HORIZON_DAYS, 1, 0)
+      : await appointmentService.getSlotsOnDate(parsed.date)
+  const exact = parsed.kind === "exact" ? dayMatches.find((s) => Math.abs(new Date(s.startsAtIso).getTime() - parsed.date.getTime()) < 60_000) : null
+  const requestedSlots = exact ? [exact] : dayMatches
+
+  if (requestedSlots.length === 0) {
+    const { slots, hasMore, reply } = await promptForSlots(lang)
+    if (slots.length === 0) {
+      return { context: { ...context, state: ConversationState.AWAITING_MENU_SELECTION, activeFlow: FlowType.NONE, reschedule: undefined }, reply }
+    }
+    return {
+      context: {
+        ...context,
+        state: ConversationState.AWAITING_RESCHEDULE_SLOT_SELECTION,
+        reschedule: { ...draft, cachedSlots: slots, slotOffset: slots.length },
+      },
+      reply: { ...reply, text: `${t(lang, "requestedDayUnavailable")}\n\n${reply.text}` },
+    }
+  }
+
+  if (requestedSlots.length === 1 && parsed.kind !== "day_query") {
+    const slot = requestedSlots[0]!
+    const zoned = toZonedTime(new Date(slot.startsAtIso), CLINIC_TIMEZONE)
+    return {
+      context: { ...context, state: ConversationState.AWAITING_RESCHEDULE_CONFIRMATION, reschedule: { ...draft, selectedSlotIso: slot.startsAtIso } },
+      reply: {
+        text: t(lang, "confirmReschedule", { date: format(zoned, "EEEE d MMMM"), time: format(zoned, "h:mm a") }),
+        buttons: [
+          { id: "yes", title: t(lang, "confirmYesButton") },
+          { id: "no", title: t(lang, "confirmNoButton") },
+          backToMenuButton(lang),
+        ],
+      },
+    }
+  }
+
+  return {
+    context: {
+      ...context,
+      state: ConversationState.AWAITING_RESCHEDULE_SLOT_SELECTION,
+      reschedule: { ...draft, cachedSlots: requestedSlots, slotOffset: requestedSlots.length },
+    },
+    reply: buildSlotListReply(lang, requestedSlots, false),
+  }
 }
 
 /** Called by mainMenuFlow when the patient picks option 2 — needs a DB lookup, so it can't be a plain switch branch. */
@@ -196,6 +264,12 @@ export const rescheduleFlow: FlowHandler = async ({ text, buttonId, context, set
       const index = Number.parseInt((buttonId ?? text).trim(), 10) - 1
       const slot = slots[index]
       if (!slot) {
+        // Typed a date/time instead of picking a row — resolve it against real
+        // availability for THIS reschedule before considering it a restated,
+        // unrelated request (see resolveRescheduleDate for why the order matters).
+        const dateMatch = await resolveRescheduleDate(context, text, lang, draft)
+        if (dateMatch) return dateMatch
+
         const restated = await tryRestateIntent(text, context, lang, settings)
         if (restated) return restated
 

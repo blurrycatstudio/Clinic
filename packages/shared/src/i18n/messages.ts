@@ -97,6 +97,11 @@ export const botMessages = {
     reminderConfirmed: "✅ ¡Gracias! Confirmamos tu asistencia el {date} a las {time}. Te esperamos.",
     reminderInvalid: "Toca *Confirmar*, *Reprogramar* o *Cancelar* arriba, o escribe una de esas palabras.",
     reminderAppointmentGone: "Esa cita ya no está activa. Escribe *Hola* si necesitas algo más.",
+    reminder24hText: "⏰ Recordatorio: tienes una cita mañana, *{date}* a las *{time}*, con {doctorName}.\n\n¿Todo en orden?",
+    reminder2hText: "⏰ Recordatorio: tu cita con {doctorName} es hoy, *{date}* a las *{time}*, en {clinicName}.",
+    reminderConfirmButton: "Confirmar",
+    reminderRescheduleButton: "Reprogramar",
+    reminderCancelButton: "Cancelar",
     clinicOverview:
       "📍 *Ubicación*\n{address}\n\n🗓️ *Horario*\n{hours}\n\n🅿️ *Estacionamiento*\n{parking}",
     getDirectionsButton: "Cómo llegar",
@@ -172,6 +177,11 @@ export const botMessages = {
     reminderConfirmed: "✅ Thanks! We've marked you as confirmed for {date} at {time}. See you then.",
     reminderInvalid: "Tap *Confirm*, *Reschedule*, or *Cancel* above, or type one of those words.",
     reminderAppointmentGone: "That appointment is no longer active. Type *Hi* if you need anything else.",
+    reminder24hText: "⏰ Reminder: you have an appointment tomorrow, *{date}* at *{time}*, with {doctorName}.\n\nIs everything okay?",
+    reminder2hText: "⏰ Reminder: your appointment with {doctorName} is today, *{date}* at *{time}*, at {clinicName}.",
+    reminderConfirmButton: "Confirm",
+    reminderRescheduleButton: "Reschedule",
+    reminderCancelButton: "Cancel",
     clinicOverview:
       "📍 *Location*\n{address}\n\n🗓️ *Hours*\n{hours}\n\n🅿️ *Parking*\n{parking}",
     getDirectionsButton: "Get Directions",

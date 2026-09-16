@@ -23,12 +23,25 @@ export const templateService = {
     params: string[]
     /** Plain-text version to send instead, ONLY valid inside WhatsApp's 24h session window. */
     sessionFallbackText?: string
+    /** Tappable reply buttons (max 3) to attach to the session-fallback text — e.g. the reminder's Confirm/Reschedule/Cancel, which the approved template would otherwise carry. Ignored without sessionFallbackText. */
+    sessionFallbackButtons?: { id: string; title: string }[]
     /** Links this send back to an appointment (e.g. a reminder), for dashboard delivery/read status. */
     appointmentId?: string
   }): Promise<void> {
     if (!isTemplateReady(input.key)) {
       logger.warn({ key: input.key }, "Template not yet approved — using session fallback if provided")
-      if (input.sessionFallbackText) {
+      if (input.sessionFallbackText && input.sessionFallbackButtons?.length) {
+        const { messageId } = await whatsappService.sendInteractiveButtons(input.to, input.sessionFallbackText, input.sessionFallbackButtons)
+        await messageRepository.log({
+          conversationId: input.conversationId,
+          direction: "outbound",
+          messageType: "interactive",
+          body: input.sessionFallbackText,
+          payload: { buttons: input.sessionFallbackButtons },
+          waMessageId: messageId,
+          appointmentId: input.appointmentId,
+        })
+      } else if (input.sessionFallbackText) {
         const { messageId } = await whatsappService.sendTextMessage(input.to, input.sessionFallbackText)
         await messageRepository.log({
           conversationId: input.conversationId,
