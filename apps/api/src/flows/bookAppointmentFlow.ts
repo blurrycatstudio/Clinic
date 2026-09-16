@@ -97,11 +97,23 @@ const BOOKING_INTENT_WORDS = [
   "book", "appointment", "cita", "agendar", "reprogramar", "reschedule", "cancel", "cancelar",
   "fever", "fiebre", "dolor", "pain", "asap", "urgent", "urgente", "doctor", "hola", "hello", "hi",
 ]
+// A bare negative/rejection reply ("no", "wrong", "incorrecto") is the patient flagging
+// that the saved details are wrong, not a name and not a restated booking request — it
+// must not be silently filed as `fullName`, so it's checked before isPlausibleFullName.
+const NEGATION_REPLIES = [
+  "no", "nope", "nah", "not correct", "incorrect", "wrong", "that's wrong", "not right", "no correcto",
+  "incorrecto", "esta mal", "está mal", "mal", "erroneo", "erróneo", "equivocado", "no es correcto",
+]
+
+function isNegationReply(text: string): boolean {
+  return NEGATION_REPLIES.includes(text.trim().toLowerCase())
+}
 
 /** A patient correcting their saved name types 1-6 plain words with no digits/booking language — anything else at that prompt is almost certainly a re-stated request, not a name. */
 function isPlausibleFullName(text: string): boolean {
   const trimmed = text.trim()
   if (trimmed.length < 2 || trimmed.length > 60) return false
+  if (isNegationReply(trimmed)) return false
   if (NAME_DISQUALIFIERS.test(trimmed)) return false
   const words = trimmed.toLowerCase().split(/\s+/).filter(Boolean)
   if (words.some((w) => BOOKING_INTENT_WORDS.includes(w))) return false
@@ -287,7 +299,7 @@ export const bookAppointmentFlow: FlowHandler = async ({ text, buttonId, context
       }
 
       const trimmedText = text.trim()
-      if (trimmedText.length < 2) {
+      if (trimmedText.length < 2 || isNegationReply(trimmedText)) {
         return { context, reply: { text: t(lang, "confirmSavedDetailsInvalid") } }
       }
 
