@@ -133,10 +133,10 @@ function AppointmentActionsDialog({
                     onClick={() => onCall(appointment)}
                     disabled={!callingEnabled || !appointment.phone || callPending}
                     className="w-full justify-center gap-1.5 rounded-lg font-bold"
-                    title={callingEnabled ? undefined : "Outbound calling isn't configured yet"}
+                    title={callingEnabled ? undefined : t.apptsCallingDisabledHint}
                   >
                     <Phone className="size-3.5" strokeWidth={2.2} />
-                    Call patient
+                    {t.apptsCallPatient}
                   </Button>
                   <Button
                     onClick={() => onMessage(appointment)}
@@ -145,7 +145,7 @@ function AppointmentActionsDialog({
                     className="w-full justify-center gap-1.5 rounded-lg font-bold"
                   >
                     <MessageCircle className="size-3.5" strokeWidth={2.2} />
-                    Send WhatsApp reminder
+                    {t.apptsSendWhatsappReminder}
                   </Button>
                   {(appointment.calls.count > 0 || appointment.messages.count > 0) && (
                     <div className="flex items-center justify-center gap-3 text-[11px] font-semibold text-muted-foreground">
@@ -193,20 +193,20 @@ function AppointmentActionsDialog({
                 <div className="flex flex-col gap-3">
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="mb-1.5 block text-xs font-bold">Date</label>
+                      <label className="mb-1.5 block text-xs font-bold">{t.apptsRescheduleDateLabel}</label>
                       <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="h-10" />
                     </div>
                     <div>
-                      <label className="mb-1.5 block text-xs font-bold">Time</label>
+                      <label className="mb-1.5 block text-xs font-bold">{t.apptsRescheduleTimeLabel}</label>
                       <Input type="time" value={time} onChange={(e) => setTime(e.target.value)} className="h-10" />
                     </div>
                   </div>
                   <div className="mt-1 flex gap-2.5">
                     <Button variant="outline" onClick={() => setView("menu")} className="flex-1 justify-center rounded-lg font-bold">
-                      Back
+                      {t.apptsBackBtn}
                     </Button>
                     <Button onClick={saveReschedule} disabled={!date || !time || reschedulePending} className="flex-1 justify-center rounded-lg font-bold">
-                      Save
+                      {t.apptsSaveBtn}
                     </Button>
                   </div>
                 </div>
@@ -214,10 +214,12 @@ function AppointmentActionsDialog({
 
               {view === "cancel" && (
                 <div className="flex flex-col gap-3">
-                  <p className="text-sm text-foreground">Cancel {appointment.child}'s appointment at {appointment.time}?</p>
+                  <p className="text-sm text-foreground">
+                    {t.apptsCancelConfirm.replace("{child}", appointment.child).replace("{time}", appointment.time)}
+                  </p>
                   <div className="mt-1 flex gap-2.5">
                     <Button variant="outline" onClick={() => setView("menu")} className="flex-1 justify-center rounded-lg font-bold">
-                      Back
+                      {t.apptsBackBtn}
                     </Button>
                     <Button
                       onClick={() => onCancel(appointment)}
@@ -272,9 +274,9 @@ export default function MobileSchedule() {
     mutationFn: (id: string) => api.post(`/appointments/${id}/call`),
     onSuccess: () => {
       setActionsFor(null)
-      toast("Calling now…")
+      toast(t.apptsCallingNow)
     },
-    onError: (err: unknown) => toast(err instanceof Error ? err.message : "Failed to place call"),
+    onError: (err: unknown) => toast(err instanceof Error ? err.message : t.apptsCallFailed),
   })
 
   const messageMutation = useMutation({
@@ -282,9 +284,9 @@ export default function MobileSchedule() {
     onSuccess: () => {
       invalidate()
       setActionsFor(null)
-      toast("Reminder message sent")
+      toast(t.apptsReminderMessageSent)
     },
-    onError: (err: unknown) => toast(err instanceof Error ? err.message : "Failed to send message"),
+    onError: (err: unknown) => toast(err instanceof Error ? err.message : t.apptsMessageFailed),
   })
 
   function sendMessage(a: DisplayAppointment) {
@@ -299,9 +301,9 @@ export default function MobileSchedule() {
     onSuccess: () => {
       invalidate()
       setActionsFor(null)
-      toast("Patient checked in")
+      toast(t.apptsCheckedInToast)
     },
-    onError: () => toast("Failed to check in patient"),
+    onError: () => toast(t.apptsCheckInFailedToast),
   })
 
   const rescheduleMutation = useMutation({
@@ -309,9 +311,9 @@ export default function MobileSchedule() {
     onSuccess: () => {
       invalidate()
       setActionsFor(null)
-      toast("Appointment rescheduled")
+      toast(t.apptsRescheduledToast)
     },
-    onError: () => toast("Failed to reschedule — that slot may already be booked"),
+    onError: () => toast(t.apptsRescheduleFailedToast),
   })
 
   const cancelMutation = useMutation({
@@ -319,9 +321,9 @@ export default function MobileSchedule() {
     onSuccess: () => {
       invalidate()
       setActionsFor(null)
-      toast("Appointment cancelled")
+      toast(t.apptsCancelledToast)
     },
-    onError: () => toast("Failed to cancel appointment"),
+    onError: () => toast(t.apptsCancelFailedToast),
   })
 
   const filtered = useMemo(
@@ -466,7 +468,7 @@ export default function MobileSchedule() {
                         setActionsFor(a)
                       }}
                       disabled={!a.phone}
-                      title="Call or message"
+                      title={t.apptsCallOrMessage}
                       className="flex size-7 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-muted disabled:opacity-40"
                     >
                       <Phone className="size-3.5" strokeWidth={2.2} />

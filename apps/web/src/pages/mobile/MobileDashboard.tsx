@@ -50,7 +50,7 @@ export default function MobileDashboard() {
   const reminderMutation = useMutation({
     mutationFn: (id: string) => api.post(`/appointments/${id}/reminder`, { which: "24h" }),
     onSuccess: () => toast(t.mobileDashboardReminderSent),
-    onError: (err: unknown) => toast(err instanceof Error ? err.message : "Failed to send reminder"),
+    onError: (err: unknown) => toast(err instanceof Error ? err.message : t.mobileDashboardReminderFailed),
   })
 
   const schedule = useMemo(() => (data?.rows ?? []).map(toDisplayAppointment).sort((a, b) => a.startsAt.getTime() - b.startsAt.getTime()), [data])

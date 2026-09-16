@@ -33,6 +33,14 @@ type ApiPatient = {
 }
 
 const ROUTES = ["Oral", "Topical", "Inhaled", "Intramuscular", "Ophthalmic", "Otic"]
+const ROUTE_LABEL_KEYS = {
+  Oral: "routeOral",
+  Topical: "routeTopical",
+  Inhaled: "routeInhaled",
+  Intramuscular: "routeIntramuscular",
+  Ophthalmic: "routeOphthalmic",
+  Otic: "routeOtic",
+} as const
 const emptyMed = (): Medication => ({ name: "", dose: "", frequency: "", duration: "", route: "Oral" })
 
 function ageFromDob(dob: string | null): string | null {
@@ -130,7 +138,7 @@ export default function MobileConsultation() {
 
   const completeMutation = useMutation({
     mutationFn: async () => {
-      if (!patient) throw new Error("Missing patient")
+      if (!patient) throw new Error(t.mobileConsultNotFound)
       if (!draftSaved) await saveConsultation()
       const rxRes = await api.post<{ prescription: { id: string } }>("/prescriptions", {
         patientId: patient.id,
@@ -399,7 +407,7 @@ export default function MobileConsultation() {
                       >
                         {ROUTES.map((r) => (
                           <option key={r} value={r}>
-                            {r}
+                            {t[ROUTE_LABEL_KEYS[r as keyof typeof ROUTE_LABEL_KEYS]]}
                           </option>
                         ))}
                       </select>

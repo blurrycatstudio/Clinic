@@ -58,11 +58,11 @@ function UploadRecordDialog({ open, onOpenChange }: { open: boolean; onOpenChang
         mimeType: file.type || (file.name.toLowerCase().endsWith(".pdf") ? "application/pdf" : "application/octet-stream"),
         dataBase64,
       })
-      toast(`Uploaded for ${selected.full_name} — will be sent to ${selected.phone_e164} within 12 hours`)
+      toast(t.recordsUploadedToast.replace("{name}", selected.full_name).replace("{phone}", selected.phone_e164))
       reset()
       onOpenChange(false)
     } catch {
-      toast("Failed to upload document")
+      toast(t.recordsUploadFailedToast)
     } finally {
       setUploading(false)
     }
@@ -103,7 +103,7 @@ function UploadRecordDialog({ open, onOpenChange }: { open: boolean; onOpenChang
                 <p className="px-1 py-6 text-center text-[12.5px] text-muted-foreground">{t.recordsUploadSearchHint}</p>
               ) : patientsQuery.isLoading ? (
                 <div className="flex items-center justify-center gap-2 py-6 text-[12.5px] text-muted-foreground">
-                  <Loader2 className="size-3.5 animate-spin" /> Loading…
+                  <Loader2 className="size-3.5 animate-spin" /> {t.recordsUploadSearching}
                 </div>
               ) : (patientsQuery.data?.rows.length ?? 0) === 0 ? (
                 <p className="px-1 py-6 text-center text-[12.5px] text-muted-foreground">{t.recordsUploadNoResults}</p>
@@ -148,7 +148,7 @@ function UploadRecordDialog({ open, onOpenChange }: { open: boolean; onOpenChang
                 className="flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border py-6 text-[13px] font-bold text-primary transition-colors hover:bg-muted/40 disabled:opacity-50"
               >
                 {uploading ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" strokeWidth={2.2} />}
-                {uploading ? "Uploading…" : t.recordsUploadChooseFile}
+                {uploading ? t.recordsUploadUploading : t.recordsUploadChooseFile}
               </button>
               <input ref={fileInputRef} type="file" className="hidden" onChange={handleFile} />
 
@@ -178,9 +178,9 @@ function RecordDetailDialog({ record, patientName, onOpenChange }: { record: Med
     if (!record) return
     downloadTextFile(
       `${record.title}.txt`,
-      `${record.title}\nPatient: ${patientName}\nDate: ${record.date}\nDoctor: ${record.doctor}\n\n${record.summary}`,
+      `${record.title}\n${t.recordsColPatient}: ${patientName}\n${t.recordsColDate}: ${record.date}\n${t.recordDetailDoctor}: ${record.doctor}\n\n${record.summary}`,
     )
-    toast("Record downloaded")
+    toast(t.recordsDownloadedToast)
   }
 
   return (
