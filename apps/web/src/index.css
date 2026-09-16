@@ -144,9 +144,16 @@
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
-  /* The active bottom-nav icon does a slow full 360-degree turn in place — reads
-     as "alive" 3D plastic rather than a flat, static glyph, without ever leaving
-     its slot. The 1.1 scale is baked into every step (rather than a separate
+  /* The active bottom-nav icon turns slowly on its own vertical axis, like a coin
+     or a turntable, rather than spinning flat in the picture plane — without ever
+     leaving its slot. A true rotateY on a flat image collapses to an invisible
+     sliver at 90/270deg (a flat plane seen edge-on has no width); these icons are
+     rendered with baked-in gloss/shading to look like solid 3D objects, so instead
+     we fake the turn — narrow the icon rather than vanishing it (scaleX bottoms
+     out at 0.38, never 0) and swing the highlight/shadow with `filter` — so it
+     keeps reading as a rounded object with volume all the way through, the same
+     way the icon's own baked-in highlight already sells its 3D look standing
+     still. The 1.1 base scale is baked into every step (rather than a separate
      scale-110 utility) since an animation's `transform` replaces the element's
      whole computed transform each frame instead of composing with it. */
   .animate-tab-spin {
@@ -155,6 +162,9 @@
 }
 
 @keyframes tab-spin {
-  from { transform: scale(1.1) rotate(0deg); }
-  to { transform: scale(1.1) rotate(360deg); }
+  0% { transform: scale(1.1) scaleX(1); filter: brightness(1); }
+  25% { transform: scale(1.1) scaleX(0.38); filter: brightness(1.25); }
+  50% { transform: scale(1.1) scaleX(-1); filter: brightness(1); }
+  75% { transform: scale(1.1) scaleX(-0.38); filter: brightness(0.8); }
+  100% { transform: scale(1.1) scaleX(1); filter: brightness(1); }
 }

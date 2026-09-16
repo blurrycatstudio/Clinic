@@ -38,9 +38,11 @@ const ALL_TABS = [
 const TOOLBAR_TABS = ALL_TABS.filter((tab) => tab.path !== "/mobile/messages")
 
 /** A bottom-toolbar tab's icon — a 3D rendered image when the tab has one, popping up
- * (with a springy overshoot) then doing a slow full 360-degree turn in place while
- * active, so the selected tab is unmistakable at a glance; falls back to the plain
- * Lucide glyph otherwise. */
+ * (with a springy overshoot) then slowly turning on its own vertical axis — face,
+ * edge, face again, like a coin — while active, so the selected tab is unmistakable
+ * at a glance; falls back to the plain Lucide glyph otherwise. See the `tab-spin`
+ * keyframes in index.css for why this fakes the turn (scaleX + shading) instead of
+ * a literal rotateY. */
 function ToolbarNavIcon({ tab, isActive }: { tab: (typeof ALL_TABS)[number]; isActive: boolean }) {
   if (tab.image3d) {
     return (
