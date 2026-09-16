@@ -117,7 +117,7 @@ function NewAppointmentSheet({ open, onOpenChange }: { open: boolean; onOpenChan
           <div className="flex flex-col gap-3.5">
             <div>
               <label className="mb-1.5 block text-xs font-bold">{t.apptsNewModalPatient}</label>
-              <Input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Full name" className="h-10" />
+              <Input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder={t.apptsNewModalPatientPh} className="h-10" />
             </div>
             <div>
               <label className="mb-1.5 block text-xs font-bold">{t.mobileApptPhone}</label>
@@ -297,7 +297,7 @@ export function MobileShell({
             <>
               <button
                 onClick={() => (onBack ? onBack() : navigate(-1))}
-                aria-label="Back"
+                aria-label={t.apptsBackBtn}
                 className={cn("flex size-8 shrink-0 items-center justify-center rounded-full", dark ? "hover:bg-[#2a3942]" : "hover:bg-muted")}
               >
                 <ChevronLeft className={cn("size-5", dark && "text-[#e9edef]")} strokeWidth={2.2} />

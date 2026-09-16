@@ -43,7 +43,7 @@ const ROUTE_LABEL_KEYS = {
 } as const
 const emptyMed = (): Medication => ({ name: "", dose: "", frequency: "", duration: "", route: "Oral" })
 
-function ageFromDob(dob: string | null): string | null {
+function ageFromDob(dob: string | null, yearsAbbr: string, monthsAbbr: string): string | null {
   if (!dob) return null
   const birth = new Date(dob)
   if (Number.isNaN(birth.getTime())) return null
@@ -54,7 +54,7 @@ function ageFromDob(dob: string | null): string | null {
     years -= 1
     months += 12
   }
-  return years > 0 ? `${years}y ${months}m` : `${months}m`
+  return years > 0 ? `${years}${yearsAbbr} ${months}${monthsAbbr}` : `${months}${monthsAbbr}`
 }
 
 export default function MobileConsultation() {
@@ -178,7 +178,7 @@ export default function MobileConsultation() {
     )
   }
 
-  const age = ageFromDob(patient.date_of_birth)
+  const age = ageFromDob(patient.date_of_birth, t.ageYearsAbbr, t.ageMonthsAbbr)
 
   return (
     <MobileShell title={t.mobileConsultTitle} onBack={() => navigate(-1)}>

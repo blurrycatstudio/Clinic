@@ -2,6 +2,10 @@ import { createContext, useContext, useMemo, useState, type ReactNode } from "re
 
 export type Lang = "en" | "es"
 
+/** BCP-47 tag for each app language, for Intl/toLocale* calls — using the browser's
+ * default locale there would silently ignore the in-app EN/ES toggle. */
+export const LOCALE: Record<Lang, string> = { en: "en-US", es: "es-MX" }
+
 export const STR = {
   en: {
     navDashboard: "Dashboard",
@@ -214,6 +218,8 @@ export const STR = {
     tabDocuments: "Documents",
     basicInfoTitle: "Basic Information",
     patientAgeLabel: "Age",
+    ageYearsAbbr: "y",
+    ageMonthsAbbr: "m",
     patientGenderLabel: "Gender",
     patientGenderFemale: "Female",
     patientDobFullLabel: "Date of Birth",
@@ -314,6 +320,7 @@ export const STR = {
     statusCancelled: "Cancelled",
     apptsNewModalTitle: "New Appointment",
     apptsNewModalPatient: "Patient",
+    apptsNewModalPatientPh: "Full name",
     apptsNewModalSelectPatient: "Select a patient",
     apptsNewModalType: "Appointment Type",
     apptsNewModalDate: "Date",
@@ -529,6 +536,7 @@ export const STR = {
     mobileDashboardCallParent: "Call Parent",
     mobileDashboardWhatsApp: "WhatsApp",
     mobileDashboardSendReminder: "Send Reminder",
+    mobileDashboardSendReminderConfirm: "Send a reminder to {child} now?",
     mobileDashboardReminderSent: "Reminder sent",
     mobileDashboardReminderFailed: "Failed to send reminder",
     mobileDashboardTodaySchedule: "Today's Schedule",
@@ -814,6 +822,8 @@ export const STR = {
     tabDocuments: "Documentos",
     basicInfoTitle: "Información Básica",
     patientAgeLabel: "Edad",
+    ageYearsAbbr: "a",
+    ageMonthsAbbr: "m",
     patientGenderLabel: "Género",
     patientGenderFemale: "Femenino",
     patientDobFullLabel: "Fecha de Nacimiento",
@@ -914,6 +924,7 @@ export const STR = {
     statusCancelled: "Cancelada",
     apptsNewModalTitle: "Nueva Cita",
     apptsNewModalPatient: "Paciente",
+    apptsNewModalPatientPh: "Nombre completo",
     apptsNewModalSelectPatient: "Selecciona un paciente",
     apptsNewModalType: "Tipo de Cita",
     apptsNewModalDate: "Fecha",
@@ -1129,6 +1140,7 @@ export const STR = {
     mobileDashboardCallParent: "Llamar a Tutor",
     mobileDashboardWhatsApp: "WhatsApp",
     mobileDashboardSendReminder: "Enviar Recordatorio",
+    mobileDashboardSendReminderConfirm: "¿Enviar un recordatorio a {child} ahora?",
     mobileDashboardReminderSent: "Recordatorio enviado",
     mobileDashboardReminderFailed: "No se pudo enviar el recordatorio",
     mobileDashboardTodaySchedule: "Agenda de Hoy",
@@ -1215,8 +1227,27 @@ type LangContextValue = {
 
 const LangContext = createContext<LangContextValue | null>(null)
 
+const LANG_STORAGE_KEY = "clinic.lang"
+
+function readStoredLang(): Lang {
+  try {
+    const stored = localStorage.getItem(LANG_STORAGE_KEY)
+    return stored === "en" || stored === "es" ? stored : "en"
+  } catch {
+    return "en"
+  }
+}
+
 export function LanguageProvider({ children }: { children: ReactNode }) {
-  const [lang, setLang] = useState<Lang>("en")
+  const [lang, setLangState] = useState<Lang>(readStoredLang)
+  const setLang = (next: Lang) => {
+    setLangState(next)
+    try {
+      localStorage.setItem(LANG_STORAGE_KEY, next)
+    } catch {
+      // Private browsing / storage disabled — language just won't persist across reloads.
+    }
+  }
   const value = useMemo<LangContextValue>(
     () => ({ lang, setLang, t: STR[lang] }),
     [lang],

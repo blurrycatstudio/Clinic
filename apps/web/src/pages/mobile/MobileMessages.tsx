@@ -5,7 +5,7 @@ import { MobileShell } from "@/components/mobile/MobileShell"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { useLang } from "@/lib/i18n"
+import { LOCALE, useLang } from "@/lib/i18n"
 import { useConversations } from "@/hooks/useConversations"
 
 function initialsOf(name: string) {
@@ -24,13 +24,13 @@ function colorFor(id: string) {
   return AVATAR_COLORS[hash % AVATAR_COLORS.length]
 }
 
-function formatTime(iso: string) {
-  return new Date(iso).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })
+function formatTime(iso: string, locale: string) {
+  return new Date(iso).toLocaleTimeString(locale, { hour: "numeric", minute: "2-digit" })
 }
 
 /** Mobile-first WhatsApp contact list — tapping a conversation opens the full-screen thread at /mobile/messages/:conversationId. */
 export default function MobileMessages() {
-  const { t } = useLang()
+  const { t, lang } = useLang()
   const navigate = useNavigate()
   const location = useLocation()
   const [query, setQuery] = useState("")
@@ -107,7 +107,7 @@ export default function MobileMessages() {
                       <div className="truncate text-[13.5px] font-bold">{name}</div>
                       <div className="truncate text-[11.5px] text-muted-foreground">{c.patients?.full_name ?? c.wa_phone_e164}</div>
                     </div>
-                    <span className="shrink-0 text-[10.5px] text-muted-foreground">{formatTime(c.last_message_at)}</span>
+                    <span className="shrink-0 text-[10.5px] text-muted-foreground">{formatTime(c.last_message_at, LOCALE[lang])}</span>
                     <ChevronRight className="size-4 shrink-0 text-muted-foreground/60" />
                   </div>
                 </Card>

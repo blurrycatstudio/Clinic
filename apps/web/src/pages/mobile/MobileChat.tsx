@@ -3,13 +3,13 @@ import { useNavigate, useParams } from "react-router-dom"
 import { Check, CheckCheck, Send } from "lucide-react"
 import { MobileShell } from "@/components/mobile/MobileShell"
 import { WA_WALLPAPER } from "@/components/whatsapp/ManualMessaging"
-import { useLang } from "@/lib/i18n"
+import { LOCALE, useLang } from "@/lib/i18n"
 import { useConversationMessages, useConversations, useSendMessage } from "@/hooks/useConversations"
 import { useToast } from "@/lib/toast"
 import { cn } from "@/lib/utils"
 
-function formatTime(iso: string) {
-  return new Date(iso).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })
+function formatTime(iso: string, locale: string) {
+  return new Date(iso).toLocaleTimeString(locale, { hour: "numeric", minute: "2-digit" })
 }
 
 function Ticks({ status }: { status?: string | null }) {
@@ -21,7 +21,7 @@ function Ticks({ status }: { status?: string | null }) {
 
 /** Full-screen WhatsApp thread for one conversation — the mobile counterpart of the desktop chat pane in ManualMessaging, reached via /mobile/messages. */
 export default function MobileChat() {
-  const { t } = useLang()
+  const { t, lang } = useLang()
   const navigate = useNavigate()
   const toast = useToast()
   const { conversationId } = useParams<{ conversationId: string }>()
@@ -97,7 +97,7 @@ export default function MobileChat() {
                         mine ? "text-[#e9edef]/60" : "text-[#8696a0]",
                       )}
                     >
-                      {formatTime(m.created_at)}
+                      {formatTime(m.created_at, LOCALE[lang])}
                       {mine && <Ticks status={m.status} />}
                     </div>
                   </div>

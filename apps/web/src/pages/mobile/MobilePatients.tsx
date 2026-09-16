@@ -18,7 +18,7 @@ type ApiPatient = {
   allergies: string[]
 }
 
-function ageFromDob(dob: string | null): string | null {
+function ageFromDob(dob: string | null, yearsAbbr: string, monthsAbbr: string): string | null {
   if (!dob) return null
   const birth = new Date(dob)
   if (Number.isNaN(birth.getTime())) return null
@@ -29,7 +29,7 @@ function ageFromDob(dob: string | null): string | null {
     years -= 1
     months += 12
   }
-  return years > 0 ? `${years}y ${months}m` : `${months}m`
+  return years > 0 ? `${years}${yearsAbbr} ${months}${monthsAbbr}` : `${months}${monthsAbbr}`
 }
 
 /** Mobile-first patient roster — tapping a patient opens the same detailed record view (/mobile/records/:patientId) used from the schedule/consultation flows. */
@@ -79,7 +79,7 @@ export default function MobilePatients() {
         ) : (
           <div className="flex flex-col gap-2">
             {patients.map((p) => {
-              const age = ageFromDob(p.date_of_birth)
+              const age = ageFromDob(p.date_of_birth, t.ageYearsAbbr, t.ageMonthsAbbr)
               return (
                 <Card
                   key={p.id}

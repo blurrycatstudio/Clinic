@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { useLang } from "@/lib/i18n"
+import { LOCALE, useLang } from "@/lib/i18n"
 import { api } from "@/lib/api"
 import { colorFor, initialsFor } from "@/lib/appointments"
 import type { ApiPrescription } from "@/pages/Prescriptions"
@@ -36,7 +36,7 @@ type ApiConsultation = {
   created_at: string
 }
 
-function ageFromDob(dob: string | null): string | null {
+function ageFromDob(dob: string | null, yearsAbbr: string, monthsAbbr: string): string | null {
   if (!dob) return null
   const birth = new Date(dob)
   if (Number.isNaN(birth.getTime())) return null
@@ -47,7 +47,7 @@ function ageFromDob(dob: string | null): string | null {
     years -= 1
     months += 12
   }
-  return years > 0 ? `${years}y ${months}m` : `${months}m`
+  return years > 0 ? `${years}${yearsAbbr} ${months}${monthsAbbr}` : `${months}${monthsAbbr}`
 }
 
 function Sparkline({ points, color }: { points: { x: string; y: number }[]; color: string }) {
@@ -76,7 +76,7 @@ function Sparkline({ points, color }: { points: { x: string; y: number }[]; colo
 }
 
 export default function MobileRecord() {
-  const { t } = useLang()
+  const { t, lang } = useLang()
   const navigate = useNavigate()
   const { patientId } = useParams<{ patientId: string }>()
 
@@ -136,7 +136,7 @@ export default function MobileRecord() {
     )
   }
 
-  const age = ageFromDob(patient.date_of_birth)
+  const age = ageFromDob(patient.date_of_birth, t.ageYearsAbbr, t.ageMonthsAbbr)
   const color = colorFor(patient.id)
   const initials = initialsFor(patient.full_name)
 
@@ -242,7 +242,7 @@ export default function MobileRecord() {
                   <div className="mt-0.5 text-[12px] text-muted-foreground">
                     {rx.prescription_items.length === 1 ? rx.prescription_items[0].name : `${rx.prescription_items[0]?.name ?? ""} +${rx.prescription_items.length - 1}`}
                   </div>
-                  <div className="mt-1.5 text-[11px] text-muted-foreground">{new Date(rx.created_at).toLocaleDateString()}</div>
+                  <div className="mt-1.5 text-[11px] text-muted-foreground">{new Date(rx.created_at).toLocaleDateString(LOCALE[lang])}</div>
                 </Card>
               ))
             )}

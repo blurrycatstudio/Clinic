@@ -19,7 +19,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { useLang } from "@/lib/i18n"
+import { LOCALE, useLang } from "@/lib/i18n"
 import { api } from "@/lib/api"
 import { STATUS_COLORS, type AppointmentStatus } from "@/lib/data"
 import {
@@ -240,7 +240,7 @@ function AppointmentActionsDialog({
 }
 
 export default function MobileSchedule() {
-  const { t } = useLang()
+  const { t, lang } = useLang()
   const navigate = useNavigate()
   const toast = useToast()
   const queryClient = useQueryClient()
@@ -251,7 +251,7 @@ export default function MobileSchedule() {
   const dateInputRef = useRef<HTMLInputElement>(null)
 
   const dateParam = toDateParam(selectedDate)
-  const dateLabel = selectedDate.toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" })
+  const dateLabel = selectedDate.toLocaleDateString(LOCALE[lang], { weekday: "long", month: "short", day: "numeric" })
   const { data: dashboardStats } = useDashboardStats()
   const callingEnabled = dashboardStats?.callingEnabled ?? false
 

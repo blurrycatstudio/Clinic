@@ -74,7 +74,7 @@ export default function MobileDashboard() {
   }
 
   function sendReminder(a: DisplayAppointment) {
-    if (!window.confirm(`Send a reminder to ${a.child} now?`)) return
+    if (!window.confirm(t.mobileDashboardSendReminderConfirm.replace("{child}", a.child))) return
     reminderMutation.mutate(a.id)
   }
 
