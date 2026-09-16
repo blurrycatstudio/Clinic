@@ -144,14 +144,20 @@
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
-  /* A tiny perpetual bob for the active bottom-nav icon — reads as "alive" 3D
-     plastic rather than a flat, static glyph, without being distracting. */
-  .animate-tab-float {
-    animation: tab-float 2.2s ease-in-out infinite;
+  /* The active bottom-nav icon traces a tiny circle in place — reads as "alive" 3D
+     plastic rather than a flat, static glyph, without ever drifting from its slot.
+     The 1.1 scale is baked into every step (rather than a separate scale-110
+     utility) since an animation's `transform` replaces the element's whole computed
+     transform each frame instead of composing with it. */
+  .animate-tab-orbit {
+    animation: tab-orbit 1.8s linear infinite;
   }
 }
 
-@keyframes tab-float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-2px); }
+@keyframes tab-orbit {
+  0% { transform: translate(0, -3px) scale(1.1); }
+  25% { transform: translate(3px, 0) scale(1.1); }
+  50% { transform: translate(0, 3px) scale(1.1); }
+  75% { transform: translate(-3px, 0) scale(1.1); }
+  100% { transform: translate(0, -3px) scale(1.1); }
 }

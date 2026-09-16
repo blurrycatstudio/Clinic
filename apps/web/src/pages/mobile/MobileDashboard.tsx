@@ -1,7 +1,7 @@
 import { useMemo } from "react"
 import { useMutation, useQuery } from "@tanstack/react-query"
 import { useNavigate } from "react-router-dom"
-import { Phone, MessageCircle, Stethoscope, BellRing, Clock, ChevronRight } from "lucide-react"
+import { Stethoscope, Clock, ChevronRight } from "lucide-react"
 import { MobileShell } from "@/components/mobile/MobileShell"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -11,6 +11,9 @@ import { api } from "@/lib/api"
 import { toDateParam, toDisplayAppointment, type ApiAppointment, type DisplayAppointment } from "@/lib/appointments"
 import { useToast } from "@/lib/toast"
 import heroDoctor from "@/assests/ChatGPT Image Sep 12, 2026, 05_39_12 PM.png"
+import callIcon3d from "@/assests/Cal-button.png"
+import whatsappIcon3d from "@/assests/Whatsapp-button.png"
+import reminderIcon3d from "@/assests/Send-reminder-button.png"
 
 export default function MobileDashboard() {
   const { t } = useLang()
@@ -123,18 +126,14 @@ export default function MobileDashboard() {
                 disabled={!upNext.phone}
                 className="flex flex-col items-center gap-1.5 rounded-2xl border border-[#F1E4E4] bg-white py-3 text-center disabled:opacity-40"
               >
-                <span className="flex size-9 items-center justify-center rounded-full bg-[#DCFCE7] text-[#16A34A]">
-                  <Phone className="size-4" strokeWidth={2.2} />
-                </span>
+                <img src={callIcon3d} alt="" className="size-9 object-contain" />
                 <span className="text-[11px] font-bold text-[#1F2937]">{t.mobileDashboardCallParent}</span>
               </button>
               <button
                 onClick={() => navigate("/mobile/messages", { state: { patientId: upNext.patientId, phone: upNext.phone } })}
                 className="flex flex-col items-center gap-1.5 rounded-2xl border border-[#F1E4E4] bg-white py-3 text-center"
               >
-                <span className="flex size-9 items-center justify-center rounded-full bg-[#DCFCE7] text-[#16A34A]">
-                  <MessageCircle className="size-4" strokeWidth={2.2} />
-                </span>
+                <img src={whatsappIcon3d} alt="" className="size-9 object-contain" />
                 <span className="text-[11px] font-bold text-[#1F2937]">{t.mobileDashboardWhatsApp}</span>
               </button>
               <button
@@ -142,10 +141,7 @@ export default function MobileDashboard() {
                 disabled={!upNext.phone || (reminderMutation.isPending && reminderMutation.variables === upNext.id)}
                 className="flex flex-col items-center gap-1.5 rounded-2xl border border-[#F1E4E4] bg-white py-3 text-center disabled:opacity-40"
               >
-                <span className="relative flex size-9 items-center justify-center rounded-full bg-[#FFEDD5] text-[#EA580C]">
-                  <BellRing className="size-4" strokeWidth={2.2} />
-                  <span className="absolute top-0 right-0 size-1.5 rounded-full bg-[#DB2777]" />
-                </span>
+                <img src={reminderIcon3d} alt="" className="size-9 object-contain" />
                 <span className="text-[11px] font-bold text-[#1F2937]">{t.mobileDashboardSendReminder}</span>
               </button>
             </div>
