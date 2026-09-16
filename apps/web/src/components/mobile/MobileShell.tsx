@@ -152,7 +152,7 @@ function ProfileSidebar({ open, onOpenChange }: { open: boolean; onOpenChange: (
               </AvatarFallback>
             </Avatar>
             <div className="min-w-0 flex-1">
-              <Dialog.Title className="truncate text-[13.5px] font-bold">Dr. Gamaliel Rodríguez</Dialog.Title>
+              <Dialog.Title className="truncate text-[13.5px] font-bold">Dr. Gamaliel</Dialog.Title>
               <div className="truncate text-[11px] text-muted-foreground">{t.doctorSpecialty}</div>
             </div>
             <Dialog.Close className="flex size-8 shrink-0 items-center justify-center rounded-full hover:bg-muted">
@@ -280,7 +280,7 @@ export function MobileShell({
                   </AvatarFallback>
                 </Avatar>
                 <div className="min-w-0">
-                  <div className="truncate text-[13px] font-bold">Dr. Gamaliel Rodríguez</div>
+                  <div className="truncate text-[13px] font-bold">Dr. Gamaliel</div>
                   <div className="truncate text-[11px] text-muted-foreground">{t.doctorSpecialty}</div>
                 </div>
               </button>

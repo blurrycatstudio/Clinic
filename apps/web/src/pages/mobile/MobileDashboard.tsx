@@ -9,7 +9,6 @@ import { Card } from "@/components/ui/card"
 import { useLang } from "@/lib/i18n"
 import { api } from "@/lib/api"
 import { toDateParam, toDisplayAppointment, type ApiAppointment, type DisplayAppointment } from "@/lib/appointments"
-import { useDashboardStats } from "@/hooks/useDashboardStats"
 import { useToast } from "@/lib/toast"
 import heroDoctor from "@/assests/ChatGPT Image Sep 12, 2026, 05_39_12 PM.png"
 
@@ -23,15 +22,6 @@ export default function MobileDashboard() {
     queryKey: ["appointments", "today", today],
     queryFn: () => api.get<{ rows: ApiAppointment[]; count: number }>(`/appointments?date=${today}&limit=100`),
     refetchInterval: 10_000,
-  })
-
-  const { data: dashboardStats } = useDashboardStats()
-  const callingEnabled = dashboardStats?.callingEnabled ?? false
-
-  const callMutation = useMutation({
-    mutationFn: (id: string) => api.post(`/appointments/${id}/call`),
-    onSuccess: () => toast("Calling now…"),
-    onError: (err: unknown) => toast(err instanceof Error ? err.message : "Failed to place call"),
   })
 
   const reminderMutation = useMutation({
@@ -52,9 +42,12 @@ export default function MobileDashboard() {
 
   const isInSession = !!upNext && Date.now() >= upNext.startsAt.getTime() && Date.now() <= upNext.endsAt.getTime()
 
+  // Opens the phone's own dialer/contacts with the number pre-filled — staff places
+  // the call themselves from there, instead of triggering the automated VAPI outbound
+  // call (that's a separate feature, gated behind clinic settings, used elsewhere).
   function call(a: DisplayAppointment) {
-    if (!window.confirm(`Call ${a.child} at ${a.phone} now?`)) return
-    callMutation.mutate(a.id)
+    if (!a.phone) return
+    window.location.href = `tel:${a.phone}`
   }
 
   function sendReminder(a: DisplayAppointment) {
@@ -127,7 +120,7 @@ export default function MobileDashboard() {
             <div className="grid grid-cols-3 gap-2">
               <button
                 onClick={() => call(upNext)}
-                disabled={!callingEnabled || !upNext.phone || (callMutation.isPending && callMutation.variables === upNext.id)}
+                disabled={!upNext.phone}
                 className="flex flex-col items-center gap-1.5 rounded-2xl border border-[#F1E4E4] bg-white py-3 text-center disabled:opacity-40"
               >
                 <span className="flex size-9 items-center justify-center rounded-full bg-[#DCFCE7] text-[#16A34A]">
@@ -136,7 +129,7 @@ export default function MobileDashboard() {
                 <span className="text-[11px] font-bold text-[#1F2937]">{t.mobileDashboardCallParent}</span>
               </button>
               <button
-                onClick={() => navigate("/mobile/messages", { state: { patientId: upNext.patientId } })}
+                onClick={() => navigate("/mobile/messages", { state: { patientId: upNext.patientId, phone: upNext.phone } })}
                 className="flex flex-col items-center gap-1.5 rounded-2xl border border-[#F1E4E4] bg-white py-3 text-center"
               >
                 <span className="flex size-9 items-center justify-center rounded-full bg-[#DCFCE7] text-[#16A34A]">

@@ -43,7 +43,7 @@ export function DoctorProfileCard() {
           </AvatarFallback>
         </Avatar>
         <div>
-          <div className="text-[15px] font-bold">Dr. Gamaliel Rodríguez</div>
+          <div className="text-[15px] font-bold">Dr. Gamaliel</div>
           <div className="text-[12.5px] text-muted-foreground">{t.doctorSpecialty}</div>
           <div className="mt-0.5 text-[11px] text-muted-foreground">{t.doctorLicense}</div>
         </div>

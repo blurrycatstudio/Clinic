@@ -40,10 +40,15 @@ export default function MobileMessages() {
 
   // Arriving here from a specific patient's card (e.g. the dashboard's "WhatsApp" quick
   // action) jumps straight into their thread instead of making staff find it in the list.
+  // Falls back to matching by phone number since a conversation started before the
+  // patient record existed (or was never explicitly linked) can have a null patient_id
+  // even though it's plainly the same person's WhatsApp thread.
   useEffect(() => {
-    const patientId = (location.state as { patientId?: string } | null)?.patientId
-    if (!patientId) return
-    const match = conversations.find((c) => c.patient_id === patientId)
+    const state = location.state as { patientId?: string; phone?: string } | null
+    if (!state?.patientId && !state?.phone) return
+    const match =
+      conversations.find((c) => c.patient_id === state.patientId) ??
+      conversations.find((c) => state.phone && c.wa_phone_e164.replace(/\D/g, "").endsWith(state.phone.replace(/\D/g, "")))
     if (match) navigate(`/mobile/messages/${match.id}`, { replace: true })
   }, [location.state, conversations, navigate])
 
