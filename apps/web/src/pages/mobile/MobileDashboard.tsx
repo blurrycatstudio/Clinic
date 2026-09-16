@@ -1,4 +1,4 @@
-import { useMemo } from "react"
+import { useMemo, type ReactNode } from "react"
 import { useMutation, useQuery } from "@tanstack/react-query"
 import { useNavigate } from "react-router-dom"
 import { Stethoscope, Clock, ChevronRight } from "lucide-react"
@@ -6,6 +6,7 @@ import { MobileShell } from "@/components/mobile/MobileShell"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
+import { cn } from "@/lib/utils"
 import { useLang } from "@/lib/i18n"
 import { api } from "@/lib/api"
 import { toDateParam, toDisplayAppointment, type ApiAppointment, type DisplayAppointment } from "@/lib/appointments"
@@ -14,6 +15,25 @@ import heroDoctor from "@/assests/ChatGPT Image Sep 12, 2026, 05_39_12 PM.png"
 import callIcon3d from "@/assests/Cal-button.png"
 import whatsappIcon3d from "@/assests/Whatsapp-button.png"
 import reminderIcon3d from "@/assests/Send-reminder-button.png"
+
+/** VisionOS-style frosted-glass tile behind a quick-action icon — a translucent
+ * gradient + backdrop blur + soft inner highlight, instead of the icon sitting
+ * flat on the card. `tint` picks the glass's color wash to loosely match the
+ * icon it's holding. */
+function GlassIconTile({ tint, children }: { tint: "green" | "amber"; children: ReactNode }) {
+  return (
+    <div
+      className={cn(
+        "flex size-14 items-center justify-center rounded-[20px] border backdrop-blur-md",
+        tint === "green"
+          ? "border-white/70 bg-gradient-to-br from-white/80 to-emerald-100/50 shadow-[0_8px_18px_-9px_rgba(16,185,129,0.45),inset_0_1px_1px_rgba(255,255,255,0.9)]"
+          : "border-white/70 bg-gradient-to-br from-white/80 to-amber-100/50 shadow-[0_8px_18px_-9px_rgba(217,119,6,0.4),inset_0_1px_1px_rgba(255,255,255,0.9)]",
+      )}
+    >
+      {children}
+    </div>
+  )
+}
 
 export default function MobileDashboard() {
   const { t } = useLang()
@@ -124,24 +144,30 @@ export default function MobileDashboard() {
               <button
                 onClick={() => call(upNext)}
                 disabled={!upNext.phone}
-                className="flex flex-col items-center gap-1.5 rounded-2xl border border-[#F1E4E4] bg-white py-3 text-center disabled:opacity-40"
+                className="flex flex-col items-center gap-2 rounded-2xl border border-[#F1E4E4] bg-white py-3 text-center disabled:opacity-40"
               >
-                <img src={callIcon3d} alt="" className="size-9 object-contain" />
+                <GlassIconTile tint="green">
+                  <img src={callIcon3d} alt="" className="size-8 object-contain" />
+                </GlassIconTile>
                 <span className="text-[11px] font-bold text-[#1F2937]">{t.mobileDashboardCallParent}</span>
               </button>
               <button
                 onClick={() => navigate("/mobile/messages", { state: { patientId: upNext.patientId, phone: upNext.phone } })}
-                className="flex flex-col items-center gap-1.5 rounded-2xl border border-[#F1E4E4] bg-white py-3 text-center"
+                className="flex flex-col items-center gap-2 rounded-2xl border border-[#F1E4E4] bg-white py-3 text-center"
               >
-                <img src={whatsappIcon3d} alt="" className="size-9 object-contain" />
+                <GlassIconTile tint="green">
+                  <img src={whatsappIcon3d} alt="" className="size-8 object-contain" />
+                </GlassIconTile>
                 <span className="text-[11px] font-bold text-[#1F2937]">{t.mobileDashboardWhatsApp}</span>
               </button>
               <button
                 onClick={() => sendReminder(upNext)}
                 disabled={!upNext.phone || (reminderMutation.isPending && reminderMutation.variables === upNext.id)}
-                className="flex flex-col items-center gap-1.5 rounded-2xl border border-[#F1E4E4] bg-white py-3 text-center disabled:opacity-40"
+                className="flex flex-col items-center gap-2 rounded-2xl border border-[#F1E4E4] bg-white py-3 text-center disabled:opacity-40"
               >
-                <img src={reminderIcon3d} alt="" className="size-9 object-contain" />
+                <GlassIconTile tint="amber">
+                  <img src={reminderIcon3d} alt="" className="size-8 object-contain" />
+                </GlassIconTile>
                 <span className="text-[11px] font-bold text-[#1F2937]">{t.mobileDashboardSendReminder}</span>
               </button>
             </div>

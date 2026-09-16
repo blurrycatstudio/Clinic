@@ -26,11 +26,19 @@ export function Sidebar() {
           >
             {({ isActive }) => (
               <>
-                <item.icon
-                  className="size-[19px]"
-                  strokeWidth={2}
-                  style={{ color: isActive ? "#2563EB" : item.iconColor }}
-                />
+                {item.image3d ? (
+                  <img
+                    src={item.image3d}
+                    alt=""
+                    className={cn("object-contain transition-transform duration-200", isActive ? "size-7 scale-110" : "size-6")}
+                  />
+                ) : (
+                  <item.icon
+                    className="size-[19px]"
+                    strokeWidth={2}
+                    style={{ color: isActive ? "#2563EB" : item.iconColor }}
+                  />
+                )}
                 {item.badge ? (
                   <span
                     className="absolute top-0.5 right-0.5 flex size-3.5 items-center justify-center rounded-full text-[8px] font-bold text-white"
