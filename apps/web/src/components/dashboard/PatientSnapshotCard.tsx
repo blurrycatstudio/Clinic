@@ -306,9 +306,9 @@ export function PatientSnapshotCard({ appointment }: { appointment: DisplayAppoi
 
   function handleConsultationComplete(_result: ConsultationResult) {
     setConsultOpen(false)
-    setTab("history")
-    toast(t.consultToastSaved)
+    setTab(_result.addPrescription ? "prescriptions" : "history")
     consultationsQuery.refetch()
+    if (_result.addPrescription) prescriptionsQuery.refetch()
   }
 
   function handleExportDossier() {

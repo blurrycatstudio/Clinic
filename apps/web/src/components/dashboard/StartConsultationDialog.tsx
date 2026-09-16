@@ -1,14 +1,17 @@
 import { useEffect, useState } from "react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { Dialog } from "radix-ui"
-import { Stethoscope, X } from "lucide-react"
+import { Plus, Stethoscope, Trash2, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useLang } from "@/lib/i18n"
 import { api } from "@/lib/api"
 import { usePatientSearch } from "@/hooks/usePatientSearch"
 import { useToast } from "@/lib/toast"
-import type { Patient } from "@/lib/data"
+import { COMMON_MEDICATIONS, type Medication, type Patient } from "@/lib/data"
+
+const ROUTES = ["Oral", "Topical", "Inhaled", "Intramuscular", "Ophthalmic", "Otic"]
+const emptyMed = (): Medication => ({ name: "", dose: "", frequency: "", duration: "", route: "Oral" })
 
 export type ConsultationResult = {
   chiefComplaint: string
@@ -51,6 +54,7 @@ export function StartConsultationDialog({
   const [heightCm, setHeightCm] = useState("")
   const [tempC, setTempC] = useState("")
   const [addPrescription, setAddPrescription] = useState(false)
+  const [meds, setMeds] = useState<Medication[]>([emptyMed()])
 
   const patients = usePatientSearch("")
 
@@ -79,13 +83,27 @@ export function StartConsultationDialog({
     setHeightCm("")
     setTempC("")
     setAddPrescription(false)
+    setMeds([emptyMed()])
   }
 
-  const canSave = patientId !== "" && chiefComplaint.trim() !== "" && diagnosis.trim() !== ""
+  function updateMed(i: number, patch: Partial<Medication>) {
+    setMeds((prev) => prev.map((m, idx) => (idx === i ? { ...m, ...patch } : m)))
+  }
+
+  function removeMed(i: number) {
+    setMeds((prev) => (prev.length > 1 ? prev.filter((_, idx) => idx !== i) : prev))
+  }
+
+  const filledMeds = meds.filter((m) => m.name.trim())
+  const canSave =
+    patientId !== "" &&
+    chiefComplaint.trim() !== "" &&
+    diagnosis.trim() !== "" &&
+    (!addPrescription || filledMeds.length > 0)
 
   const createMutation = useMutation({
-    mutationFn: () =>
-      api.post("/consultations", {
+    mutationFn: async () => {
+      await api.post("/consultations", {
         patientId,
         appointmentId,
         chiefComplaint: chiefComplaint.trim(),
@@ -94,9 +112,22 @@ export function StartConsultationDialog({
         weightKg: weightKg.trim() || undefined,
         heightCm: heightCm.trim() || undefined,
         temperatureC: tempC.trim() || undefined,
-      }),
+      })
+      if (addPrescription && filledMeds.length > 0) {
+        const rxRes = await api.post<{ prescription: { id: string } }>("/prescriptions", {
+          patientId,
+          appointmentId,
+          diagnosis: diagnosis.trim(),
+          notes: notes.trim(),
+          items: filledMeds.map((m) => ({ name: m.name, dose: m.dose, frequency: m.frequency, duration: m.duration, route: m.route })),
+        })
+        await api.post(`/prescriptions/${rxRes.prescription.id}/send`)
+      }
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["consultations"] })
+      if (addPrescription && filledMeds.length > 0) queryClient.invalidateQueries({ queryKey: ["prescriptions"] })
+      toast(addPrescription && filledMeds.length > 0 ? t.mobileConsultSentSuccess : t.consultToastSaved)
       onComplete({
         chiefComplaint: chiefComplaint.trim(),
         diagnosis: diagnosis.trim(),
@@ -108,7 +139,8 @@ export function StartConsultationDialog({
       })
       reset()
     },
-    onError: () => toast("Failed to save consultation — please try again"),
+    onError: (err: unknown) =>
+      toast(err instanceof Error ? err.message : addPrescription ? t.mobileConsultSendFailed : "Failed to save consultation — please try again"),
   })
 
   function handleSave() {
@@ -240,8 +272,91 @@ export function StartConsultationDialog({
               {t.consultAddRx}
             </label>
 
+            {addPrescription && (
+              <div>
+                <div className="mb-2 flex items-center justify-between">
+                  <label className="text-xs font-bold">{t.rxModalMedications}</label>
+                  <button
+                    type="button"
+                    onClick={() => setMeds((prev) => [...prev, emptyMed()])}
+                    className="flex items-center gap-1 text-xs font-bold text-primary"
+                  >
+                    <Plus className="size-3.5" strokeWidth={2.4} />
+                    {t.mobileConsultAddMed}
+                  </button>
+                </div>
+                <div className="flex flex-col gap-3">
+                  {meds.map((med, i) => (
+                    <div key={i} className="rounded-xl border border-border p-3.5">
+                      <div className="mb-2.5 flex items-center justify-between">
+                        <span className="text-[11px] font-bold text-muted-foreground">
+                          {t.rxModalMedName} {i + 1}
+                        </span>
+                        {meds.length > 1 ? (
+                          <button
+                            type="button"
+                            onClick={() => removeMed(i)}
+                            className="flex items-center gap-1 text-[11px] font-bold text-destructive"
+                          >
+                            <Trash2 className="size-3" strokeWidth={2.2} />
+                            {t.rxModalRemoveMed}
+                          </button>
+                        ) : null}
+                      </div>
+                      <div className="mb-2.5">
+                        <Input
+                          list="consult-medication-suggestions"
+                          value={med.name}
+                          onChange={(e) => updateMed(i, { name: e.target.value })}
+                          placeholder={t.rxModalMedNamePh}
+                          className="h-9"
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+                        <div>
+                          <label className="mb-1 block text-[10.5px] font-bold text-muted-foreground">{t.rxModalDose}</label>
+                          <Input value={med.dose} onChange={(e) => updateMed(i, { dose: e.target.value })} placeholder={t.rxModalDosePh} className="h-8.5 text-[13px]" />
+                        </div>
+                        <div>
+                          <label className="mb-1 block text-[10.5px] font-bold text-muted-foreground">{t.rxModalFreq}</label>
+                          <Input value={med.frequency} onChange={(e) => updateMed(i, { frequency: e.target.value })} placeholder={t.rxModalFreqPh} className="h-8.5 text-[13px]" />
+                        </div>
+                        <div>
+                          <label className="mb-1 block text-[10.5px] font-bold text-muted-foreground">{t.rxModalDuration}</label>
+                          <Input value={med.duration} onChange={(e) => updateMed(i, { duration: e.target.value })} placeholder={t.rxModalDurationPh} className="h-8.5 text-[13px]" />
+                        </div>
+                        <div>
+                          <label className="mb-1 block text-[10.5px] font-bold text-muted-foreground">{t.rxModalRoute}</label>
+                          <select
+                            value={med.route}
+                            onChange={(e) => updateMed(i, { route: e.target.value })}
+                            className="h-8.5 w-full rounded-lg border border-border bg-transparent px-2 text-[13px] outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                          >
+                            {ROUTES.map((r) => (
+                              <option key={r} value={r}>
+                                {r}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <datalist id="consult-medication-suggestions">
+                  {COMMON_MEDICATIONS.map((m) => (
+                    <option key={m} value={m} />
+                  ))}
+                </datalist>
+              </div>
+            )}
+
             {!canSave && (patientId || chiefComplaint || diagnosis) && (
-              <p className="text-[11.5px] text-muted-foreground">{t.consultRequiredHint}</p>
+              <p className="text-[11.5px] text-muted-foreground">
+                {addPrescription && patientId && chiefComplaint.trim() && diagnosis.trim() && filledMeds.length === 0
+                  ? t.mobileConsultMedRequiredHint
+                  : t.consultRequiredHint}
+              </p>
             )}
           </div>
 
@@ -257,7 +372,7 @@ export function StartConsultationDialog({
               className="gap-1.5 rounded-lg bg-gradient-to-r from-[#F97316] via-[#EC4899] to-[#8B5CF6] font-bold text-white hover:opacity-90"
             >
               <Stethoscope className="size-4" strokeWidth={2} />
-              {createMutation.isPending ? t.consultSaving : t.consultSave}
+              {createMutation.isPending ? (addPrescription ? t.mobileConsultSending : t.consultSaving) : t.consultSave}
             </Button>
           </div>
         </Dialog.Content>
