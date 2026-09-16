@@ -14,20 +14,52 @@ import { cn } from "@/lib/utils"
 import { supabase } from "@/lib/supabaseClient"
 import { toDateParam, toDisplayAppointment, type ApiAppointment } from "@/lib/appointments"
 import doctorAvatar from "@/assests/drgamaliel.png"
+import homeIcon3d from "@/assests/Home-button.jpeg"
+import scheduleIcon3d from "@/assests/Schedule-button.png"
+import patientsIcon3d from "@/assests/Patient-icons.png"
+import recordsIcon3d from "@/assests/Records-button.png"
 
 // All five point within /mobile/* — tabs used to jump out to the desktop AppShell pages
 // (/patients, /whatsapp, /records), which don't render this bar, so it looked like the
 // bottom toolbar "disappeared" the moment you tapped one.
 // Messages lives only in the profile drawer (ALL_TABS) — the bottom bar (TOOLBAR_TABS)
 // keeps just 5 slots total (4 tabs + the center "+" add button).
+// `image3d` is a rendered 3D-look icon replacing the flat Lucide glyph on the bottom
+// toolbar specifically (see ToolbarNavIcon) — the drawer list above still uses the
+// plain `icon` for every tab, and any tab without one just keeps its Lucide icon
+// until its own 3D asset shows up.
 const ALL_TABS = [
-  { path: "/mobile/dashboard", labelKey: "mobileNavDashboard" as const, icon: House },
-  { path: "/mobile/schedule", labelKey: "mobileNavSchedule" as const, icon: Calendar },
-  { path: "/mobile/patients", labelKey: "mobileNavPatients" as const, icon: Baby },
+  { path: "/mobile/dashboard", labelKey: "mobileNavDashboard" as const, icon: House, image3d: homeIcon3d },
+  { path: "/mobile/schedule", labelKey: "mobileNavSchedule" as const, icon: Calendar, image3d: scheduleIcon3d },
+  { path: "/mobile/patients", labelKey: "mobileNavPatients" as const, icon: Baby, image3d: patientsIcon3d },
   { path: "/mobile/messages", labelKey: "mobileNavMessages" as const, icon: MessageCircle },
-  { path: "/mobile/records", labelKey: "mobileNavRecords" as const, icon: FileText },
+  { path: "/mobile/records", labelKey: "mobileNavRecords" as const, icon: FileText, image3d: recordsIcon3d },
 ]
 const TOOLBAR_TABS = ALL_TABS.filter((tab) => tab.path !== "/mobile/messages")
+
+/** A bottom-toolbar tab's icon — a 3D rendered image when the tab has one, scaling up
+ * (with a springy overshoot) and bobbing gently while active so the selected tab is
+ * unmistakable at a glance; falls back to the plain Lucide glyph otherwise. */
+function ToolbarNavIcon({ tab, isActive }: { tab: (typeof ALL_TABS)[number]; isActive: boolean }) {
+  if (tab.image3d) {
+    return (
+      <img
+        src={tab.image3d}
+        alt=""
+        className={cn(
+          "object-contain transition-transform duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)]",
+          isActive ? "size-8 scale-110 animate-tab-float" : "size-6",
+        )}
+      />
+    )
+  }
+  return (
+    <tab.icon
+      className={cn("transition-transform duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)]", isActive ? "size-6 scale-110" : "size-5")}
+      strokeWidth={2}
+    />
+  )
+}
 
 /** Mobile-styled bottom sheet for booking a new appointment, reachable from the toolbar's "+" button on every mobile screen. */
 function NewAppointmentSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
@@ -366,8 +398,12 @@ export function MobileShell({
                   )
                 }
               >
-                <tab.icon className="size-5" strokeWidth={2} />
-                <span className="truncate">{t[tab.labelKey]}</span>
+                {({ isActive }) => (
+                  <>
+                    <ToolbarNavIcon tab={tab} isActive={isActive} />
+                    <span className="truncate">{t[tab.labelKey]}</span>
+                  </>
+                )}
               </NavLink>
             ))}
 
@@ -397,8 +433,12 @@ export function MobileShell({
                   )
                 }
               >
-                <tab.icon className="size-5" strokeWidth={2} />
-                <span className="truncate">{t[tab.labelKey]}</span>
+                {({ isActive }) => (
+                  <>
+                    <ToolbarNavIcon tab={tab} isActive={isActive} />
+                    <span className="truncate">{t[tab.labelKey]}</span>
+                  </>
+                )}
               </NavLink>
             ))}
           </div>

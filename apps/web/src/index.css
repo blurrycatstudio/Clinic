@@ -144,4 +144,14 @@
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
+  /* A tiny perpetual bob for the active bottom-nav icon — reads as "alive" 3D
+     plastic rather than a flat, static glyph, without being distracting. */
+  .animate-tab-float {
+    animation: tab-float 2.2s ease-in-out infinite;
+  }
+}
+
+@keyframes tab-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
 }
