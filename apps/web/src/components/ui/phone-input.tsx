@@ -54,10 +54,18 @@ export function PhoneInput({
   inputClassName?: string
 }) {
   const [open, setOpen] = React.useState(false)
-  const { country, local } = parseValue(value)
+  // Picking a country before any digits are typed has nowhere to live in `value`
+  // (an empty local number means parseValue("") always falls back to the first
+  // country) — track it here so the picker reflects the tap immediately, and
+  // let the parsed country take back over once there's a real value to parse.
+  const [pendingCountry, setPendingCountry] = React.useState<Country | null>(null)
+  const parsed = parseValue(value)
+  const country = value.trim() ? parsed.country : (pendingCountry ?? parsed.country)
+  const local = parsed.local
 
   function setCountry(next: Country) {
-    onChange(local ? `${next.dial}${local}` : "")
+    setPendingCountry(next)
+    if (local) onChange(`${next.dial}${local}`)
     setOpen(false)
   }
 
