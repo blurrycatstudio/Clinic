@@ -144,17 +144,17 @@
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
-  /* The active bottom-nav icon spins in place — reads as "alive" 3D plastic rather
-     than a flat, static glyph, without ever drifting from its slot. The 1.1 scale
-     is baked into every step (rather than a separate scale-110 utility) since an
-     animation's `transform` replaces the element's whole computed transform each
-     frame instead of composing with it. */
-  .animate-tab-spin {
-    animation: tab-spin 1.6s linear infinite;
+  /* The active bottom-nav icon gently sways left-right in place — reads as "alive"
+     3D plastic rather than a flat, static glyph, without ever leaving its slot. The
+     1.1 scale is baked into every step (rather than a separate scale-110 utility)
+     since an animation's `transform` replaces the element's whole computed
+     transform each frame instead of composing with it. */
+  .animate-tab-sway {
+    animation: tab-sway 3.2s ease-in-out infinite;
   }
 }
 
-@keyframes tab-spin {
-  from { transform: scale(1.1) rotate(0deg); }
-  to { transform: scale(1.1) rotate(360deg); }
+@keyframes tab-sway {
+  0%, 100% { transform: scale(1.1) translateX(-4px); }
+  50% { transform: scale(1.1) translateX(4px); }
 }
