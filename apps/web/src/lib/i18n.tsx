@@ -387,6 +387,13 @@ export const STR = {
     recordDetailDoctor: "Attending Physician",
     recordDetailSummary: "Summary",
     recordDetailClose: "Close",
+    recordsUploadDialogTitle: "Upload Medical Record",
+    recordsUploadSearchPh: "Search by parent or patient name...",
+    recordsUploadNoResults: "No matching patients",
+    recordsUploadSearchHint: "Type at least 2 letters to search patients.",
+    recordsUploadChooseFile: "Choose File",
+    recordsUploadChangePatient: "Change patient",
+    recordsUploadHint: "This file will be sent automatically to the registered phone number within the next 12 hours.",
 
     // Invoices & Payments page
     invoicesPageTitle: "Invoices & Payments",
@@ -949,6 +956,13 @@ export const STR = {
     recordDetailDoctor: "Médico Tratante",
     recordDetailSummary: "Resumen",
     recordDetailClose: "Cerrar",
+    recordsUploadDialogTitle: "Subir Expediente Médico",
+    recordsUploadSearchPh: "Buscar por nombre del padre/madre o paciente...",
+    recordsUploadNoResults: "No se encontraron pacientes",
+    recordsUploadSearchHint: "Escribe al menos 2 letras para buscar pacientes.",
+    recordsUploadChooseFile: "Elegir Archivo",
+    recordsUploadChangePatient: "Cambiar paciente",
+    recordsUploadHint: "Este archivo se enviará automáticamente al número de teléfono registrado dentro de las próximas 12 horas.",
 
     // Invoices & Payments page
     invoicesPageTitle: "Facturas y Pagos",

@@ -20,6 +20,7 @@ async function buildPdf(prescriptionId: string) {
     prescription,
     items: prescription.prescription_items,
     patientName: patient.full_name,
+    patientDateOfBirth: patient.date_of_birth,
   })
   return { prescription, patient, buffer }
 }

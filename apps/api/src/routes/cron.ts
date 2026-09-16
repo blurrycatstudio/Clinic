@@ -2,6 +2,7 @@ import { Router } from "express"
 import { z } from "zod"
 import { env } from "../config/env.js"
 import { runReminderJob, runReminderCallJob } from "../cron/reminders.js"
+import { runDocumentDeliveryJob } from "../cron/documentDelivery.js"
 import { asyncHandler } from "../middleware/errorHandler.js"
 import { UnauthorizedError } from "../lib/errors.js"
 
@@ -36,6 +37,15 @@ cronRouter.get(
   asyncHandler(async (req, res) => {
     requireCronSecret(req)
     const result = await runReminderCallJob()
+    res.json(result)
+  }),
+)
+
+cronRouter.get(
+  "/document-delivery",
+  asyncHandler(async (req, res) => {
+    requireCronSecret(req)
+    const result = await runDocumentDeliveryJob()
     res.json(result)
   }),
 )

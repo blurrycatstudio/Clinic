@@ -162,9 +162,9 @@
 }
 
 @keyframes tab-spin {
-  0% { transform: scale(1.1) scaleX(1); filter: brightness(1); }
-  25% { transform: scale(1.1) scaleX(0.38); filter: brightness(1.25); }
-  50% { transform: scale(1.1) scaleX(-1); filter: brightness(1); }
-  75% { transform: scale(1.1) scaleX(-0.38); filter: brightness(0.8); }
-  100% { transform: scale(1.1) scaleX(1); filter: brightness(1); }
+  0% { transform: scale(1.05) scaleX(1); filter: brightness(1); }
+  25% { transform: scale(1.05) scaleX(0.38); filter: brightness(1.25); }
+  50% { transform: scale(1.05) scaleX(-1); filter: brightness(1); }
+  75% { transform: scale(1.05) scaleX(-0.38); filter: brightness(0.8); }
+  100% { transform: scale(1.05) scaleX(1); filter: brightness(1); }
 }

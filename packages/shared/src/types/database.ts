@@ -257,6 +257,7 @@ export type PatientDocument = {
   size_bytes: number
   url: string
   created_at: ISOTimestamp
+  whatsapp_sent_at: ISOTimestamp | null
 }
 
 export type Consultation = {

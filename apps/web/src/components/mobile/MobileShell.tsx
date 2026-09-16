@@ -51,7 +51,7 @@ function ToolbarNavIcon({ tab, isActive }: { tab: (typeof ALL_TABS)[number]; isA
         alt=""
         className={cn(
           "object-contain transition-transform duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)]",
-          isActive ? "size-8 animate-tab-spin" : "size-6",
+          isActive ? "size-9 animate-tab-spin" : "size-7",
         )}
       />
     )
@@ -60,7 +60,7 @@ function ToolbarNavIcon({ tab, isActive }: { tab: (typeof ALL_TABS)[number]; isA
     <tab.icon
       className={cn(
         "transition-transform duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)]",
-        isActive ? "size-6 animate-tab-spin" : "size-5",
+        isActive ? "size-7 animate-tab-spin" : "size-6",
       )}
       strokeWidth={2}
     />
@@ -389,10 +389,10 @@ export function MobileShell({
           )}
         </header>
 
-        <main className="flex-1 overflow-y-auto pb-[calc(4.25rem+env(safe-area-inset-bottom))]">{children}</main>
+        <main className="flex-1 overflow-y-auto pb-[calc(4.75rem+env(safe-area-inset-bottom))]">{children}</main>
 
         <nav className="fixed inset-x-0 bottom-0 z-40 mx-auto w-full max-w-[430px] pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
-          <div className="mx-3 flex h-16 items-center justify-around rounded-[26px] border border-[#F1E4E4] bg-white px-1 shadow-[0_-6px_24px_-8px_rgba(190,80,120,0.18)]">
+          <div className="mx-3 flex h-[4.5rem] items-center justify-around rounded-[26px] border border-[#F1E4E4] bg-white px-1 shadow-[0_-6px_24px_-8px_rgba(190,80,120,0.18)]">
             {TOOLBAR_TABS.slice(0, 2).map((tab) => (
               <NavLink
                 key={tab.path}
@@ -420,10 +420,10 @@ export function MobileShell({
               className="flex flex-1 flex-col items-center justify-center gap-1"
             >
               <span
-                className="flex size-9 items-center justify-center rounded-full text-white shadow-[0_8px_16px_-4px_rgba(219,39,119,0.55)]"
+                className="flex size-11 items-center justify-center rounded-full text-white shadow-[0_8px_16px_-4px_rgba(219,39,119,0.55)]"
                 style={{ background: "linear-gradient(135deg, #FB923C 0%, #EC4899 55%, #A855F7 100%)" }}
               >
-                <CalendarPlus className="size-[18px]" strokeWidth={2.2} />
+                <CalendarPlus className="size-5" strokeWidth={2.2} />
               </span>
               <span className="truncate text-[10.5px] font-semibold text-muted-foreground">{t.mobileNavAdd}</span>
             </button>

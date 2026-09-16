@@ -3,7 +3,8 @@
   "buildCommand": "npm run build",
   "functions": {
     "api/index.ts": {
-      "maxDuration": 30
+      "maxDuration": 30,
+      "includeFiles": "assets/fonts/**"
     }
   },
   "rewrites": [
@@ -15,6 +16,7 @@
   "crons": [
     { "path": "/api/cron/reminders?window=24h", "schedule": "0 6 * * *" },
     { "path": "/api/cron/reminders?window=2h", "schedule": "5 6 * * *" },
-    { "path": "/api/cron/call-reminders", "schedule": "10 6 * * *" }
+    { "path": "/api/cron/call-reminders", "schedule": "10 6 * * *" },
+    { "path": "/api/cron/document-delivery", "schedule": "0 */12 * * *" }
   ]
 }
