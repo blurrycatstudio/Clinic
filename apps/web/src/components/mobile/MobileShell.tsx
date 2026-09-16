@@ -38,9 +38,9 @@ const ALL_TABS = [
 const TOOLBAR_TABS = ALL_TABS.filter((tab) => tab.path !== "/mobile/messages")
 
 /** A bottom-toolbar tab's icon — a 3D rendered image when the tab has one, popping up
- * (with a springy overshoot) then slowly swaying left-right in place while active, so
- * the selected tab is unmistakable at a glance; falls back to the plain Lucide glyph
- * otherwise. */
+ * (with a springy overshoot) then doing a slow full 360-degree turn in place while
+ * active, so the selected tab is unmistakable at a glance; falls back to the plain
+ * Lucide glyph otherwise. */
 function ToolbarNavIcon({ tab, isActive }: { tab: (typeof ALL_TABS)[number]; isActive: boolean }) {
   if (tab.image3d) {
     return (
@@ -49,7 +49,7 @@ function ToolbarNavIcon({ tab, isActive }: { tab: (typeof ALL_TABS)[number]; isA
         alt=""
         className={cn(
           "object-contain transition-transform duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)]",
-          isActive ? "size-8 animate-tab-sway" : "size-6",
+          isActive ? "size-8 animate-tab-spin" : "size-6",
         )}
       />
     )
@@ -58,7 +58,7 @@ function ToolbarNavIcon({ tab, isActive }: { tab: (typeof ALL_TABS)[number]; isA
     <tab.icon
       className={cn(
         "transition-transform duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)]",
-        isActive ? "size-6 animate-tab-sway" : "size-5",
+        isActive ? "size-6 animate-tab-spin" : "size-5",
       )}
       strokeWidth={2}
     />
