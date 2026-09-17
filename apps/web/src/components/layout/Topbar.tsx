@@ -1,5 +1,5 @@
 import { Bell, Moon, Search, Sun, User } from "lucide-react"
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { useNavigate } from "react-router-dom"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -7,16 +7,20 @@ import { Input } from "@/components/ui/input"
 import { useLang } from "@/lib/i18n"
 import { cn } from "@/lib/utils"
 import { api } from "@/lib/api"
+import { toDateParam, toDisplayAppointment, type ApiAppointment } from "@/lib/appointments"
 import doctorImg from "@/assests/drgamaliel.png"
 
 type SearchResult = { id: string; label: string; sublabel: string }
 type ApiPatientLite = { id: string; full_name: string; phone_e164: string }
 
-const NOTIFICATIONS = [
-  { title: "Appointment reminder", detail: "Emilia Torres checks in at 9:00 AM today.", time: "5m ago" },
-  { title: "Lab results ready", detail: "Sofía Delgado's chest X-ray results are in.", time: "1h ago" },
-  { title: "Invoice overdue", detail: "INV-3009 for Diego Navarro is past due.", time: "3h ago" },
-]
+type ApiInvoiceLite = {
+  id: string
+  sequence_number: number
+  amount_total: number
+  patients: { full_name: string } | null
+}
+
+type NotificationItem = { id: string; title: string; detail: string; onClick: () => void }
 
 function useDarkMode() {
   const [dark, setDark] = useState(() => document.documentElement.classList.contains("dark"))
@@ -46,6 +50,40 @@ export function Topbar() {
     enabled: trimmedQuery.length >= 2,
   })
   const results: SearchResult[] = (searchQuery.data?.rows ?? []).map((p) => ({ id: p.id, label: p.full_name, sublabel: p.phone_e164 }))
+
+  const today = toDateParam(new Date())
+  const todayAppointmentsQuery = useQuery({
+    queryKey: ["appointments", "today", today],
+    queryFn: () => api.get<{ rows: ApiAppointment[]; count: number }>(`/appointments?date=${today}&limit=100`),
+    refetchInterval: 60_000,
+  })
+  const overdueInvoicesQuery = useQuery({
+    queryKey: ["invoices", "overdue-topbar"],
+    queryFn: () => api.get<{ rows: ApiInvoiceLite[]; count: number }>("/invoices?status=overdue&limit=5"),
+    refetchInterval: 60_000,
+  })
+
+  const notifications: NotificationItem[] = useMemo(() => {
+    const pendingToday = (todayAppointmentsQuery.data?.rows ?? [])
+      .map(toDisplayAppointment)
+      .filter((a) => a.status === "statusPending")
+      .sort((a, b) => a.startsAt.getTime() - b.startsAt.getTime())
+      .map((a) => ({
+        id: `appt-${a.id}`,
+        title: t.topbarNotifApptTitle,
+        detail: `${a.child} · ${a.time}`,
+        onClick: () => navigate("/appointments"),
+      }))
+
+    const overdueInvoices = (overdueInvoicesQuery.data?.rows ?? []).map((inv) => ({
+      id: `inv-${inv.id}`,
+      title: t.topbarNotifInvoiceTitle,
+      detail: `INV-${3000 + inv.sequence_number} · ${inv.patients?.full_name ?? ""} · $${inv.amount_total.toFixed(2)}`,
+      onClick: () => navigate("/invoices"),
+    }))
+
+    return [...pendingToday, ...overdueInvoices]
+  }, [todayAppointmentsQuery.data, overdueInvoicesQuery.data, t, navigate])
 
   useEffect(() => {
     function onClick(e: MouseEvent) {
@@ -152,7 +190,7 @@ export function Topbar() {
       <button
         onClick={() => setMobileSearchOpen((v) => !v)}
         className="flex size-8.5 shrink-0 items-center justify-center rounded-[10px] hover:bg-muted md:hidden"
-        aria-label="Search"
+        aria-label={t.ariaSearch}
       >
         <Search className="size-[18px] text-foreground" strokeWidth={1.8} />
       </button>
@@ -188,7 +226,7 @@ export function Topbar() {
       <button
         onClick={toggle}
         className="hidden size-9.5 items-center justify-center rounded-[10px] hover:bg-muted sm:flex"
-        aria-label="Toggle dark mode"
+        aria-label={t.ariaToggleDarkMode}
       >
         {dark ? (
           <Moon className="size-[19px] text-foreground" strokeWidth={1.8} />
@@ -201,25 +239,26 @@ export function Topbar() {
         <button
           onClick={() => setNotifOpen((v) => !v)}
           className="relative flex size-8.5 items-center justify-center rounded-[10px] hover:bg-muted sm:size-9.5"
-          aria-label="Notifications"
+          aria-label={t.mobileNotifications}
         >
           <Bell className="size-[18px] text-foreground sm:size-[19px]" strokeWidth={1.8} />
-          <span className="absolute top-1.5 right-1.5 size-2 rounded-full border-2 border-card bg-destructive" />
+          {notifications.length > 0 && <span className="absolute top-1.5 right-1.5 size-2 rounded-full border-2 border-card bg-destructive" />}
         </button>
         {notifOpen && (
           <div className="fixed inset-x-3 top-14 z-50 mt-0 w-auto rounded-xl border bg-card p-2 shadow-atelier-elevated sm:absolute sm:inset-x-auto sm:top-full sm:right-0 sm:mt-2 sm:w-80">
-            <div className="px-2 py-1.5 text-xs font-bold text-muted-foreground uppercase">Notifications</div>
-            <div className="flex flex-col divide-y">
-              {NOTIFICATIONS.map((n, i) => (
-                <div key={i} className="px-2 py-2.5 text-[12.5px]">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="font-bold">{n.title}</span>
-                    <span className="shrink-0 text-[10.5px] text-muted-foreground">{n.time}</span>
-                  </div>
-                  <p className="mt-0.5 text-muted-foreground">{n.detail}</p>
-                </div>
-              ))}
-            </div>
+            <div className="px-2 py-1.5 text-xs font-bold text-muted-foreground uppercase">{t.mobileNotifications}</div>
+            {notifications.length === 0 ? (
+              <div className="px-2.5 py-4 text-center text-[12.5px] text-muted-foreground">{t.mobileNotificationsEmpty}</div>
+            ) : (
+              <div className="flex flex-col divide-y">
+                {notifications.map((n) => (
+                  <button key={n.id} onClick={() => { n.onClick(); setNotifOpen(false) }} className="px-2 py-2.5 text-left text-[12.5px] hover:bg-muted">
+                    <span className="block font-bold">{n.title}</span>
+                    <p className="mt-0.5 text-muted-foreground">{n.detail}</p>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>

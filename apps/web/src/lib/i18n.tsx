@@ -540,6 +540,10 @@ export const STR = {
     mobileNotifications: "Notifications",
     mobileNotificationsEmpty: "No new notifications",
     mobileNotificationsPending: "Awaiting confirmation",
+    topbarNotifApptTitle: "Appointment pending confirmation",
+    topbarNotifInvoiceTitle: "Invoice overdue",
+    ariaSearch: "Search",
+    ariaToggleDarkMode: "Toggle dark mode",
 
     // ---------- Mobile dashboard ----------
     mobileDashboardGreeting: "Welcome back",
@@ -1159,6 +1163,10 @@ export const STR = {
     mobileNotifications: "Notificaciones",
     mobileNotificationsEmpty: "No hay notificaciones nuevas",
     mobileNotificationsPending: "Esperando confirmación",
+    topbarNotifApptTitle: "Cita pendiente de confirmación",
+    topbarNotifInvoiceTitle: "Factura vencida",
+    ariaSearch: "Buscar",
+    ariaToggleDarkMode: "Alternar modo oscuro",
 
     // ---------- Mobile dashboard ----------
     mobileDashboardGreeting: "Bienvenido de nuevo",
