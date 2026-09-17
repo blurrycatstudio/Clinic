@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { PhoneInput } from "@/components/ui/phone-input"
-import { useLang } from "@/lib/i18n"
+import { LOCALE, useLang } from "@/lib/i18n"
 import { STATUS_COLORS, type AppointmentStatus } from "@/lib/data"
 import { api } from "@/lib/api"
 import { cn } from "@/lib/utils"
@@ -68,10 +68,10 @@ function NewAppointmentDialog({
           <div className="flex flex-col gap-4">
             <div>
               <label className="mb-1.5 block text-xs font-bold">{t.apptsNewModalPatient}</label>
-              <Input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Full name" className="h-9" />
+              <Input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder={t.apptsNewModalPatientPh} className="h-9" />
             </div>
             <div>
-              <label className="mb-1.5 block text-xs font-bold">Phone</label>
+              <label className="mb-1.5 block text-xs font-bold">{t.apptsPhoneLabel}</label>
               <PhoneInput value={phone} onChange={setPhone} placeholder="664 123 4567" className="h-9" />
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -187,7 +187,7 @@ function AppointmentActionsDialog({
 }
 
 export default function Appointments() {
-  const { t } = useLang()
+  const { t, lang } = useLang()
   const toast = useToast()
   const queryClient = useQueryClient()
   const [query, setQuery] = useState("")
@@ -198,7 +198,7 @@ export default function Appointments() {
 
   const shownDate = new Date()
   shownDate.setDate(shownDate.getDate() + dayOffset)
-  const dateLabel = shownDate.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })
+  const dateLabel = shownDate.toLocaleDateString(LOCALE[lang], { weekday: "long", month: "long", day: "numeric" })
   const dateParam = toDateParam(shownDate)
 
   const { data, isLoading, error } = useQuery({
@@ -207,7 +207,7 @@ export default function Appointments() {
     refetchInterval: 10_000,
   })
 
-  const appointments = useMemo(() => (data?.rows ?? []).map(toDisplayAppointment), [data])
+  const appointments = useMemo(() => (data?.rows ?? []).map((a) => toDisplayAppointment(a, t, LOCALE[lang])), [data, t, lang])
   const { data: dashboardStats } = useDashboardStats()
   const callingEnabled = dashboardStats?.callingEnabled ?? false
 
@@ -220,9 +220,9 @@ export default function Appointments() {
     onSuccess: () => {
       invalidate()
       setSelectedAppointment(null)
-      toast("Patient checked in")
+      toast(t.apptsCheckedInToast)
     },
-    onError: () => toast("Failed to check in patient"),
+    onError: () => toast(t.apptsCheckInFailedToast),
   })
 
   const rescheduleMutation = useMutation({
@@ -230,9 +230,9 @@ export default function Appointments() {
     onSuccess: () => {
       invalidate()
       setSelectedAppointment(null)
-      toast("Appointment rescheduled")
+      toast(t.apptsRescheduledToast)
     },
-    onError: () => toast("Failed to reschedule — that slot may already be booked"),
+    onError: () => toast(t.apptsRescheduleFailedToast),
   })
 
   const cancelMutation = useMutation({
@@ -240,22 +240,22 @@ export default function Appointments() {
     onSuccess: () => {
       invalidate()
       setSelectedAppointment(null)
-      toast("Appointment cancelled")
+      toast(t.apptsCancelledToast)
     },
-    onError: () => toast("Failed to cancel appointment"),
+    onError: () => toast(t.apptsCancelFailedToast),
   })
 
   const callMutation = useMutation({
     mutationFn: (id: string) => api.post(`/appointments/${id}/call`),
-    onSuccess: () => toast("Calling now…"),
+    onSuccess: () => toast(t.apptsCallingNow),
     onError: (err: unknown) => {
-      const message = err instanceof Error ? err.message : "Failed to place call"
+      const message = err instanceof Error ? err.message : t.apptsCallFailed
       toast(message)
     },
   })
 
   function callToConfirm(a: DisplayAppointment) {
-    if (!window.confirm(`Call ${a.child} at ${a.phone} now to confirm this appointment?`)) return
+    if (!window.confirm(t.apptsCallConfirmPrompt.replace("{child}", a.child).replace("{phone}", a.phone))) return
     callMutation.mutate(a.id)
   }
 
@@ -263,16 +263,16 @@ export default function Appointments() {
     mutationFn: ({ id, which }: { id: string; which: "24h" | "2h" }) => api.post(`/appointments/${id}/reminder`, { which }),
     onSuccess: () => {
       invalidate()
-      toast("Reminder message sent")
+      toast(t.apptsReminderMessageSent)
     },
     onError: (err: unknown) => {
-      const message = err instanceof Error ? err.message : "Failed to send message"
+      const message = err instanceof Error ? err.message : t.apptsMessageFailed
       toast(message)
     },
   })
 
   function sendMessage(a: DisplayAppointment) {
-    if (!window.confirm(`Send a WhatsApp reminder to ${a.child} at ${a.phone} now?`)) return
+    if (!window.confirm(t.apptsSendReminderConfirmPrompt.replace("{child}", a.child).replace("{phone}", a.phone))) return
     // Within 3h of the appointment, send the same same-day template the 2h cron job
     // uses (includes Confirm/Reschedule/Cancel buttons); otherwise the day-ahead one.
     const hoursAway = (a.startsAt.getTime() - Date.now()) / 3_600_000
@@ -285,9 +285,9 @@ export default function Appointments() {
     onSuccess: () => {
       invalidate()
       setNewOpen(false)
-      toast("Appointment created")
+      toast(t.apptsCreatedToast)
     },
-    onError: () => toast("Failed to create appointment"),
+    onError: () => toast(t.apptsCreateFailedToast),
   })
 
   const filtered = useMemo(
@@ -311,15 +311,15 @@ export default function Appointments() {
   )
 
   function reschedule(a: DisplayAppointment) {
-    const newDate = window.prompt("New date (YYYY-MM-DD)", a.startsAt.toISOString().slice(0, 10))?.trim()
+    const newDate = window.prompt(t.apptsReschedulePromptDate, a.startsAt.toISOString().slice(0, 10))?.trim()
     if (!newDate) return
-    const newTime = window.prompt("New time (HH:mm, 24h)", a.startsAt.toTimeString().slice(0, 5))?.trim()
+    const newTime = window.prompt(t.apptsReschedulePromptTime, a.startsAt.toTimeString().slice(0, 5))?.trim()
     if (!newTime) return
     rescheduleMutation.mutate({ id: a.id, startsAtIso: new Date(`${newDate}T${newTime}:00`).toISOString() })
   }
 
   function cancelAppointment(a: DisplayAppointment) {
-    if (!window.confirm(`Cancel ${a.child}'s appointment at ${a.time}?`)) return
+    if (!window.confirm(t.apptsCancelConfirm.replace("{child}", a.child).replace("{time}", a.time))) return
     cancelMutation.mutate(a.id)
   }
 
@@ -398,9 +398,9 @@ export default function Appointments() {
         </div>
 
         {isLoading ? (
-          <div className="py-16 text-center text-sm text-muted-foreground">Loading appointments…</div>
+          <div className="py-16 text-center text-sm text-muted-foreground">{t.apptsLoading}</div>
         ) : error ? (
-          <div className="py-16 text-center text-sm text-destructive">Couldn't load appointments. Is the API reachable and are you signed in?</div>
+          <div className="py-16 text-center text-sm text-destructive">{t.apptsLoadError}</div>
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
             <div className="flex size-14 items-center justify-center rounded-2xl border border-border bg-accent">
@@ -413,7 +413,7 @@ export default function Appointments() {
             <table className="w-full border-collapse">
               <thead>
                 <tr className="border-b border-border">
-                  {[t.thTime, t.thPatient, "Reason", t.thDuration, t.thStatus].map((label, i) => (
+                  {[t.thTime, t.thPatient, t.thReason, t.thDuration, t.thStatus].map((label, i) => (
                     <th key={i} className="px-2 pb-2.5 text-left text-[11.5px] font-bold tracking-wide text-muted-foreground uppercase first:pl-0">
                       {label}
                     </th>
@@ -447,18 +447,18 @@ export default function Appointments() {
                             {(a.calls.count > 0 || a.messages.count > 0) && (
                               <div className="mt-0.5 flex items-center gap-2 text-[10.5px] font-semibold text-muted-foreground">
                                 {a.calls.count > 0 && (
-                                  <span className="flex items-center gap-0.5" title={`${a.calls.count} call(s) — last: ${callStatusLabel(a.calls.lastStatus)}`}>
+                                  <span className="flex items-center gap-0.5" title={`${a.calls.count} · ${callStatusLabel(a.calls.lastStatus, t)}`}>
                                     <Phone className="size-2.5" strokeWidth={2.4} />
-                                    {a.calls.count} {callStatusLabel(a.calls.lastStatus)}
+                                    {a.calls.count} {callStatusLabel(a.calls.lastStatus, t)}
                                   </span>
                                 )}
                                 {a.messages.count > 0 && (
                                   <span
                                     className="flex items-center gap-0.5"
-                                    title={`${a.messages.count} message(s) — last: ${messageStatusLabel(a.messages.lastStatus)}`}
+                                    title={`${a.messages.count} · ${messageStatusLabel(a.messages.lastStatus, t)}`}
                                   >
                                     <MessageCircle className="size-2.5" strokeWidth={2.4} />
-                                    {a.messages.count} {messageStatusLabel(a.messages.lastStatus)}
+                                    {a.messages.count} {messageStatusLabel(a.messages.lastStatus, t)}
                                   </span>
                                 )}
                               </div>
@@ -482,7 +482,7 @@ export default function Appointments() {
                               variant="outline"
                               size="sm"
                               className="gap-1 rounded-lg font-semibold"
-                              title={callingEnabled ? "Call to confirm" : "Outbound calling isn't configured yet"}
+                              title={callingEnabled ? t.apptsCallToConfirmTitle : t.apptsCallingDisabledHint}
                             >
                               <Phone className="size-3.5" strokeWidth={2.2} />
                             </Button>
@@ -494,7 +494,7 @@ export default function Appointments() {
                               variant="outline"
                               size="sm"
                               className="gap-1 rounded-lg font-semibold"
-                              title="Send WhatsApp reminder now"
+                              title={t.apptsSendWhatsappReminder}
                             >
                               <MessageCircle className="size-3.5" strokeWidth={2.2} />
                             </Button>

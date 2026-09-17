@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { useLang } from "@/lib/i18n"
+import { LOCALE, useLang } from "@/lib/i18n"
 import { api } from "@/lib/api"
 import { COMMON_MEDICATIONS, type Medication } from "@/lib/data"
 import { toDisplayAppointment, type ApiAppointment } from "@/lib/appointments"
@@ -58,7 +58,7 @@ function ageFromDob(dob: string | null, yearsAbbr: string, monthsAbbr: string): 
 }
 
 export default function MobileConsultation() {
-  const { t } = useLang()
+  const { t, lang } = useLang()
   const toast = useToast()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -72,8 +72,8 @@ export default function MobileConsultation() {
 
   const appointment = useMemo(() => {
     const row = appointmentQuery.data?.appointment
-    return row ? toDisplayAppointment(row) : null
-  }, [appointmentQuery.data])
+    return row ? toDisplayAppointment(row, t, LOCALE[lang]) : null
+  }, [appointmentQuery.data, t, lang])
 
   const patient = appointmentQuery.data?.appointment.patients ?? undefined
 

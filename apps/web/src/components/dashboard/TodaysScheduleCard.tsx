@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { useLang } from "@/lib/i18n"
+import { LOCALE, useLang } from "@/lib/i18n"
 import { STATUS_COLORS } from "@/lib/data"
 import { api } from "@/lib/api"
 import { toDateParam, toDisplayAppointment, type ApiAppointment, type DisplayAppointment } from "@/lib/appointments"
@@ -18,14 +18,14 @@ export function TodaysScheduleCard({
   selectedId: string | null
   onSelect: (appointment: DisplayAppointment) => void
 }) {
-  const { t } = useLang()
+  const { t, lang } = useLang()
   const navigate = useNavigate()
   const [dayOffset, setDayOffset] = useState(0)
 
   const shownDate = new Date()
   shownDate.setDate(shownDate.getDate() + dayOffset)
   const dateParam = toDateParam(shownDate)
-  const dateLabel = shownDate.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })
+  const dateLabel = shownDate.toLocaleDateString(LOCALE[lang], { weekday: "short", month: "short", day: "numeric" })
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["appointments", "today", dateParam],
@@ -33,7 +33,7 @@ export function TodaysScheduleCard({
     refetchInterval: 10_000,
   })
 
-  const schedule = (data?.rows ?? []).map(toDisplayAppointment)
+  const schedule = (data?.rows ?? []).map((a) => toDisplayAppointment(a, t, LOCALE[lang]))
   const checkedInCount = schedule.filter((item) => item.status === "statusConfirmed" || item.status === "statusCompleted").length
 
   return (

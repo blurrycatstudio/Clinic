@@ -1,4 +1,5 @@
 import type { AppointmentStatus } from "@/lib/data"
+import type { Strings } from "@/lib/i18n"
 
 export type CallStatus = "in_progress" | "completed" | "failed" | "no_answer"
 export type MessageStatus = "sent" | "delivered" | "read" | "failed" | "received" | null
@@ -67,49 +68,49 @@ export function mapStatus(status: ApiAppointment["status"]): AppointmentStatus {
   }
 }
 
-export function callStatusLabel(status: CallStatus | null): string {
+export function callStatusLabel(status: CallStatus | null, t: Strings): string {
   switch (status) {
     case "in_progress":
-      return "Calling…"
+      return t.apptsCallStatusCalling
     case "completed":
-      return "Answered"
+      return t.apptsCallStatusAnswered
     case "no_answer":
-      return "No answer"
+      return t.apptsCallStatusNoAnswer
     case "failed":
-      return "Failed"
+      return t.apptsCallStatusFailed
     default:
       return "—"
   }
 }
 
-export function messageStatusLabel(status: MessageStatus): string {
+export function messageStatusLabel(status: MessageStatus, t: Strings): string {
   switch (status) {
     case "read":
-      return "Seen"
+      return t.apptsMsgStatusSeen
     case "delivered":
-      return "Delivered"
+      return t.apptsMsgStatusDelivered
     case "sent":
-      return "Sent"
+      return t.apptsMsgStatusSent
     case "received":
-      return "Replied"
+      return t.apptsMsgStatusReplied
     case "failed":
-      return "Failed"
+      return t.apptsMsgStatusFailed
     default:
       return "—"
   }
 }
 
-export function toDisplayAppointment(a: ApiAppointment): DisplayAppointment {
+export function toDisplayAppointment(a: ApiAppointment, t: Strings, locale: string): DisplayAppointment {
   const startsAt = new Date(a.starts_at)
   const endsAt = new Date(a.ends_at)
   const minutes = Math.round((endsAt.getTime() - startsAt.getTime()) / 60000)
-  const name = a.patients?.full_name ?? "Unknown patient"
+  const name = a.patients?.full_name ?? t.apptsUnknownPatient
   return {
     id: a.id,
     patientId: a.patient_id,
     startsAt,
     endsAt,
-    time: startsAt.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }),
+    time: startsAt.toLocaleTimeString(locale, { hour: "numeric", minute: "2-digit" }),
     duration: `${minutes} min`,
     child: name,
     phone: a.patients?.phone_e164 ?? "",

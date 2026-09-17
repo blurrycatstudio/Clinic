@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query"
 import { useNavigate } from "react-router-dom"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Input } from "@/components/ui/input"
-import { useLang } from "@/lib/i18n"
+import { LOCALE, useLang } from "@/lib/i18n"
 import { cn } from "@/lib/utils"
 import { api } from "@/lib/api"
 import { toDateParam, toDisplayAppointment, type ApiAppointment } from "@/lib/appointments"
@@ -65,7 +65,7 @@ export function Topbar() {
 
   const notifications: NotificationItem[] = useMemo(() => {
     const pendingToday = (todayAppointmentsQuery.data?.rows ?? [])
-      .map(toDisplayAppointment)
+      .map((a) => toDisplayAppointment(a, t, LOCALE[lang]))
       .filter((a) => a.status === "statusPending")
       .sort((a, b) => a.startsAt.getTime() - b.startsAt.getTime())
       .map((a) => ({
@@ -83,7 +83,7 @@ export function Topbar() {
     }))
 
     return [...pendingToday, ...overdueInvoices]
-  }, [todayAppointmentsQuery.data, overdueInvoicesQuery.data, t, navigate])
+  }, [todayAppointmentsQuery.data, overdueInvoicesQuery.data, t, lang, navigate])
 
   useEffect(() => {
     function onClick(e: MouseEvent) {

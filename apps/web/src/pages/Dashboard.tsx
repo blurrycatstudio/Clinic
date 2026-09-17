@@ -3,9 +3,11 @@ import { useQuery } from "@tanstack/react-query"
 import { PatientSnapshotCard } from "@/components/dashboard/PatientSnapshotCard"
 import { TodaysScheduleCard } from "@/components/dashboard/TodaysScheduleCard"
 import { api } from "@/lib/api"
+import { LOCALE, useLang } from "@/lib/i18n"
 import { toDateParam, toDisplayAppointment, type ApiAppointment, type DisplayAppointment } from "@/lib/appointments"
 
 export default function Dashboard() {
+  const { t, lang } = useLang()
   const [selected, setSelected] = useState<DisplayAppointment | null>(null)
 
   const today = toDateParam(new Date())
@@ -18,8 +20,8 @@ export default function Dashboard() {
   // Default to the first appointment of the day so the panel isn't empty on load.
   useEffect(() => {
     if (selected || !data?.rows.length) return
-    setSelected(toDisplayAppointment(data.rows[0]))
-  }, [data, selected])
+    setSelected(toDisplayAppointment(data.rows[0], t, LOCALE[lang]))
+  }, [data, selected, t, lang])
 
   return (
     <div className="flex flex-col items-start gap-5 lg:h-[calc(100vh-10.25rem)] lg:min-h-[560px] lg:flex-row">

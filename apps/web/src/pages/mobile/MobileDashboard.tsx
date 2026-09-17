@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
-import { useLang } from "@/lib/i18n"
+import { LOCALE, useLang } from "@/lib/i18n"
 import { api } from "@/lib/api"
 import { toDateParam, toDisplayAppointment, type ApiAppointment, type DisplayAppointment } from "@/lib/appointments"
 import { useToast } from "@/lib/toast"
@@ -36,7 +36,7 @@ function GlassIconTile({ tint, children }: { tint: "green" | "amber"; children: 
 }
 
 export default function MobileDashboard() {
-  const { t } = useLang()
+  const { t, lang } = useLang()
   const navigate = useNavigate()
   const toast = useToast()
 
@@ -53,7 +53,10 @@ export default function MobileDashboard() {
     onError: (err: unknown) => toast(err instanceof Error ? err.message : t.mobileDashboardReminderFailed),
   })
 
-  const schedule = useMemo(() => (data?.rows ?? []).map(toDisplayAppointment).sort((a, b) => a.startsAt.getTime() - b.startsAt.getTime()), [data])
+  const schedule = useMemo(
+    () => (data?.rows ?? []).map((a) => toDisplayAppointment(a, t, LOCALE[lang])).sort((a, b) => a.startsAt.getTime() - b.startsAt.getTime()),
+    [data, t, lang],
+  )
 
   // `schedule` is sorted by start time, so the first entry that hasn't ended yet is either
   // the one currently in session or the next one coming up — anything fully in the past

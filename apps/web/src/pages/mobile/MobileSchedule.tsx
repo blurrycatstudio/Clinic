@@ -152,13 +152,13 @@ function AppointmentActionsDialog({
                       {appointment.calls.count > 0 && (
                         <span className="flex items-center gap-1">
                           <Phone className="size-3" strokeWidth={2.2} />
-                          {appointment.calls.count} · {callStatusLabel(appointment.calls.lastStatus)}
+                          {appointment.calls.count} · {callStatusLabel(appointment.calls.lastStatus, t)}
                         </span>
                       )}
                       {appointment.messages.count > 0 && (
                         <span className="flex items-center gap-1">
                           <MessageCircle className="size-3" strokeWidth={2.2} />
-                          {appointment.messages.count} · {messageStatusLabel(appointment.messages.lastStatus)}
+                          {appointment.messages.count} · {messageStatusLabel(appointment.messages.lastStatus, t)}
                         </span>
                       )}
                     </div>
@@ -262,8 +262,8 @@ export default function MobileSchedule() {
   })
 
   const appointments = useMemo(
-    () => (data?.rows ?? []).map(toDisplayAppointment).sort((a, b) => a.startsAt.getTime() - b.startsAt.getTime()),
-    [data],
+    () => (data?.rows ?? []).map((a) => toDisplayAppointment(a, t, LOCALE[lang])).sort((a, b) => a.startsAt.getTime() - b.startsAt.getTime()),
+    [data, t, lang],
   )
 
   function invalidate() {
@@ -450,13 +450,13 @@ export default function MobileSchedule() {
                           {a.calls.count > 0 && (
                             <span className="flex items-center gap-0.5">
                               <Phone className="size-2.5" strokeWidth={2.4} />
-                              {a.calls.count} {callStatusLabel(a.calls.lastStatus)}
+                              {a.calls.count} {callStatusLabel(a.calls.lastStatus, t)}
                             </span>
                           )}
                           {a.messages.count > 0 && (
                             <span className="flex items-center gap-0.5">
                               <MessageCircle className="size-2.5" strokeWidth={2.4} />
-                              {a.messages.count} {messageStatusLabel(a.messages.lastStatus)}
+                              {a.messages.count} {messageStatusLabel(a.messages.lastStatus, t)}
                             </span>
                           )}
                         </div>

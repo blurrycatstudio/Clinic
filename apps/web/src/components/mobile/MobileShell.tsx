@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { PhoneInput } from "@/components/ui/phone-input"
-import { useLang } from "@/lib/i18n"
+import { LOCALE, useLang } from "@/lib/i18n"
 import { api } from "@/lib/api"
 import { useToast } from "@/lib/toast"
 import { cn } from "@/lib/utils"
@@ -275,10 +275,10 @@ export function MobileShell({
   const pendingToday = useMemo(
     () =>
       (todayData?.rows ?? [])
-        .map(toDisplayAppointment)
+        .map((a) => toDisplayAppointment(a, t, LOCALE[lang]))
         .filter((a) => a.status === "statusPending")
         .sort((a, b) => a.startsAt.getTime() - b.startsAt.getTime()),
-    [todayData],
+    [todayData, t, lang],
   )
 
   return (
