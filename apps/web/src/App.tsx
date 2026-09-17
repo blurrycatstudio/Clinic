@@ -14,7 +14,7 @@ import Prescriptions from "@/pages/Prescriptions"
 import Settings from "@/pages/Settings"
 import Appointments from "@/pages/Appointments"
 import Patients from "@/pages/Patients"
-// import VoiceCalls from "@/pages/VoiceCalls" // Voice Calls — disabled for now, uncomment to bring back.
+import VoiceCalls from "@/pages/VoiceCalls"
 // import Messages from "@/pages/Messages" // Messages — disabled for now, uncomment to bring back.
 import MedicalRecords from "@/pages/MedicalRecords"
 import Invoices from "@/pages/Invoices"
@@ -56,7 +56,7 @@ function App() {
                 <Route element={<AppShell />}>
                   <Route path="/appointments" element={<Appointments />} />
                   <Route path="/patients" element={<Patients />} />
-                  {/* <Route path="/calls" element={<VoiceCalls />} /> */}
+                  <Route path="/calls" element={<VoiceCalls />} />
                   <Route path="/whatsapp" element={<WhatsAppPage />} />
                   {/* <Route path="/messages" element={<Messages />} /> */}
                   <Route path="/records" element={<MedicalRecords />} />

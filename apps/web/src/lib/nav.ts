@@ -5,7 +5,7 @@ import {
   FileText,
   House,
   // MessagesSquare, // Messages nav — disabled for now
-  // Phone, // Voice Calls nav — disabled for now
+  Phone,
   Settings,
   Syringe,
   BarChart3,
@@ -38,8 +38,7 @@ export const NAV_ITEMS: NavItem[] = [
   { path: "/", labelKey: "navDashboard", icon: House, iconColor: "#2563EB", mobilePrimary: true, image3d: homeIcon3d },
   { path: "/appointments", labelKey: "navAppointments", icon: Calendar, iconColor: "#F97316", mobilePrimary: true, image3d: scheduleIcon3d },
   { path: "/patients", labelKey: "navPatients", icon: Baby, iconColor: "#16A34A", mobilePrimary: true, image3d: patientsIcon3d },
-  // Voice Calls — disabled for now, uncomment to bring back.
-  // { path: "/calls", labelKey: "navCalls", icon: Phone, iconColor: "#16A34A", badge: 3, badgeColor: "#F97316" },
+  { path: "/calls", labelKey: "navCalls", icon: Phone, iconColor: "#16A34A" },
   {
     path: "/whatsapp",
     labelKey: "navWhatsapp",
