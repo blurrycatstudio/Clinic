@@ -14,6 +14,7 @@ import { agentRouter } from "./agent.js"
 import { prescriptionsRouter } from "./prescriptions.js"
 import { invoicesRouter } from "./invoices.js"
 import { consultationsRouter } from "./consultations.js"
+import { documentsRouter } from "./documents.js"
 
 export const apiRouter = Router()
 
@@ -32,3 +33,4 @@ apiRouter.use("/agent", agentRouter)
 apiRouter.use("/prescriptions", prescriptionsRouter)
 apiRouter.use("/invoices", invoicesRouter)
 apiRouter.use("/consultations", consultationsRouter)
+apiRouter.use("/documents", documentsRouter)

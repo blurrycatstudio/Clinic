@@ -9,6 +9,18 @@ import { NotFoundError, ValidationError } from "../lib/errors.js"
 const MAX_SIZE_BYTES = 10 * 1024 * 1024
 
 export const patientDocumentsController = {
+  /** GET /documents — every patient's uploaded documents, newest first, for the cross-patient Records screen. */
+  async listAll(req: Request, res: Response) {
+    const query = z
+      .object({
+        limit: z.coerce.number().min(1).max(200).optional(),
+        offset: z.coerce.number().min(0).optional(),
+      })
+      .parse(req.query)
+    const result = await patientDocumentRepository.list(query)
+    res.json(result)
+  },
+
   async list(req: Request, res: Response) {
     const params = z.object({ id: z.string().uuid() }).parse(req.params)
     const patient = await patientRepository.findById(params.id)
