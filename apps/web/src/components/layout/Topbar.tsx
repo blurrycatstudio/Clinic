@@ -1,41 +1,16 @@
-import { Bell, Calendar, Moon, Search, Sun, User } from "lucide-react"
-import { useEffect, useMemo, useRef, useState } from "react"
+import { Bell, Moon, Search, Sun, User } from "lucide-react"
+import { useEffect, useRef, useState } from "react"
+import { useQuery } from "@tanstack/react-query"
 import { useNavigate } from "react-router-dom"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Input } from "@/components/ui/input"
 import { useLang } from "@/lib/i18n"
 import { cn } from "@/lib/utils"
-import { APPOINTMENTS, PATIENTS } from "@/lib/data"
+import { api } from "@/lib/api"
 import doctorImg from "@/assests/drgamaliel.png"
 
-type SearchResult =
-  | { kind: "patient"; id: string; label: string; sublabel: string }
-  | { kind: "appointment"; id: string; label: string; sublabel: string; patientId: string }
-
-function findResults(query: string): SearchResult[] {
-  const q = query.trim().toLowerCase()
-  if (!q) return []
-  const qDigits = q.replace(/\s+/g, "")
-
-  const patientMatches: SearchResult[] = PATIENTS.filter(
-    (p) =>
-      p.name.toLowerCase().includes(q) ||
-      p.guardian.toLowerCase().includes(q) ||
-      p.guardianPhone.replace(/\s+/g, "").includes(qDigits),
-  ).map((p) => ({ kind: "patient", id: p.id, label: p.name, sublabel: `${p.guardian} · ${p.guardianPhone}` }))
-
-  const appointmentMatches: SearchResult[] = APPOINTMENTS.filter(
-    (a) => a.child.toLowerCase().includes(q) || a.phone.replace(/\s+/g, "").includes(qDigits),
-  ).map((a) => ({
-    kind: "appointment",
-    id: a.id,
-    label: a.child,
-    sublabel: `${a.time} · ${a.duration}`,
-    patientId: a.patientId,
-  }))
-
-  return [...patientMatches, ...appointmentMatches].slice(0, 8)
-}
+type SearchResult = { id: string; label: string; sublabel: string }
+type ApiPatientLite = { id: string; full_name: string; phone_e164: string }
 
 const NOTIFICATIONS = [
   { title: "Appointment reminder", detail: "Emilia Torres checks in at 9:00 AM today.", time: "5m ago" },
@@ -64,7 +39,13 @@ export function Topbar() {
   const notifRef = useRef<HTMLDivElement>(null)
   const searchRef = useRef<HTMLDivElement>(null)
 
-  const results = useMemo(() => findResults(query), [query])
+  const trimmedQuery = query.trim()
+  const searchQuery = useQuery({
+    queryKey: ["patients-search-topbar", trimmedQuery],
+    queryFn: () => api.get<{ rows: ApiPatientLite[] }>(`/patients?search=${encodeURIComponent(trimmedQuery)}&limit=8`),
+    enabled: trimmedQuery.length >= 2,
+  })
+  const results: SearchResult[] = (searchQuery.data?.rows ?? []).map((p) => ({ id: p.id, label: p.full_name, sublabel: p.phone_e164 }))
 
   useEffect(() => {
     function onClick(e: MouseEvent) {
@@ -79,15 +60,14 @@ export function Topbar() {
     setResultsOpen(false)
     setMobileSearchOpen(false)
     setQuery("")
-    const patientId = r.kind === "patient" ? r.id : r.patientId
-    navigate("/patients", { state: { openPatientId: patientId } })
+    navigate("/patients", { state: { openPatientId: r.id } })
   }
 
   function handleSearchKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === "Enter") {
       if (results.length > 0) {
         goToResult(results[0])
-      } else if (query.trim()) {
+      } else if (trimmedQuery) {
         setResultsOpen(false)
         setMobileSearchOpen(false)
         navigate("/patients", { state: { query } })
@@ -98,20 +78,22 @@ export function Topbar() {
   }
 
   function SearchDropdown() {
-    if (!resultsOpen || query.trim() === "") return null
+    if (!resultsOpen || trimmedQuery.length < 2) return null
     return (
       <div className="absolute inset-x-0 top-full z-50 mt-2 max-h-80 overflow-y-auto rounded-xl border bg-card p-1.5 shadow-atelier-elevated">
-        {results.length === 0 ? (
-          <div className="px-3 py-4 text-center text-[12.5px] text-muted-foreground">No matches for "{query}"</div>
+        {searchQuery.isLoading ? (
+          <div className="px-3 py-4 text-center text-[12.5px] text-muted-foreground">…</div>
+        ) : results.length === 0 ? (
+          <div className="px-3 py-4 text-center text-[12.5px] text-muted-foreground">{t.topbarSearchNoMatches.replace("{query}", query)}</div>
         ) : (
           results.map((r) => (
             <button
-              key={`${r.kind}-${r.id}`}
+              key={r.id}
               onClick={() => goToResult(r)}
               className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left hover:bg-muted"
             >
               <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-accent text-primary">
-                {r.kind === "patient" ? <User className="size-3.5" strokeWidth={2} /> : <Calendar className="size-3.5" strokeWidth={2} />}
+                <User className="size-3.5" strokeWidth={2} />
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-[13px] font-bold">{r.label}</span>
