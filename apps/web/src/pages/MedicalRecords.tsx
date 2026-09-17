@@ -1,38 +1,28 @@
-import { useMemo, useRef, useState } from "react"
+import { useMemo, useState } from "react"
+import { useQuery } from "@tanstack/react-query"
 import { Dialog } from "radix-ui"
-import { Activity, Download, FileText, Scan, Search, Syringe, Upload, X } from "lucide-react"
+import { Download, File, FileText, Image as ImageIcon, Search, Upload, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { useLang } from "@/lib/i18n"
-import { MEDICAL_RECORDS, PATIENTS, type MedicalRecord, type RecordType } from "@/lib/data"
 import { cn } from "@/lib/utils"
-import { useToast } from "@/lib/toast"
-import { downloadTextFile } from "@/lib/download"
+import { api } from "@/lib/api"
+import { bucketFor, formatFileSize, type ApiPatientDocument, type FileBucket } from "@/lib/documents"
+import { UploadRecordDialog } from "@/components/records/UploadRecordDialog"
 
-type Filter = "all" | RecordType
+type Filter = "all" | FileBucket
 
-const TYPE_META: Record<RecordType, { icon: React.ElementType; color: string; bg: string; labelKey: "recordTypeLab" | "recordTypeVisit" | "recordTypeImaging" | "recordTypeVaccination" }> = {
-  lab: { icon: Activity, color: "#1f5fa8", bg: "#e5f0fb", labelKey: "recordTypeLab" },
-  visit: { icon: FileText, color: "#227a44", bg: "#e3f3e6", labelKey: "recordTypeVisit" },
-  imaging: { icon: Scan, color: "#a8567a", bg: "#f6e3ec", labelKey: "recordTypeImaging" },
-  vaccination: { icon: Syringe, color: "#c2882c", bg: "#fdf1de", labelKey: "recordTypeVaccination" },
+const TYPE_META: Record<FileBucket, { icon: React.ElementType; color: string; bg: string; labelKey: "recordFileTypePdf" | "recordFileTypeImage" | "recordFileTypeOther" }> = {
+  pdf: { icon: FileText, color: "#227a44", bg: "#e3f3e6", labelKey: "recordFileTypePdf" },
+  image: { icon: ImageIcon, color: "#a8567a", bg: "#f6e3ec", labelKey: "recordFileTypeImage" },
+  other: { icon: File, color: "#1f5fa8", bg: "#e5f0fb", labelKey: "recordFileTypeOther" },
 }
 
-function RecordDetailDialog({ record, patientName, onOpenChange }: { record: MedicalRecord | null; patientName: string; onOpenChange: (v: boolean) => void }) {
+function RecordDetailDialog({ record, patientName, onOpenChange }: { record: ApiPatientDocument | null; patientName: string; onOpenChange: (v: boolean) => void }) {
   const { t } = useLang()
-  const toast = useToast()
   if (!record) return null
-  const meta = TYPE_META[record.type]
-
-  function handleDownload() {
-    if (!record) return
-    downloadTextFile(
-      `${record.title}.txt`,
-      `${record.title}\nPatient: ${patientName}\nDate: ${record.date}\nDoctor: ${record.doctor}\n\n${record.summary}`,
-    )
-    toast("Record downloaded")
-  }
+  const meta = TYPE_META[bucketFor(record.mime_type)]
 
   return (
     <Dialog.Root open={!!record} onOpenChange={onOpenChange}>
@@ -45,7 +35,7 @@ function RecordDetailDialog({ record, patientName, onOpenChange }: { record: Med
                 <meta.icon className="size-5" style={{ color: meta.color }} strokeWidth={1.8} />
               </div>
               <div>
-                <Dialog.Title className="font-heading text-[16px] font-bold">{record.title}</Dialog.Title>
+                <Dialog.Title className="font-heading text-[16px] font-bold break-all">{record.name}</Dialog.Title>
                 <div className="mt-0.5 text-[11.5px] text-muted-foreground">{patientName}</div>
               </div>
             </div>
@@ -57,11 +47,7 @@ function RecordDetailDialog({ record, patientName, onOpenChange }: { record: Med
           <div className="flex flex-col gap-3 text-[13px]">
             <div className="flex justify-between border-b pb-2.5">
               <span className="text-muted-foreground">{t.recordsColDate}</span>
-              <span className="font-bold">{record.date}</span>
-            </div>
-            <div className="flex justify-between border-b pb-2.5">
-              <span className="text-muted-foreground">{t.recordDetailDoctor}</span>
-              <span className="font-bold">{record.doctor}</span>
+              <span className="font-bold">{new Date(record.created_at).toLocaleDateString()}</span>
             </div>
             <div className="flex justify-between border-b pb-2.5">
               <span className="text-muted-foreground">{t.recordsColType}</span>
@@ -69,9 +55,9 @@ function RecordDetailDialog({ record, patientName, onOpenChange }: { record: Med
                 {t[meta.labelKey]}
               </span>
             </div>
-            <div>
-              <div className="mb-1 text-muted-foreground">{t.recordDetailSummary}</div>
-              <p className="leading-relaxed text-foreground">{record.summary}</p>
+            <div className="flex justify-between border-b pb-2.5">
+              <span className="text-muted-foreground">{t.recordsColSize}</span>
+              <span className="font-bold">{formatFileSize(record.size_bytes)}</span>
             </div>
           </div>
 
@@ -81,9 +67,11 @@ function RecordDetailDialog({ record, patientName, onOpenChange }: { record: Med
                 {t.recordDetailClose}
               </Button>
             </Dialog.Close>
-            <Button onClick={handleDownload} className="gap-1.5 rounded-lg font-bold">
-              <Download className="size-3.5" strokeWidth={2.2} />
-              {t.recordsDownload}
+            <Button asChild className="gap-1.5 rounded-lg font-bold">
+              <a href={record.url} target="_blank" rel="noopener noreferrer">
+                <Download className="size-3.5" strokeWidth={2.2} />
+                {t.recordsDownload}
+              </a>
             </Button>
           </div>
         </Dialog.Content>
@@ -94,29 +82,24 @@ function RecordDetailDialog({ record, patientName, onOpenChange }: { record: Med
 
 export default function MedicalRecords() {
   const { t } = useLang()
-  const toast = useToast()
   const [query, setQuery] = useState("")
   const [filter, setFilter] = useState<Filter>("all")
-  const [viewing, setViewing] = useState<MedicalRecord | null>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [viewing, setViewing] = useState<ApiPatientDocument | null>(null)
+  const [uploadOpen, setUploadOpen] = useState(false)
 
-  function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = e.target.files
-    if (files && files.length > 0) toast(`Uploaded ${files.length} record${files.length > 1 ? "s" : ""}`)
-    e.target.value = ""
-  }
-
-  const patientById = useMemo(() => new Map(PATIENTS.map((p) => [p.id, p])), [])
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["documents"],
+    queryFn: () => api.get<{ rows: ApiPatientDocument[]; count: number }>("/documents?limit=200"),
+  })
 
   const filtered = useMemo(
     () =>
-      MEDICAL_RECORDS.filter((r) => filter === "all" || r.type === filter).filter((r) => {
+      (data?.rows ?? []).filter((d) => filter === "all" || bucketFor(d.mime_type) === filter).filter((d) => {
         if (!query.trim()) return true
         const q = query.toLowerCase()
-        const patient = patientById.get(r.patientId)
-        return r.title.toLowerCase().includes(q) || patient?.name.toLowerCase().includes(q)
+        return d.name.toLowerCase().includes(q) || (d.patients?.full_name ?? "").toLowerCase().includes(q)
       }),
-    [query, filter, patientById],
+    [data, query, filter],
   )
 
   return (
@@ -126,11 +109,10 @@ export default function MedicalRecords() {
           <h1 className="font-heading text-2xl font-bold">{t.recordsPageTitle}</h1>
           <p className="mt-0.5 text-[13.5px] text-muted-foreground">{t.recordsPageSub}</p>
         </div>
-        <Button onClick={() => fileInputRef.current?.click()} className="self-start gap-1.5 rounded-[10px] font-bold">
+        <Button onClick={() => setUploadOpen(true)} className="self-start gap-1.5 rounded-[10px] font-bold">
           <Upload className="size-3.5" strokeWidth={2.4} />
           {t.recordsUploadBtn}
         </Button>
-        <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleUpload} />
       </div>
 
       <Card className="gap-0 rounded-2xl border p-4.5 shadow-none">
@@ -148,10 +130,9 @@ export default function MedicalRecords() {
             {(
               [
                 ["all", t.recordsFilterAll],
-                ["lab", t.recordsFilterLab],
-                ["visit", t.recordsFilterVisit],
-                ["imaging", t.recordsFilterImaging],
-                ["vaccination", t.recordsFilterVaccination],
+                ["pdf", t.recordsFilterPdf],
+                ["image", t.recordsFilterImage],
+                ["other", t.recordsFilterOther],
               ] as const
             ).map(([key, label]) => (
               <button
@@ -171,7 +152,15 @@ export default function MedicalRecords() {
           </div>
         </div>
 
-        {filtered.length === 0 ? (
+        {isLoading ? (
+          <div className="flex flex-col gap-2">
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className="h-12 animate-pulse rounded-xl bg-muted" />
+            ))}
+          </div>
+        ) : error ? (
+          <div className="py-16 text-center text-[13px] text-destructive">{t.recordsLoadError}</div>
+        ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
             <div className="flex size-14 items-center justify-center rounded-2xl border border-border bg-accent">
               <FileText className="size-6 text-primary" strokeWidth={1.6} />
@@ -192,30 +181,22 @@ export default function MedicalRecords() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((r) => {
-                  const patient = patientById.get(r.patientId)
-                  const meta = TYPE_META[r.type]
+                {filtered.map((d) => {
+                  const meta = TYPE_META[bucketFor(d.mime_type)]
                   return (
-                    <tr key={r.id} className="border-b border-border last:border-0 hover:bg-muted/60">
-                      <td className="py-3 pr-2 pl-0">
-                        <div className="flex items-center gap-2.5">
-                          <div className="flex size-8.5 shrink-0 items-center justify-center rounded-full text-[12px] font-bold text-white" style={{ background: patient?.color }}>
-                            {patient?.initials}
-                          </div>
-                          <div className="text-[13.5px] font-bold">{patient?.name}</div>
-                        </div>
-                      </td>
-                      <td className="px-2 py-3 text-[13px]">{r.title}</td>
+                    <tr key={d.id} className="border-b border-border last:border-0 hover:bg-muted/60">
+                      <td className="py-3 pr-2 pl-0 text-[13.5px] font-bold">{d.patients?.full_name ?? t.recordsUnknownPatient}</td>
+                      <td className="px-2 py-3 text-[13px]">{d.name}</td>
                       <td className="px-2 py-3">
                         <span className="flex w-fit items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold whitespace-nowrap" style={{ background: meta.bg, color: meta.color }}>
                           <meta.icon className="size-3" strokeWidth={2.4} />
                           {t[meta.labelKey]}
                         </span>
                       </td>
-                      <td className="px-2 py-3 text-[13px] whitespace-nowrap">{r.date}</td>
-                      <td className="px-2 py-3 text-[12.5px] whitespace-nowrap text-muted-foreground">{r.fileSize}</td>
+                      <td className="px-2 py-3 text-[13px] whitespace-nowrap">{new Date(d.created_at).toLocaleDateString()}</td>
+                      <td className="px-2 py-3 text-[12.5px] whitespace-nowrap text-muted-foreground">{formatFileSize(d.size_bytes)}</td>
                       <td className="py-3 pr-0 pl-2 text-right whitespace-nowrap">
-                        <Button variant="outline" size="sm" className="rounded-lg font-semibold" onClick={() => setViewing(r)}>
+                        <Button variant="outline" size="sm" className="rounded-lg font-semibold" onClick={() => setViewing(d)}>
                           {t.recordsView}
                         </Button>
                       </td>
@@ -228,11 +209,8 @@ export default function MedicalRecords() {
         )}
       </Card>
 
-      <RecordDetailDialog
-        record={viewing}
-        patientName={viewing ? (patientById.get(viewing.patientId)?.name ?? "") : ""}
-        onOpenChange={(open) => !open && setViewing(null)}
-      />
+      <RecordDetailDialog record={viewing} patientName={viewing?.patients?.full_name ?? t.recordsUnknownPatient} onOpenChange={(open) => !open && setViewing(null)} />
+      <UploadRecordDialog open={uploadOpen} onOpenChange={setUploadOpen} />
     </div>
   )
 }

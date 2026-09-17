@@ -168,17 +168,6 @@ export const HISTORY: Record<PatientTab, { en: HistoryRow[]; es: HistoryRow[] }>
   },
 }
 
-export type PatientDocument = { name: string; date: string; size: string; type: "pdf" | "image" }
-
-export function getPatientDocuments(patientId: string): PatientDocument[] {
-  return MEDICAL_RECORDS.filter((rec) => rec.patientId === patientId).map((rec) => ({
-    name: `${rec.title}.${rec.type === "imaging" ? "jpg" : "pdf"}`,
-    date: rec.date,
-    size: rec.fileSize,
-    type: rec.type === "imaging" ? "image" : "pdf",
-  }))
-}
-
 export type TemplateKey = { titleKey: keyof Strings; metaKey: keyof Strings; body: string }
 
 export const TEMPLATES: TemplateKey[] = [
@@ -377,31 +366,6 @@ export const CALL_LOGS: CallLog[] = [
   { id: "c6", name: "Unknown Caller", phone: "+52 664 900 3344", initials: "?", color: "#6B7280", direction: "missed", duration: "—", date: "Yesterday", time: "09:12 AM", note: "Called back — no answer." },
   { id: "c7", name: "Carmen Cruz", phone: "+52 664 456 7890", initials: "CC", color: "#2563EB", direction: "incoming", duration: "3:20", date: "Sep 3, 2026", time: "02:40 PM", note: "Asked about Valentina's allergy test results." },
   { id: "c8", name: "Andrea Flores", phone: "+52 664 678 9012", initials: "AF", color: "#0891B2", direction: "outgoing", duration: "5:03", date: "Sep 2, 2026", time: "10:18 AM", note: "Discussed Santiago's feeding schedule concerns." },
-]
-
-// ---------- Medical Records ----------
-export type RecordType = "lab" | "visit" | "imaging" | "vaccination"
-export type MedicalRecord = {
-  id: string
-  patientId: string
-  type: RecordType
-  title: string
-  date: string
-  doctor: string
-  summary: string
-  fileSize: string
-}
-
-export const MEDICAL_RECORDS: MedicalRecord[] = [
-  { id: "rec1", patientId: "emilia", type: "visit", title: "Well-Child Visit Summary", date: "Aug 20, 2026", doctor: "Dr. Gamaliel Rodríguez", summary: "Routine checkup, growth on track, weight 17.2kg, no concerns raised.", fileSize: "212 KB" },
-  { id: "rec2", patientId: "emilia", type: "lab", title: "Complete Blood Count (CBC)", date: "Aug 20, 2026", doctor: "Dr. Gamaliel Rodríguez", summary: "All values within normal pediatric reference range.", fileSize: "98 KB" },
-  { id: "rec3", patientId: "mateo", type: "vaccination", title: "DTaP Booster Certificate", date: "Jun 15, 2026", doctor: "Dr. Gamaliel Rodríguez", summary: "4th dose administered, left arm, no adverse reaction observed.", fileSize: "64 KB" },
-  { id: "rec4", patientId: "sofia", type: "imaging", title: "Chest X-Ray", date: "Jul 2, 2026", doctor: "Dr. Gamaliel Rodríguez", summary: "Clear lung fields, no signs of infiltrate or consolidation.", fileSize: "3.4 MB" },
-  { id: "rec5", patientId: "diego", type: "visit", title: "Consultation Notes — Impetigo", date: "Jun 18, 2026", doctor: "Dr. Gamaliel Rodríguez", summary: "Localized impetigo on forearm, treated with topical mupirocin.", fileSize: "156 KB" },
-  { id: "rec6", patientId: "valentina", type: "lab", title: "Allergy Panel Results", date: "May 30, 2026", doctor: "Dr. Gamaliel Rodríguez", summary: "Confirmed amoxicillin sensitivity, no other reactive allergens found.", fileSize: "184 KB" },
-  { id: "rec7", patientId: "santiago", type: "vaccination", title: "Hepatitis B — 2nd Dose", date: "Aug 28, 2026", doctor: "Dr. Gamaliel Rodríguez", summary: "Second dose on schedule, well tolerated, no side effects.", fileSize: "58 KB" },
-  { id: "rec8", patientId: "camila", type: "visit", title: "Annual Physical Exam", date: "Apr 14, 2026", doctor: "Dr. Gamaliel Rodríguez", summary: "Healthy growth trajectory, vision and hearing screens passed.", fileSize: "220 KB" },
-  { id: "rec9", patientId: "isabella", type: "lab", title: "Allergy Panel — Dust Mites", date: "Mar 3, 2026", doctor: "Dr. Gamaliel Rodríguez", summary: "Confirmed dust mite sensitivity, no other reactive allergens found.", fileSize: "142 KB" },
 ]
 
 // ---------- Invoices & Payments ----------

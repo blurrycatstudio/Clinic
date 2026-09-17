@@ -8,6 +8,7 @@ export const patientsRouter = Router()
 
 patientsRouter.use(requireStaffAuth)
 patientsRouter.get("/", asyncHandler(async (req, res) => patientsController.list(req, res)))
+patientsRouter.post("/", asyncHandler(async (req, res) => patientsController.create(req, res)))
 patientsRouter.get("/:id", asyncHandler(async (req, res) => patientsController.get(req, res)))
 patientsRouter.patch("/:id", asyncHandler(async (req, res) => patientsController.updateBasicInfo(req, res)))
 patientsRouter.patch("/:id/clinical-info", asyncHandler(async (req, res) => patientsController.updateClinicalInfo(req, res)))

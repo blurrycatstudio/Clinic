@@ -17,6 +17,21 @@ export const patientsController = {
     res.json(result)
   },
 
+  /** Staff-entered new patient — same upsert-by-phone path the WhatsApp agent and appointment
+   * booking already use, so registering a patient here who later messages in doesn't duplicate them. */
+  async create(req: Request, res: Response) {
+    const body = z
+      .object({
+        fullName: z.string().min(1),
+        phoneE164: z.string().min(1),
+        dateOfBirth: z.string().nullable().optional(),
+      })
+      .parse(req.body)
+
+    const patient = await patientRepository.upsertByPhone(body)
+    res.status(201).json({ patient })
+  },
+
   async get(req: Request, res: Response) {
     const params = z.object({ id: z.string().uuid() }).parse(req.params)
     const patient = await patientRepository.findById(params.id)
