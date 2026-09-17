@@ -40,8 +40,10 @@ export const appointmentsController = {
     const query = z
       .object({
         date: z.string().optional(),
+        from: z.string().datetime().optional(),
+        to: z.string().datetime().optional(),
         status: z.enum(["scheduled", "confirmed", "cancelled", "completed", "no_show"]).optional(),
-        limit: z.coerce.number().min(1).max(200).optional(),
+        limit: z.coerce.number().min(1).max(1000).optional(),
         offset: z.coerce.number().min(0).optional(),
       })
       .parse(req.query)

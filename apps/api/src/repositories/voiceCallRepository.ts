@@ -72,11 +72,11 @@ export const voiceCallRepository = {
     const offset = params.offset ?? 0
     const { data, error, count } = await supabase
       .from("voice_calls")
-      .select("*", { count: "exact" })
+      .select("*, patients(full_name)", { count: "exact" })
       .order("started_at", { ascending: false })
       .range(offset, offset + limit - 1)
     if (error) throw new AppError(`Failed to list voice calls: ${error.message}`)
-    return { rows: data ?? [], count: count ?? 0 }
+    return { rows: (data as never) ?? [], count: count ?? 0 }
   },
 }
 

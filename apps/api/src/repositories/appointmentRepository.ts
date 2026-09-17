@@ -60,6 +60,9 @@ export const appointmentRepository = {
 
   async listForDashboard(params: {
     date?: string
+    /** Multi-day window (e.g. for reports) — ISO timestamps, independent of `date`. */
+    from?: string
+    to?: string
     status?: AppointmentStatus
     limit?: number
     offset?: number
@@ -76,6 +79,8 @@ export const appointmentRepository = {
       const dayEnd = fromZonedTime(`${params.date}T23:59:59.999`, CLINIC_TIMEZONE).toISOString()
       query = query.gte("starts_at", dayStart).lte("starts_at", dayEnd)
     }
+    if (params.from) query = query.gte("starts_at", params.from)
+    if (params.to) query = query.lte("starts_at", params.to)
     if (params.status) {
       query = query.eq("status", params.status)
     }

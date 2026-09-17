@@ -342,32 +342,6 @@ export const PATIENTS: Patient[] = [
   { id: "isabella", patientCode: "PT-2026-0037", name: "Isabella Mendoza", initials: "IM", color: "#9333EA", age: "7 yrs", ageFull: { en: "7 years", es: "7 años" }, gender: { en: "Female", es: "Femenino" }, dob: "12 Oct 2018", guardian: "Roberto Mendoza (father)", guardianPhone: "+52 664 789 0123", email: "r.mendoza@gmail.com", address: "Tijuana, B.C.", bloodType: "O+", lastVisit: "Mar 3, 2026", nextVisit: null, status: "inactive", allergies: ["Dust mites"] },
 ]
 
-// ---------- Voice Calls ----------
-export type CallDirection = "incoming" | "outgoing" | "missed"
-export type CallLog = {
-  id: string
-  name: string
-  phone: string
-  initials: string
-  color: string
-  direction: CallDirection
-  duration: string
-  date: string
-  time: string
-  note: string
-}
-
-export const CALL_LOGS: CallLog[] = [
-  { id: "c1", name: "Luis Navarro", phone: "+52 664 345 6789", initials: "LN", color: "#DC2626", direction: "incoming", duration: "4:12", date: "Today", time: "09:40 AM", note: "Asked about consultation availability for Diego's cough." },
-  { id: "c2", name: "Unknown Caller", phone: "+52 664 555 2211", initials: "?", color: "#6B7280", direction: "missed", duration: "—", date: "Today", time: "08:50 AM", note: "No voicemail left." },
-  { id: "c3", name: "Fernanda Torres", phone: "+52 664 123 4567", initials: "FT", color: "#16A34A", direction: "outgoing", duration: "2:35", date: "Today", time: "08:15 AM", note: "Confirmed Emilia's appointment for tomorrow 9:00 AM." },
-  { id: "c4", name: "Gabriela Delgado", phone: "+52 664 234 5678", initials: "GD", color: "#0D9488", direction: "incoming", duration: "6:48", date: "Yesterday", time: "04:22 PM", note: "Requested to reschedule Sofía's growth check." },
-  { id: "c5", name: "Ricardo Ramírez", phone: "+52 664 987 6543", initials: "RR", color: "#F97316", direction: "outgoing", duration: "1:52", date: "Yesterday", time: "11:05 AM", note: "Reminder call for Mateo's DTaP booster." },
-  { id: "c6", name: "Unknown Caller", phone: "+52 664 900 3344", initials: "?", color: "#6B7280", direction: "missed", duration: "—", date: "Yesterday", time: "09:12 AM", note: "Called back — no answer." },
-  { id: "c7", name: "Carmen Cruz", phone: "+52 664 456 7890", initials: "CC", color: "#2563EB", direction: "incoming", duration: "3:20", date: "Sep 3, 2026", time: "02:40 PM", note: "Asked about Valentina's allergy test results." },
-  { id: "c8", name: "Andrea Flores", phone: "+52 664 678 9012", initials: "AF", color: "#0891B2", direction: "outgoing", duration: "5:03", date: "Sep 2, 2026", time: "10:18 AM", note: "Discussed Santiago's feeding schedule concerns." },
-]
-
 // ---------- Invoices & Payments ----------
 export type InvoiceStatus = "paid" | "pending" | "overdue"
 export type InvoiceItem = { desc: string; qty: number; price: number }
@@ -391,35 +365,6 @@ export const INVOICES: Invoice[] = [
   { id: "INV-2996", patientId: "santiago", date: "Aug 28, 2026", dueDate: "Sep 11, 2026", amount: 690, status: "pending", method: null, items: [{ desc: "Hepatitis B Vaccine — 2nd Dose", qty: 1, price: 690 }] },
   { id: "INV-2988", patientId: "camila", date: "Apr 14, 2026", dueDate: "Apr 28, 2026", amount: 950, status: "paid", method: "Bank Transfer", items: [{ desc: "Annual Physical Exam", qty: 1, price: 950 }] },
   { id: "INV-2975", patientId: "isabella", date: "Mar 3, 2026", dueDate: "Mar 17, 2026", amount: 1120, status: "paid", method: "Credit Card", items: [{ desc: "Consultation — Dust Allergy Follow-Up", qty: 1, price: 620 }, { desc: "Nasal Spray (dispensed)", qty: 1, price: 500 }] },
-]
-
-// ---------- Reports ----------
-export const REVENUE_BY_MONTH = [
-  { label: "Mar", value: 42000 },
-  { label: "Apr", value: 48500 },
-  { label: "May", value: 45200 },
-  { label: "Jun", value: 53800 },
-  { label: "Jul", value: 58100 },
-  { label: "Aug", value: 61900 },
-  { label: "Sep", value: 34200 },
-]
-
-export const PATIENT_GROWTH = [
-  { label: "Mar", value: 142 },
-  { label: "Apr", value: 151 },
-  { label: "May", value: 158 },
-  { label: "Jun", value: 167 },
-  { label: "Jul", value: 179 },
-  { label: "Aug", value: 188 },
-  { label: "Sep", value: 193 },
-]
-
-export const APPT_TYPE_BREAKDOWN: { type: AppointmentType; count: number; color: string }[] = [
-  { type: "typeWellchild", count: 38, color: "#16A34A" },
-  { type: "typeVaccination", count: 26, color: "#F97316" },
-  { type: "typeConsultation", count: 31, color: "#2563EB" },
-  { type: "typeGrowth", count: 18, color: "#0D9488" },
-  { type: "typeFollowup", count: 14, color: "#D97706" },
 ]
 
 export type ChatMessage = { from: "me" | "them"; text: string; time: string }

@@ -1,67 +1,92 @@
 import { useMemo, useState } from "react"
-import { Loader2, Phone, PhoneCall, PhoneIncoming, PhoneMissed, PhoneOutgoing, Play, Search } from "lucide-react"
+import { useQuery } from "@tanstack/react-query"
+import { Phone, PhoneCall, PhoneIncoming, PhoneMissed, PhoneOutgoing, Play, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { useLang } from "@/lib/i18n"
-import { CALL_LOGS, type CallDirection } from "@/lib/data"
+import { LOCALE, useLang } from "@/lib/i18n"
 import { cn } from "@/lib/utils"
 import { useToast } from "@/lib/toast"
+import { api } from "@/lib/api"
+import { colorFor, initialsFor } from "@/lib/appointments"
 
-type Filter = "all" | CallDirection
+type Bucket = "incoming" | "outgoing" | "missed"
+type Filter = "all" | Bucket
 
-const DIRECTION_META: Record<CallDirection, { icon: React.ElementType; color: string; bg: string; labelKey: "incoming" | "outgoing" | "missed" }> = {
+type ApiVoiceCall = {
+  id: string
+  patient_id: string | null
+  phone_e164: string
+  direction: "inbound" | "outbound"
+  status: "in_progress" | "completed" | "failed" | "no_answer"
+  started_at: string
+  duration_seconds: number | null
+  recording_url: string | null
+  summary: string | null
+  patients: { full_name: string } | null
+}
+
+function bucketFor(call: ApiVoiceCall): Bucket {
+  if (call.status === "no_answer" || call.status === "failed") return "missed"
+  return call.direction === "inbound" ? "incoming" : "outgoing"
+}
+
+function formatDuration(seconds: number | null): string {
+  if (seconds == null) return "—"
+  const m = Math.floor(seconds / 60)
+  const s = Math.round(seconds % 60)
+  return `${m}:${String(s).padStart(2, "0")}`
+}
+
+const DIRECTION_META: Record<Bucket, { icon: React.ElementType; color: string; bg: string; labelKey: "incoming" | "outgoing" | "missed" }> = {
   incoming: { icon: PhoneIncoming, color: "#1f5fa8", bg: "#e5f0fb", labelKey: "incoming" },
   outgoing: { icon: PhoneOutgoing, color: "#227a44", bg: "#e3f3e6", labelKey: "outgoing" },
   missed: { icon: PhoneMissed, color: "#b03a2e", bg: "#fbe7e5", labelKey: "missed" },
 }
 
 export default function VoiceCalls() {
-  const { t } = useLang()
+  const { t, lang } = useLang()
   const toast = useToast()
   const [query, setQuery] = useState("")
   const [filter, setFilter] = useState<Filter>("all")
-  const [playingId, setPlayingId] = useState<string | null>(null)
 
-  function playRecording(id: string, name: string) {
-    if (playingId) return
-    setPlayingId(id)
-    toast(`Playing recording — ${name}`)
-    setTimeout(() => setPlayingId(null), 2500)
-  }
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["voice-calls"],
+    queryFn: () => api.get<{ rows: ApiVoiceCall[]; count: number }>("/voice-calls?limit=200"),
+  })
+  const calls = data?.rows ?? []
 
   function callBack(phone: string, name: string) {
-    toast(`Calling ${name}…`)
-    window.location.href = `tel:${phone.replace(/\s+/g, "")}`
+    toast(t.callsCallingToast.replace("{name}", name))
+    window.location.href = `tel:${phone}`
   }
 
   const filtered = useMemo(
     () =>
-      CALL_LOGS.filter((c) => filter === "all" || c.direction === filter).filter((c) => {
+      calls.filter((c) => filter === "all" || bucketFor(c) === filter).filter((c) => {
         if (!query.trim()) return true
         const q = query.toLowerCase()
-        return c.name.toLowerCase().includes(q) || c.phone.includes(q)
+        const name = c.patients?.full_name ?? c.phone_e164
+        return name.toLowerCase().includes(q) || c.phone_e164.includes(q)
       }),
-    [query, filter],
+    [calls, query, filter],
   )
 
   const stats = useMemo(() => {
-    const total = CALL_LOGS.filter((c) => c.date === "Today").length
-    const missed = CALL_LOGS.filter((c) => c.direction === "missed").length
-    const answered = CALL_LOGS.filter((c) => c.direction !== "missed")
-    const avgSec =
-      answered.reduce((sum, c) => {
-        const [m, s] = c.duration.split(":").map(Number)
-        return sum + m * 60 + s
-      }, 0) / (answered.length || 1)
-    const answerRate = Math.round((answered.length / CALL_LOGS.length) * 100)
+    const startOfDay = new Date()
+    startOfDay.setHours(0, 0, 0, 0)
+    const today = calls.filter((c) => new Date(c.started_at).getTime() >= startOfDay.getTime())
+    const missed = today.filter((c) => bucketFor(c) === "missed")
+    const answered = today.filter((c) => bucketFor(c) !== "missed" && c.duration_seconds != null)
+    const avgSec = answered.length ? answered.reduce((sum, c) => sum + (c.duration_seconds ?? 0), 0) / answered.length : 0
+    const answerRate = today.length ? Math.round(((today.length - missed.length) / today.length) * 100) : 0
     return {
-      total,
-      missed,
-      avg: `${Math.floor(avgSec / 60)}:${String(Math.round(avgSec % 60)).padStart(2, "0")}`,
+      total: today.length,
+      missed: missed.length,
+      avg: formatDuration(answered.length ? avgSec : null),
       answerRate,
     }
-  }, [])
+  }, [calls])
 
   return (
     <div>
@@ -136,7 +161,15 @@ export default function VoiceCalls() {
           <div className="ml-auto text-xs font-bold text-muted-foreground">{filtered.length}</div>
         </div>
 
-        {filtered.length === 0 ? (
+        {isLoading ? (
+          <div className="flex flex-col gap-2">
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className="h-14 animate-pulse rounded-xl bg-muted" />
+            ))}
+          </div>
+        ) : error ? (
+          <div className="py-16 text-center text-[13px] text-destructive">{t.callsLoadError}</div>
+        ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
             <div className="flex size-14 items-center justify-center rounded-2xl border border-border bg-accent">
               <Phone className="size-6 text-primary" strokeWidth={1.6} />
@@ -147,15 +180,21 @@ export default function VoiceCalls() {
           <div className="overflow-x-auto">
           <div className="flex min-w-[640px] flex-col">
             {filtered.map((c, i) => {
-              const meta = DIRECTION_META[c.direction]
+              const bucket = bucketFor(c)
+              const meta = DIRECTION_META[bucket]
+              const name = c.patients?.full_name ?? c.phone_e164
+              const started = new Date(c.started_at)
               return (
                 <div key={c.id} className={cn("flex items-center gap-3.5 py-3.5", i !== 0 && "border-t")}>
-                  <div className="flex size-9.5 shrink-0 items-center justify-center rounded-full text-[12px] font-bold text-white" style={{ background: c.color }}>
-                    {c.initials}
+                  <div
+                    className="flex size-9.5 shrink-0 items-center justify-center rounded-full text-[12px] font-bold text-white"
+                    style={{ background: colorFor(c.patient_id ?? c.phone_e164) }}
+                  >
+                    {initialsFor(name)}
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="text-[13.5px] font-bold">{c.name}</span>
+                      <span className="text-[13.5px] font-bold">{name}</span>
                       <span
                         className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[10.5px] font-bold whitespace-nowrap"
                         style={{ background: meta.bg, color: meta.color }}
@@ -164,31 +203,36 @@ export default function VoiceCalls() {
                         {t[meta.labelKey]}
                       </span>
                     </div>
-                    <div className="mt-0.5 truncate text-[12px] text-muted-foreground">{c.note}</div>
+                    <div className="mt-0.5 truncate text-[12px] text-muted-foreground">{c.summary ?? t.callsNoSummary}</div>
                   </div>
                   <div className="w-24 shrink-0 text-right text-[12px] text-muted-foreground whitespace-nowrap">
-                    {c.date} · {c.time}
+                    {started.toLocaleDateString(LOCALE[lang])} · {started.toLocaleTimeString(LOCALE[lang], { hour: "numeric", minute: "2-digit" })}
                   </div>
-                  <div className="w-14 shrink-0 text-right text-[13px] font-bold whitespace-nowrap">{c.duration}</div>
-                  {c.direction === "missed" ? (
-                    <Button onClick={() => callBack(c.phone, c.name)} size="sm" className="shrink-0 gap-1 rounded-lg font-semibold">
+                  <div className="w-14 shrink-0 text-right text-[13px] font-bold whitespace-nowrap">{formatDuration(c.duration_seconds)}</div>
+                  {bucket === "missed" ? (
+                    <Button onClick={() => callBack(c.phone_e164, name)} size="sm" className="shrink-0 gap-1 rounded-lg font-semibold">
                       <PhoneOutgoing className="size-3.5" strokeWidth={2.2} />
                       {t.callsCallBack}
                     </Button>
                   ) : (
                     <Button
-                      onClick={() => playRecording(c.id, c.name)}
-                      disabled={playingId === c.id}
+                      asChild={!!c.recording_url}
+                      disabled={!c.recording_url}
                       variant="outline"
                       size="sm"
                       className="shrink-0 gap-1 rounded-lg font-semibold"
                     >
-                      {playingId === c.id ? (
-                        <Loader2 className="size-3.5 animate-spin" strokeWidth={2.2} />
+                      {c.recording_url ? (
+                        <a href={c.recording_url} target="_blank" rel="noopener noreferrer">
+                          <Play className="size-3.5" strokeWidth={2.2} />
+                          {t.callsPlay}
+                        </a>
                       ) : (
-                        <Play className="size-3.5" strokeWidth={2.2} />
+                        <>
+                          <Play className="size-3.5" strokeWidth={2.2} />
+                          {t.callsPlay}
+                        </>
                       )}
-                      {t.callsPlay}
                     </Button>
                   )}
                 </div>
