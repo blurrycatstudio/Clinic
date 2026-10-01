@@ -5,9 +5,26 @@ import { appointmentRepository } from "../repositories/appointmentRepository.js"
 import { doctorScheduleRepository } from "../repositories/doctorScheduleRepository.js"
 import { patientRepository } from "../repositories/patientRepository.js"
 import { auditLogRepository } from "../repositories/auditLogRepository.js"
-import { ValidationError } from "../lib/errors.js"
+import { ConflictError, ValidationError } from "../lib/errors.js"
 
 export type AvailableSlot = { startsAtIso: string; label: string }
+
+const HOUR_RANGES: Record<string, [number, number]> = {
+  morning: [0, 12],
+  afternoon: [12, 17],
+  evening: [17, 24],
+}
+
+/** Filters by the clinic's local hour — NOT UTC, which put "morning" in the wrong half of the day for any non-UTC clinic. */
+export function filterByTimeOfDay(slots: AvailableSlot[], timeOfDay?: string): AvailableSlot[] {
+  const range = timeOfDay ? HOUR_RANGES[timeOfDay] : undefined
+  if (!range) return slots
+  const [from, to] = range
+  return slots.filter((s) => {
+    const hour = toZonedTime(new Date(s.startsAtIso), CLINIC_TIMEZONE).getHours()
+    return hour >= from && hour < to
+  })
+}
 
 /** Generates every open (unbooked, in-the-future, not-on-break) 30-min slot for a single clinic day. */
 function slotsForDay(
@@ -90,6 +107,25 @@ export const appointmentService = {
     const bookedStarts = new Set(existing.map((a) => new Date(a.starts_at).getTime()))
 
     return slotsForDay(dayStart, scheduleByWeekday, bookedStarts, now)
+  },
+
+  /**
+   * Rejects any start time that isn't a genuinely open slot (past, outside doctor
+   * hours, on the lunch break, off the 30-min grid, already taken). The voice model
+   * passes back a time it heard/spoke, so the server must never trust it blindly —
+   * the DB unique index only stops exact double-bookings, not a 3am booking.
+   */
+  async assertSlotIsOpen(startsAtIso: string): Promise<void> {
+    const startsAt = new Date(startsAtIso)
+    if (Number.isNaN(startsAt.getTime())) throw new ValidationError("That date and time isn't valid.")
+    if (isBefore(startsAt, new Date())) throw new ValidationError("That time has already passed. Please choose a future time.")
+
+    const open = await this.getSlotsOnDate(startsAt)
+    if (!open.some((s) => new Date(s.startsAtIso).getTime() === startsAt.getTime())) {
+      throw new ConflictError(
+        "That time isn't available (it may be taken, outside clinic hours, or during a break). Check availability and offer the caller another slot.",
+      )
+    }
   },
 
   async bookAppointment(input: {

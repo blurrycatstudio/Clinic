@@ -71,6 +71,10 @@ const envSchema = z.object({
   // need to book/reschedule/cancel appointments without a Supabase staff
   // session. If empty, /api/agent/* refuses every request.
   AGENT_API_KEY: z.string().optional().default(""),
+  // Staff WhatsApp number that gets an instant ping when the voice agent
+  // escalates a high/critical call (medical emergency, crisis, angry caller).
+  // Optional — escalations are always audit-logged and logged at error level.
+  STAFF_ALERT_PHONE_E164: z.string().optional().default(""),
 })
 
 export type Env = z.infer<typeof envSchema>

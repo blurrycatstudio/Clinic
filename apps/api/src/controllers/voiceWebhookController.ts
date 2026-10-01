@@ -51,6 +51,48 @@ export function verifyVapiSignature(req: Request, res: Response, next: NextFunct
   next()
 }
 
+/** Vapi reasons that mean the conversation really happened (including a caller going quiet or being transferred to staff). */
+const COMPLETED_REASONS = new Set([
+  "customer-ended-call",
+  "assistant-ended-call",
+  "assistant-said-end-call-phrase",
+  "silence-timed-out",
+  "exceeded-max-duration",
+])
+const NO_ANSWER_REASONS = new Set([
+  "customer-did-not-answer",
+  "customer-busy",
+  "voicemail",
+  "twilio-failed-to-connect-call",
+])
+
+function statusFromEndedReason(reason?: string): "completed" | "failed" | "no_answer" {
+  if (!reason) return "failed"
+  if (COMPLETED_REASONS.has(reason) || reason.includes("forwarded") || reason.includes("transfer")) return "completed"
+  if (NO_ANSWER_REASONS.has(reason)) return "no_answer"
+  return "failed"
+}
+
+async function ensureCallRow(vapiCallId: string, phone?: string) {
+  const existing = await voiceCallRepository.findByVapiCallId(vapiCallId)
+  if (existing) return existing
+  const normalized = phone ?? "unknown"
+  const patient = phone ? await patientRepository.findByPhone(phone) : null
+  try {
+    return await voiceCallRepository.create({
+      vapiCallId,
+      phoneE164: normalized,
+      direction: "inbound",
+      patientId: patient?.id ?? null,
+    })
+  } catch (err) {
+    // Two events racing to create the same call: the loser just reads the winner's row.
+    const raced = await voiceCallRepository.findByVapiCallId(vapiCallId)
+    if (raced) return raced
+    throw err
+  }
+}
+
 export async function receiveVapiWebhook(req: Request, res: Response) {
   res.sendStatus(200)
   const { message } = req.body as VapiWebhookPayload
@@ -60,33 +102,24 @@ export async function receiveVapiWebhook(req: Request, res: Response) {
     switch (message.type) {
       case "status-update": {
         if (message.status === "in-progress") {
-          const phone = message.call.customer?.number ?? "unknown"
-          const existing = await voiceCallRepository.findByVapiCallId(message.call.id)
-          if (!existing) {
-            const patient = await patientRepository.findByPhone(phone)
-            await voiceCallRepository.create({
-              vapiCallId: message.call.id,
-              phoneE164: phone,
-              direction: "inbound",
-              patientId: patient?.id ?? null,
-            })
-          }
+          await ensureCallRow(message.call.id, message.call.customer?.number)
         }
         break
       }
 
       case "transcript": {
         if (message.transcriptType !== "final" || !message.transcript || !message.role) break
-        const call = await voiceCallRepository.findByVapiCallId(message.call.id)
-        if (call) {
-          await callTranscriptRepository.append(call.id, message.role, message.transcript)
-        }
+        const call = await ensureCallRow(message.call.id, message.call.customer?.number)
+        await callTranscriptRepository.append(call.id, message.role, message.transcript)
         break
       }
 
       case "end-of-call-report": {
+        // The "in-progress" status event can arrive late or be dropped; without a row,
+        // complete() updates nothing and the whole call vanishes from the dashboard.
+        await ensureCallRow(message.call.id, message.call.customer?.number)
         await voiceCallRepository.complete(message.call.id, {
-          status: message.endedReason === "customer-ended-call" || message.endedReason === "assistant-ended-call" ? "completed" : "failed",
+          status: statusFromEndedReason(message.endedReason),
           durationSeconds: message.durationSeconds,
           recordingUrl: message.recordingUrl,
           summary: message.summary,
