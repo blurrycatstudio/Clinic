@@ -1,6 +1,6 @@
 import { format } from "date-fns"
 import { toZonedTime } from "date-fns-tz"
-import { CLINIC_TIMEZONE, ConversationState, FlowType, isTemplateReady, t, type Appointment } from "@clinic/shared"
+import { CLINIC_TIMEZONE, isTemplateReady, t, type Appointment } from "@clinic/shared"
 import { appointmentRepository } from "../repositories/appointmentRepository.js"
 import { patientRepository } from "../repositories/patientRepository.js"
 import { conversationRepository } from "../repositories/conversationRepository.js"
@@ -109,14 +109,7 @@ async function deliverReminder(appointment: Appointment, which: "24h" | "2h"): P
   // instead of falling into whatever flow state happened to be left over —
   // needed for both reminders now that both carry actionable buttons.
   try {
-    const { context: loaded } = await redisStateService.get(patient.phone_e164, conversation.id)
-    await redisStateService.save(patient.phone_e164, {
-      ...loaded,
-      language: loaded.language ?? lang,
-      state: ConversationState.AWAITING_REMINDER_RESPONSE,
-      activeFlow: FlowType.NONE,
-      reminder: { appointmentId: appointment.id },
-    })
+    await redisStateService.parkOnReminderResponse(patient.phone_e164, conversation.id, appointment.id, lang)
   } catch (err) {
     logger.warn({ err, appointmentId: appointment.id }, "Could not park conversation on the reminder state")
   }

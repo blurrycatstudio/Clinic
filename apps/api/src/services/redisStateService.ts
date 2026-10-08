@@ -3,6 +3,7 @@ import {
   ConversationState,
   FlowType,
   type ConversationContext,
+  type Language,
 } from "@clinic/shared"
 import { redis } from "../config/redis.js"
 import { conversationStateRepository } from "../repositories/conversationStateRepository.js"
@@ -64,6 +65,23 @@ export const redisStateService = {
   async clear(phoneE164: string, conversationId: string): Promise<void> {
     await redis.del(redisKey(phoneE164))
     await this.save(phoneE164, freshContext(phoneE164, conversationId))
+  },
+
+  /**
+   * Routes the patient's next message (the tap on a template's Reschedule / Cancel button, or its typed
+   * equivalent) to this appointment. Those buttons arrive as plain text, so without this the tap lands on
+   * whatever flow state was left over — e.g. a stale booking confirmation, where "Cancel Appointment" is
+   * rejected as invalid and a following "Yes" books another appointment instead of cancelling this one.
+   */
+  async parkOnReminderResponse(phoneE164: string, conversationId: string, appointmentId: string, fallbackLanguage: Language): Promise<void> {
+    const { context } = await this.get(phoneE164, conversationId)
+    await this.save(phoneE164, {
+      ...context,
+      language: context.language ?? fallbackLanguage,
+      state: ConversationState.AWAITING_REMINDER_RESPONSE,
+      activeFlow: FlowType.NONE,
+      reminder: { appointmentId },
+    })
   },
 
   appendTurn(context: ConversationContext, role: "user" | "assistant", text: string): ConversationContext {

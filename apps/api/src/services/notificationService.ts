@@ -6,6 +6,7 @@ import { patientRepository } from "../repositories/patientRepository.js"
 import { conversationRepository } from "../repositories/conversationRepository.js"
 import { clinicSettingsRepository } from "../repositories/clinicSettingsRepository.js"
 import { templateService, type TemplateSendResult } from "./templateService.js"
+import { redisStateService } from "./redisStateService.js"
 import { ValidationError } from "../lib/errors.js"
 import { classifyWhatsappError, explainFailureForStaff, type WhatsappFailureKind } from "../lib/whatsappErrors.js"
 import { logger } from "../config/logger.js"
@@ -35,7 +36,7 @@ export async function notifyPatientOfAppointmentChange(
   if (kind === "confirmed") {
     const settings = await clinicSettingsRepository.get()
     const clinicShortName = settings.clinic_name.split(" ")[0] ?? settings.clinic_name
-    return templateService.send({
+    const result = await templateService.send({
       key: "appointmentConfirmation",
       to: patient.phone_e164,
       conversationId: conversation.id,
@@ -46,6 +47,17 @@ export async function notifyPatientOfAppointmentChange(
           ? `Tu cita fue agendada para el ${date} a las ${time}.`
           : `Your appointment was booked for ${date} at ${time}.`,
     })
+
+    // The template carries Reschedule / Cancel buttons; route the patient's tap to this appointment.
+    // Best effort — the booking and the message are already done, so a state hiccup must not fail them.
+    if (result.sent && result.via === "template") {
+      try {
+        await redisStateService.parkOnReminderResponse(patient.phone_e164, conversation.id, appointment.id, patient.language)
+      } catch (err) {
+        logger.warn({ err, appointmentId: appointment.id }, "Could not park conversation on the reminder state after the confirmation template")
+      }
+    }
+    return result
   } else if (kind === "rescheduled") {
     const settings = await clinicSettingsRepository.get()
     const clinicShortName = settings.clinic_name.split(" ")[0] ?? settings.clinic_name

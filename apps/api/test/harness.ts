@@ -22,6 +22,7 @@ import { mainMenuFlow } from "../src/flows/mainMenuFlow.js"
 import { bookAppointmentFlow } from "../src/flows/bookAppointmentFlow.js"
 import { rescheduleFlow } from "../src/flows/rescheduleFlow.js"
 import { cancelFlow } from "../src/flows/cancelFlow.js"
+import { reminderResponseFlow } from "../src/flows/reminderResponseFlow.js"
 
 /** Thursday 8 October 2026, 10:00 in Tijuana (PDT, UTC-7). Every relative phrase in the tests ("tomorrow", "in 2 days") resolves against this. */
 export const NOW = new Date("2026-10-08T17:00:00Z")
@@ -178,6 +179,7 @@ const FLOW_BY_STATE: Partial<Record<ConversationState, FlowHandler>> = {
   [ConversationState.AWAITING_RESCHEDULE_CONFIRMATION]: rescheduleFlow,
   [ConversationState.AWAITING_CANCELLATION_TARGET_SELECTION]: cancelFlow,
   [ConversationState.AWAITING_CANCELLATION_CONFIRMATION]: cancelFlow,
+  [ConversationState.AWAITING_REMINDER_RESPONSE]: reminderResponseFlow,
 }
 
 export const PHONE = "+526640000001"
