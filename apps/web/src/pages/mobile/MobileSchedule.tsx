@@ -33,6 +33,7 @@ import {
 import { useDashboardStats } from "@/hooks/useDashboardStats"
 import { cn } from "@/lib/utils"
 import { useToast } from "@/lib/toast"
+import { withNotificationNote } from "@/lib/notification"
 
 type StatusFilter = "all" | AppointmentStatus
 
@@ -296,30 +297,33 @@ export default function MobileSchedule() {
 
   const confirmMutation = useMutation({
     mutationFn: (id: string) => api.patch(`/appointments/${id}/status`, { status: "confirmed" }),
-    onSuccess: () => {
+    onSuccess: (data) => {
       invalidate()
       setActionsFor(null)
-      toast("Patient checked in")
+      const note = withNotificationNote("Patient checked in", data)
+      toast(note.text, note.variant)
     },
     onError: () => toast("Failed to check in patient"),
   })
 
   const rescheduleMutation = useMutation({
     mutationFn: ({ id, startsAtIso }: { id: string; startsAtIso: string }) => api.patch(`/appointments/${id}/reschedule`, { startsAtIso }),
-    onSuccess: () => {
+    onSuccess: (data) => {
       invalidate()
       setActionsFor(null)
-      toast("Appointment rescheduled")
+      const note = withNotificationNote("Appointment rescheduled", data)
+      toast(note.text, note.variant)
     },
     onError: () => toast("Failed to reschedule — that slot may already be booked"),
   })
 
   const cancelMutation = useMutation({
     mutationFn: (id: string) => api.patch(`/appointments/${id}/cancel`, {}),
-    onSuccess: () => {
+    onSuccess: (data) => {
       invalidate()
       setActionsFor(null)
-      toast("Appointment cancelled")
+      const note = withNotificationNote("Appointment cancelled", data)
+      toast(note.text, note.variant)
     },
     onError: () => toast("Failed to cancel appointment"),
   })

@@ -4,6 +4,7 @@ import { conversationRepository } from "../repositories/conversationRepository.j
 import { messageRepository } from "../repositories/messageRepository.js"
 import { whatsappService } from "../services/whatsappService.js"
 import { NotFoundError } from "../lib/errors.js"
+import { whatsappFailureToAppError } from "../lib/whatsappErrors.js"
 
 export const conversationsController = {
   async list(req: Request, res: Response) {
@@ -31,7 +32,12 @@ export const conversationsController = {
 
     const conv = await conversationRepository.findById(params.id)
     if (!conv) throw new NotFoundError("Conversation not found")
-    const { messageId } = await whatsappService.sendTextMessage(conv.wa_phone_e164, body.text)
+    let messageId: string | null
+    try {
+      ;({ messageId } = await whatsappService.sendTextMessage(conv.wa_phone_e164, body.text))
+    } catch (err) {
+      throw whatsappFailureToAppError(err)
+    }
     const message = await messageRepository.log({
       conversationId: conv.id,
       direction: "outbound",

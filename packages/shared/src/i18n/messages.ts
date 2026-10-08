@@ -47,6 +47,7 @@ export const botMessages = {
     confirmNoButton: "No",
     sameReasonButton: "Igual",
     moreDatesButton: "Ver más fechas",
+    moreTimesButton: "Ver más horarios",
     backToMenuButton: "🔙 Menú principal",
     confirmSavedDetailsInvalid:
       "Responde *SI* para usar tus datos guardados, o escribe el nombre completo del paciente para actualizarlo.",
@@ -59,6 +60,7 @@ export const botMessages = {
     noSlotsAvailable:
       "Lo sentimos, no encontramos horarios disponibles en los próximos días. Un miembro del equipo te contactará pronto.",
     requestedDayUnavailable: "No tenemos horarios disponibles ese día. Estos son los próximos horarios disponibles:",
+    requestedTimeUnavailable: "Ese horario exacto no está disponible. Estos son los horarios más cercanos:",
     slotConflict: "Uy, alguien más acaba de reservar ese horario. Aquí tienes los próximos horarios disponibles:",
     chooseSlot: "Estos son los horarios disponibles. Responde con el número de tu opción:\n\n{slots}",
     chooseSlotPrompt: "Estos son los horarios disponibles. Toca uno para elegirlo, o responde con su número:",
@@ -110,7 +112,9 @@ export const botMessages = {
     infoFallback:
       "Para esa pregunta lo mejor es que hables directo con nuestro equipo. Escribe *Hola* y elige *Contactar soporte*.",
     humanSupportAck:
-      "Puedes contactar a nuestro equipo de soporte directamente al 📞 +91 6386639197.",
+      "Puedes contactar a nuestro equipo de soporte directamente al 📞 {phone}. También hemos avisado al equipo: te responderán por este mismo chat.",
+    humanSupportAckNoPhone:
+      "Hemos avisado a nuestro equipo de soporte. Te responderán por este mismo chat lo antes posible.",
     genericFallback:
       "No estoy seguro de haber entendido. Escribe *Hola* para ver el menú principal.",
     sessionExpired: "Tu sesión anterior expiró. Escribe *Hola* para comenzar de nuevo.",
@@ -131,6 +135,7 @@ export const botMessages = {
     confirmNoButton: "No",
     sameReasonButton: "Same",
     moreDatesButton: "See more dates",
+    moreTimesButton: "See more times",
     backToMenuButton: "🔙 Main Menu",
     confirmSavedDetailsInvalid:
       "Reply *YES* to use your saved details, or type the patient's full name to update it.",
@@ -143,6 +148,7 @@ export const botMessages = {
     noSlotsAvailable:
       "Sorry, we couldn't find any open slots in the coming days. A team member will reach out shortly.",
     requestedDayUnavailable: "We don't have any open slots that day. Here are the next available times:",
+    requestedTimeUnavailable: "That exact time isn't available. Here are the closest open times:",
     slotConflict: "Oops, someone else just booked that time. Here are the next available slots:",
     chooseSlot: "Here are the available time slots. Reply with the number of your choice:\n\n{slots}",
     chooseSlotPrompt: "Here are the available time slots. Tap one to select it, or reply with its number:",
@@ -189,7 +195,9 @@ export const botMessages = {
       "Anything else you'd like to know? I can tell you about fees, insurance, or the doctor.",
     infoFallback: "For that question it's best to speak with our team directly. Type *Hi* and choose *Contact Support*.",
     humanSupportAck:
-      "You can reach our support team directly at 📞 +91 6386639197.",
+      "You can reach our support team directly at 📞 {phone}. We've also let the team know — they'll reply right here in this chat.",
+    humanSupportAckNoPhone:
+      "We've let our support team know. They'll reply right here in this chat as soon as possible.",
     genericFallback: "I'm not sure I understood that. Type *Hi* to see the main menu.",
     sessionExpired: "Your previous session expired. Type *Hi* to start again.",
     goodbye: "Thanks for contacting {clinicName}! Have a great day. 😊",

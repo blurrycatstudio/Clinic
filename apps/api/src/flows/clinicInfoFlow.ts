@@ -1,7 +1,7 @@
 import { ConversationState, FlowType, Intent } from "@clinic/shared"
 import type { FlowHandler } from "./types.js"
 import { openaiService } from "../services/openaiService.js"
-import { buildMainMenu, startBookingChoice } from "./mainMenuFlow.js"
+import { buildMainMenu, humanSupportResult, startBookingChoice } from "./mainMenuFlow.js"
 import { startBookingFromFreeText } from "./bookAppointmentFlow.js"
 import { enterRescheduleFlow } from "./rescheduleFlow.js"
 import { enterCancelFlow } from "./cancelFlow.js"
@@ -38,6 +38,7 @@ export const clinicInfoFlow: FlowHandler = async ({ text, context, settings }) =
   if (intent === Intent.BOOK_APPOINTMENT) return startBookingChoice(context, lang, trimmed)
   if (intent === Intent.RESCHEDULE_APPOINTMENT) return enterRescheduleFlow(context)
   if (intent === Intent.CANCEL_APPOINTMENT) return enterCancelFlow(context)
+  if (intent === Intent.HUMAN_SUPPORT) return humanSupportResult(context, lang, settings)
 
   const faqAnswer = answer ?? (await openaiService.answerFaq(trimmed, lang, settings))
   return {

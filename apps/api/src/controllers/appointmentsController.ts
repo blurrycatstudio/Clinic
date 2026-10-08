@@ -2,7 +2,8 @@ import type { Request, Response } from "express"
 import { z } from "zod"
 import { appointmentRepository } from "../repositories/appointmentRepository.js"
 import { appointmentService } from "../services/appointmentService.js"
-import { notifyPatientOfAppointmentChange } from "../services/notificationService.js"
+import { notifyPatientSafely } from "../services/notificationService.js"
+import { hasCountryCode, normalizePhone } from "../lib/phone.js"
 import { patientRepository } from "../repositories/patientRepository.js"
 import { voiceCallRepository } from "../repositories/voiceCallRepository.js"
 import { messageRepository } from "../repositories/messageRepository.js"
@@ -83,7 +84,10 @@ export const appointmentsController = {
     const body = z
       .object({
         patientFullName: z.string().min(2),
-        patientPhoneE164: z.string().min(8),
+        patientPhoneE164: z
+          .string()
+          .transform(normalizePhone)
+          .refine(hasCountryCode, "Enter the phone number with its country code, e.g. +52 664 123 4567"),
         reason: z.string().default(""),
         startsAtIso: z.string().datetime(),
       })
@@ -93,9 +97,9 @@ export const appointmentsController = {
       ...body,
       source: "dashboard",
     })
-    await notifyPatientOfAppointmentChange(appointment.id, "confirmed")
+    const notification = await notifyPatientSafely(appointment.id, "confirmed")
 
-    res.status(201).json({ appointment })
+    res.status(201).json({ appointment, notification })
   },
 
   async reschedule(req: Request, res: Response) {
@@ -103,8 +107,8 @@ export const appointmentsController = {
     const body = z.object({ startsAtIso: z.string().datetime() }).parse(req.body)
 
     const appointment = await appointmentService.rescheduleAppointment(params.id, body.startsAtIso)
-    await notifyPatientOfAppointmentChange(appointment.id, "rescheduled")
-    res.json({ appointment })
+    const notification = await notifyPatientSafely(appointment.id, "rescheduled")
+    res.json({ appointment, notification })
   },
 
   async cancel(req: Request, res: Response) {
@@ -112,8 +116,8 @@ export const appointmentsController = {
     const body = z.object({ reason: z.string().optional() }).parse(req.body)
 
     const appointment = await appointmentService.cancelAppointment(params.id, body.reason)
-    await notifyPatientOfAppointmentChange(appointment.id, "cancelled")
-    res.json({ appointment })
+    const notification = await notifyPatientSafely(appointment.id, "cancelled")
+    res.json({ appointment, notification })
   },
 
   async updateStatus(req: Request, res: Response) {
@@ -123,10 +127,8 @@ export const appointmentsController = {
       .parse(req.body)
 
     const appointment = await appointmentRepository.updateStatus(params.id, body.status)
-    if (body.status === "confirmed") {
-      await notifyPatientOfAppointmentChange(appointment.id, "confirmed")
-    }
-    res.json({ appointment })
+    const notification = body.status === "confirmed" ? await notifyPatientSafely(appointment.id, "confirmed") : undefined
+    res.json({ appointment, ...(notification ? { notification } : {}) })
   },
 
   /** Staff-triggered "call to confirm" — places a real outbound call to the patient about this appointment. */

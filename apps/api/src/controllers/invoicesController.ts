@@ -6,6 +6,7 @@ import { clinicSettingsRepository } from "../repositories/clinicSettingsReposito
 import { pdfService } from "../services/pdfService.js"
 import { storageService } from "../services/storageService.js"
 import { whatsappService } from "../services/whatsappService.js"
+import { whatsappFailureToAppError } from "../lib/whatsappErrors.js"
 import { NotFoundError } from "../lib/errors.js"
 
 async function buildPdf(invoiceId: string) {
@@ -88,11 +89,16 @@ export const invoicesController = {
     const { invoice, patient, buffer } = await buildPdf(params.id)
 
     const pdfUrl = await storageService.uploadPdf(`invoices/${invoice.id}.pdf`, buffer)
-    const { messageId } = await whatsappService.sendDocumentMessage(patient.phone_e164, {
-      link: pdfUrl,
-      filename: `INV-${3000 + invoice.sequence_number}.pdf`,
-      caption: `Your invoice from ${patient.full_name}'s visit — total $${invoice.amount_total.toFixed(2)} MXN.`,
-    })
+    let messageId: string | null
+    try {
+      ;({ messageId } = await whatsappService.sendDocumentMessage(patient.phone_e164, {
+        link: pdfUrl,
+        filename: `INV-${3000 + invoice.sequence_number}.pdf`,
+        caption: `Your invoice from ${patient.full_name}'s visit — total ${invoice.amount_total.toFixed(2)} MXN.`,
+      }))
+    } catch (err) {
+      throw whatsappFailureToAppError(err)
+    }
     await invoiceRepository.markSent(invoice.id, pdfUrl)
 
     res.json({ sent: true, pdfUrl, messageId })

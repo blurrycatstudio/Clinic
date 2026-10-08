@@ -1,7 +1,4 @@
-import { format } from "date-fns"
-import { toZonedTime } from "date-fns-tz"
 import {
-  CLINIC_TIMEZONE,
   ConversationState,
   FlowType,
   Intent,
@@ -23,6 +20,7 @@ import { appointmentService } from "../services/appointmentService.js"
 import { patientRepository } from "../repositories/patientRepository.js"
 import { appointmentRepository } from "../repositories/appointmentRepository.js"
 import { locationReply, LOCATION_KEYWORDS, isGratitudeMessage, buildMapsUrl } from "../lib/offScript.js"
+import { formatClinicDate, formatClinicTime } from "../lib/dateFormat.js"
 import { openaiService } from "../services/openaiService.js"
 
 const NUMBER_EMOJI = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟"]
@@ -134,6 +132,18 @@ export async function startBookingChoice(context: ConversationContext, lang: Lan
   }
 }
 
+/** Hands the chat to staff: parks the conversation on ESCALATED_TO_HUMAN (the engine then flags it for the dashboard and goes quiet) and tells the patient how they'll be reached. */
+export function humanSupportResult(context: ConversationContext, lang: Language, settings: ClinicSettings): FlowResult {
+  const phone = settings.phone_e164?.trim()
+  return {
+    context: { ...context, state: ConversationState.ESCALATED_TO_HUMAN, activeFlow: FlowType.HUMAN_SUPPORT },
+    reply: {
+      text: phone ? t(lang, "humanSupportAck", { phone }) : t(lang, "humanSupportAckNoPhone"),
+      buttons: [backToMenuButton(lang)],
+    },
+  }
+}
+
 export const mainMenuFlow: FlowHandler = async ({ text, buttonId, context, settings }) => {
   const lang = context.language ?? "es"
   const layout = buildMenuLayout(settings)
@@ -184,10 +194,7 @@ export const mainMenuFlow: FlowHandler = async ({ text, buttonId, context, setti
       }
     }
     case "human":
-      return {
-        context: { ...context, state: ConversationState.ESCALATED_TO_HUMAN, activeFlow: FlowType.HUMAN_SUPPORT },
-        reply: { text: t(lang, "humanSupportAck"), buttons: [backToMenuButton(lang)] },
-      }
+      return humanSupportResult(context, lang, settings)
     case "status": {
       const appointments = await appointmentService.findActiveAppointmentsForPhone(context.phoneE164)
       const resetContext = { ...context, state: ConversationState.AWAITING_MENU_SELECTION, activeFlow: FlowType.NONE }
@@ -198,11 +205,10 @@ export const mainMenuFlow: FlowHandler = async ({ text, buttonId, context, setti
 
       const lines = appointments
         .map((a) => {
-          const zoned = toZonedTime(new Date(a.starts_at), CLINIC_TIMEZONE)
           const statusKey = a.status === "confirmed" ? "statusConfirmed" : "statusScheduled"
           return t(lang, "appointmentStatusLine", {
-            date: format(zoned, "EEEE d MMMM"),
-            time: format(zoned, "h:mm a"),
+            date: formatClinicDate(a.starts_at, lang),
+            time: formatClinicTime(a.starts_at),
             status: t(lang, statusKey),
           })
         })
@@ -235,6 +241,8 @@ export const mainMenuFlow: FlowHandler = async ({ text, buttonId, context, setti
       if (intent === Intent.BOOK_APPOINTMENT) return startBookingChoice(context, lang, rawText)
       if (intent === Intent.RESCHEDULE_APPOINTMENT) return enterRescheduleFlow(context)
       if (intent === Intent.CANCEL_APPOINTMENT) return enterCancelFlow(context)
+      // "I want to talk to a person" typed instead of tapping Contact Support.
+      if (intent === Intent.HUMAN_SUPPORT) return humanSupportResult(context, lang, settings)
 
       if (answer) {
         const menuReply = buildMainMenu(lang, settings)

@@ -206,6 +206,7 @@ export type AuditAction =
   | "voice_call.completed"
   | "voice_call.outbound_initiated"
   | "voice.whatsapp_handoff"
+  | "voice.whatsapp_delivery"
 
 export type AuditLog = {
   id: UUID

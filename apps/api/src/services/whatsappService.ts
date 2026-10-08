@@ -1,10 +1,13 @@
 import { env, isWhatsappConfigured } from "../config/env.js"
 import { logger } from "../config/logger.js"
-import { ExternalServiceError } from "../lib/errors.js"
+import { WhatsappApiError, sanitizeTemplateParam } from "../lib/whatsappErrors.js"
 
 const GRAPH_BASE = "https://graph.facebook.com"
 
 type WhatsappTextMessage = { messaging_product: "whatsapp"; to: string; type: "text"; text: { body: string; preview_url?: boolean } }
+type WhatsappTemplateComponent =
+  | { type: "body"; parameters: { type: "text"; text: string }[] }
+  | { type: "button"; sub_type: "quick_reply"; index: string; parameters: { type: "payload"; payload: string }[] }
 type WhatsappTemplateMessage = {
   messaging_product: "whatsapp"
   to: string
@@ -12,7 +15,7 @@ type WhatsappTemplateMessage = {
   template: {
     name: string
     language: { code: string }
-    components?: { type: "body"; parameters: { type: "text"; text: string }[] }[]
+    components?: WhatsappTemplateComponent[]
   }
 }
 type WhatsappLocationMessage = {
@@ -78,7 +81,7 @@ async function callGraphApi(body: unknown): Promise<{ messageId: string | null; 
   })
 
   const rawText = await res.text()
-  let json: { messages?: { id: string }[]; error?: { message: string; code: number } } = {}
+  let json: { messages?: { id: string }[]; error?: { message: string; code: number; error_data?: { details?: string } } } = {}
   let parseError: string | null = null
   try {
     json = JSON.parse(rawText)
@@ -90,13 +93,37 @@ async function callGraphApi(body: unknown): Promise<{ messageId: string | null; 
 
   if (!res.ok) {
     logger.error({ status: res.status, response: json }, "WhatsApp Graph API call failed")
-    throw new ExternalServiceError("WhatsApp Cloud API", json.error?.message ?? `HTTP ${res.status}`, json)
+    const detail = json.error?.error_data?.details
+    const message = json.error?.message ?? `HTTP ${res.status}`
+    throw new WhatsappApiError(detail ? `${message} (${detail})` : message, res.status, json.error?.code ?? null, json)
   }
 
   return { messageId: json.messages?.[0]?.id ?? null, debug }
 }
 
+let cachedDisplayNumber: string | null = null
+
 export const whatsappService = {
+  /**
+   * The clinic's own WhatsApp number as patients see it, e.g. "+52 55 1234 5678". Lets the voice
+   * agent tell a caller who the message must come to when WhatsApp won't let us message them first.
+   * Best-effort and cached — null when unknown, never throws.
+   */
+  async getDisplayPhoneNumber(): Promise<string | null> {
+    if (cachedDisplayNumber) return cachedDisplayNumber
+    if (!isWhatsappConfigured) return null
+    try {
+      const url = `${GRAPH_BASE}/${env.WHATSAPP_API_VERSION}/${env.WHATSAPP_PHONE_NUMBER_ID}?fields=display_phone_number`
+      const res = await fetch(url, { headers: { Authorization: `Bearer ${env.WHATSAPP_ACCESS_TOKEN}` } })
+      if (!res.ok) return null
+      const json = (await res.json()) as { display_phone_number?: string }
+      cachedDisplayNumber = json.display_phone_number ?? null
+    } catch (err) {
+      logger.warn({ err }, "Could not read the clinic's WhatsApp display number")
+    }
+    return cachedDisplayNumber
+  },
+
   async sendTextMessage(to: string, body: string): Promise<{ messageId: string | null }> {
     const payload: WhatsappTextMessage = {
       messaging_product: "whatsapp",
@@ -118,7 +145,18 @@ export const whatsappService = {
     templateName: string,
     languageCode: string,
     params: string[],
+    /** Payloads for the template's quick-reply buttons, in button order — echoed back on the webhook when the patient taps one. */
+    quickReplyPayloads: string[] = [],
   ): Promise<{ messageId: string | null; debug: Record<string, unknown> }> {
+    const components: WhatsappTemplateComponent[] = []
+    if (params.length > 0) {
+      // Meta rejects empty / multi-line parameters — sanitized here so no caller can forget.
+      components.push({ type: "body", parameters: params.map((text) => ({ type: "text", text: sanitizeTemplateParam(text) })) })
+    }
+    quickReplyPayloads.forEach((payload, index) => {
+      components.push({ type: "button", sub_type: "quick_reply", index: String(index), parameters: [{ type: "payload", payload }] })
+    })
+
     const payload: WhatsappTemplateMessage = {
       messaging_product: "whatsapp",
       to,
@@ -126,9 +164,7 @@ export const whatsappService = {
       template: {
         name: templateName,
         language: { code: languageCode },
-        ...(params.length > 0
-          ? { components: [{ type: "body", parameters: params.map((text) => ({ type: "text", text })) }] }
-          : {}),
+        ...(components.length > 0 ? { components } : {}),
       },
     }
     return callGraphApi(payload)

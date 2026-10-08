@@ -80,7 +80,13 @@ export const appointmentService = {
     // Single range query for the whole horizon instead of one Supabase round trip
     // per active clinic day — with a 60-day horizon that was up to ~50 sequential
     // network calls before the bot could even list slots.
-    const existing = await appointmentRepository.listBetween(horizonStart.toISOString(), horizonEnd.toISOString())
+    // horizonStart/End are clinic wall-clock times held in a "fake local" Date, so they must go through
+    // fromZonedTime — a bare toISOString() reads them in the SERVER's timezone, which shifts the range
+    // (on a UTC server the clinic's last evening slots fell outside it and were offered again).
+    const existing = await appointmentRepository.listBetween(
+      fromZonedTime(horizonStart, CLINIC_TIMEZONE).toISOString(),
+      fromZonedTime(horizonEnd, CLINIC_TIMEZONE).toISOString(),
+    )
     const bookedStarts = new Set(existing.map((a) => new Date(a.starts_at).getTime()))
 
     const slots: AvailableSlot[] = []
@@ -103,7 +109,11 @@ export const appointmentService = {
     const dayStart = startOfDay(toZonedTime(dateInClinic, CLINIC_TIMEZONE))
     const dayEnd = addDays(dayStart, 1)
 
-    const existing = await appointmentRepository.listBetween(dayStart.toISOString(), dayEnd.toISOString())
+    // Same wall-clock -> instant conversion as getAvailableSlots (see the note there).
+    const existing = await appointmentRepository.listBetween(
+      fromZonedTime(dayStart, CLINIC_TIMEZONE).toISOString(),
+      fromZonedTime(dayEnd, CLINIC_TIMEZONE).toISOString(),
+    )
     const bookedStarts = new Set(existing.map((a) => new Date(a.starts_at).getTime()))
 
     return slotsForDay(dayStart, scheduleByWeekday, bookedStarts, now)

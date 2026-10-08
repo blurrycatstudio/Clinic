@@ -1,5 +1,4 @@
-import { format } from "date-fns"
-import { fromZonedTime, toZonedTime } from "date-fns-tz"
+import { fromZonedTime } from "date-fns-tz"
 import type { Request, Response } from "express"
 import { z } from "zod"
 import { CLINIC_TIMEZONE, t } from "@clinic/shared"
@@ -9,21 +8,38 @@ import { patientRepository } from "../repositories/patientRepository.js"
 import { clinicSettingsRepository } from "../repositories/clinicSettingsRepository.js"
 import { whatsappService } from "../services/whatsappService.js"
 import { auditLogRepository } from "../repositories/auditLogRepository.js"
-import { notifyPatientOfAppointmentChange } from "../services/notificationService.js"
-import { triggerVoiceHandoff } from "../services/conversationEngine.js"
+import { conversationRepository } from "../repositories/conversationRepository.js"
+import { notifyPatientSafely } from "../services/notificationService.js"
+import { sendFlowReplyOutOfBand, triggerVoiceHandoff } from "../services/conversationEngine.js"
+import { deliverToPatient, type VoiceDeliveryResult } from "../services/voiceDeliveryService.js"
+import { voicePendingService } from "../services/voicePendingService.js"
+import { clinicInfoTemplate, followupTemplate, type TemplateTarget } from "../services/voiceTemplateAttempts.js"
 import { logger } from "../config/logger.js"
 import { env } from "../config/env.js"
 import { AppError, NotFoundError, ValidationError } from "../lib/errors.js"
-import { normalizePhone, phonesMatch } from "../lib/phone.js"
-import { buildMapsUrl } from "../lib/offScript.js"
-import { effectiveUrgency, guidanceFor } from "../lib/escalationGuidance.js"
+import { hasCountryCode, normalizePhone, phonesMatch } from "../lib/phone.js"
+import { buildMapsUrl, locationReply } from "../lib/offScript.js"
+import { effectiveUrgency, guidanceFor, type EscalationCategory, type EscalationUrgency } from "../lib/escalationGuidance.js"
 import { filterByTimeOfDay } from "../services/appointmentService.js"
 
-/** Any phone the voice model sends is normalised first, so "+52 55 1234 5678" finds the stored "+525512345678" instead of creating a duplicate patient. */
+/**
+ * Any phone the voice model sends is normalised first, so "+52 55 1234 5678" finds the stored
+ * "+525512345678" instead of creating a duplicate patient. The error text is written for the
+ * voice MODEL (it reaches the agent verbatim): a hidden caller ID or a number dictated without
+ * its country code must lead to "ask the caller", never to a dead end or a message sent to the
+ * wrong country.
+ */
+const PHONE_HELP =
+  "I don't have a usable phone number for this caller. Ask for their WhatsApp number including the country code (for example +52 for Mexico, +91 for India), then try again."
 const phoneField = z
-  .string()
+  .string({ required_error: PHONE_HELP, invalid_type_error: PHONE_HELP })
   .transform(normalizePhone)
-  .refine((p) => p.replace(/\D/g, "").length >= 7, "A valid phone number is required")
+  .refine(hasCountryCode, PHONE_HELP)
+
+/** n8n forwards `null` for anything the model left out, and zod's .optional() rejects null — one wrong "language": null used to fail the whole tool call. */
+const nullish = <T extends z.ZodTypeAny>(schema: T) => schema.nullish().transform((value) => value ?? undefined)
+
+const languageField = z.enum(["en", "es"])
 
 /**
  * Loads an appointment the caller wants to change and refuses when it's missing,
@@ -64,12 +80,109 @@ async function pushWhatsappText(phone: string, text: string): Promise<{ sent: bo
  * it never decides booking state itself.
  */
 
-/** WhatsApp notification failures must never fail a booking made over the phone. */
-async function notifyBestEffort(appointmentId: string, kind: "confirmed" | "rescheduled" | "cancelled") {
+type WhatsappConfirmation = { sent: boolean; message: string }
+
+/**
+ * WhatsApp notification failures must never fail a booking made over the phone — but the agent
+ * has to KNOW whether the confirmation went out, or it will promise "you'll get it on WhatsApp"
+ * to someone who won't.
+ */
+async function notifyBestEffort(
+  appointmentId: string,
+  kind: "confirmed" | "rescheduled" | "cancelled",
+): Promise<WhatsappConfirmation> {
+  const notSent: WhatsappConfirmation = {
+    sent: false,
+    message:
+      "The WhatsApp confirmation could NOT be sent. Do not tell the caller one is coming; read the appointment details back to them instead.",
+  }
+  const outcome = await notifyPatientSafely(appointmentId, kind)
+  if (outcome.sent) {
+    return { sent: true, message: "A WhatsApp confirmation was sent. You can tell the caller to check WhatsApp." }
+  }
+  logger.warn({ appointmentId, kind, reason: outcome.message }, "Voice-channel appointment notification was not delivered")
+  return notSent
+}
+
+/** Language, name and conversation for a number we're about to message — shared by every WhatsApp-sending tool. */
+async function resolveRecipient(phone: string, requestedLanguage?: "en" | "es") {
+  const [patient, conversation, settings] = await Promise.all([
+    patientRepository.findByPhone(phone),
+    conversationRepository.getOrCreate(phone),
+    clinicSettingsRepository.get(),
+  ])
+  const language = requestedLanguage ?? patient?.language ?? conversation.language ?? "es"
+  const target: TemplateTarget = {
+    phone,
+    conversationId: conversation.id,
+    language,
+    patientName: patient?.full_name ?? null,
+    settings,
+  }
+  return { patient, conversation, settings, language, target }
+}
+
+const ESCALATION_CATEGORIES = [
+  "angry_patient",
+  "distressed_patient",
+  "medical_emergency",
+  "mental_health_crisis",
+  "wants_human",
+  "clinical_question",
+  "complaint",
+  "billing_dispute",
+  "low_confidence",
+  "other",
+] as const satisfies readonly EscalationCategory[]
+const ESCALATION_URGENCIES = ["low", "normal", "high", "critical"] as const satisfies readonly EscalationUrgency[]
+
+/**
+ * Escalation is the one tool that must NEVER fail validation: if the model sends a null phone
+ * (hidden caller ID), an unknown category or a missing reason while a caller describes chest
+ * pain, the caller still has to hear the emergency guidance. So every field degrades to a safe
+ * default — an unrecognised category is treated as "high" urgency so staff still look at it.
+ */
+function parseEscalation(raw: unknown): {
+  phone?: string
+  category: EscalationCategory
+  reason: string
+  urgency: EscalationUrgency
+  callId?: string
+} {
+  const input = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>
+  const category = ESCALATION_CATEGORIES.find((c) => c === input.category)
+  const urgency = ESCALATION_URGENCIES.find((u) => u === input.urgency)
+  const phone = typeof input.phone === "string" ? normalizePhone(input.phone) : undefined
+  return {
+    phone: phone && phone.replace(/\D/g, "").length >= 7 ? phone : undefined,
+    category: category ?? "other",
+    reason: typeof input.reason === "string" && input.reason.trim() ? input.reason.trim() : "No reason given",
+    urgency: urgency ?? (category ? "normal" : "high"),
+    callId: typeof input.callId === "string" && input.callId ? input.callId : undefined,
+  }
+}
+
+type HandoffIntent = "book" | "reschedule" | "cancel" | "info" | "human" | "status" | "menu"
+
+/** Runs a WhatsApp hand-off and turns any unexpected crash (Redis down, ...) into an honest "not sent" instead of a 500 mid-call. */
+async function handoff(
+  phone: string,
+  intent: HandoffIntent,
+  language?: "en" | "es",
+  callId?: string | null,
+): Promise<VoiceDeliveryResult & { state?: string | null }> {
   try {
-    await notifyPatientOfAppointmentChange(appointmentId, kind)
+    return await triggerVoiceHandoff(phone, intent, language, callId)
   } catch (err) {
-    logger.warn({ err, appointmentId, kind }, "Voice-channel appointment notification failed (non-fatal)")
+    logger.error({ err, intent }, "Voice -> WhatsApp handoff crashed")
+    return {
+      sent: false,
+      via: null,
+      confirmation: null,
+      failure: "technical",
+      message:
+        "NOT SENT. A technical problem stopped the WhatsApp message. Do NOT tell the caller anything was sent. Keep helping by voice, or offer a callback from the team.",
+    }
   }
 }
 
@@ -160,7 +273,14 @@ export const agentController = {
       const startMs = new Date(body.startsAtIso).getTime()
       const duplicate = upcoming.find((a) => new Date(a.starts_at).getTime() === startMs)
       if (duplicate) {
-        res.status(200).json({ appointment: duplicate, alreadyBooked: true })
+        res.status(200).json({
+          appointment: duplicate,
+          alreadyBooked: true,
+          whatsappConfirmation: {
+            sent: false,
+            message: "This booking already existed (a repeat request), so no new WhatsApp message was sent just now. Do not promise a new one.",
+          },
+        })
         return
       }
     }
@@ -172,38 +292,38 @@ export const agentController = {
       startsAtIso: body.startsAtIso,
       source: "voice",
     })
-    await notifyBestEffort(appointment.id, "confirmed")
+    const whatsappConfirmation = await notifyBestEffort(appointment.id, "confirmed")
 
-    res.status(201).json({ appointment })
+    res.status(201).json({ appointment, whatsappConfirmation })
   },
 
   async rescheduleAppointment(req: Request, res: Response) {
     const params = z.object({ id: z.string().uuid() }).parse(req.params)
     // `phone` is the caller's number; when sent, the appointment must belong to it.
-    const body = z.object({ startsAtIso: z.string().datetime(), phone: phoneField.optional() }).parse(req.body)
+    const body = z.object({ startsAtIso: z.string().datetime(), phone: nullish(phoneField) }).parse(req.body)
 
     await loadChangeableAppointment(params.id, body.phone)
     await appointmentService.assertSlotIsOpen(body.startsAtIso)
 
     const appointment = await appointmentService.rescheduleAppointment(params.id, body.startsAtIso)
-    await notifyBestEffort(appointment.id, "rescheduled")
-    res.json({ appointment })
+    const whatsappConfirmation = await notifyBestEffort(appointment.id, "rescheduled")
+    res.json({ appointment, whatsappConfirmation })
   },
 
   async cancelAppointment(req: Request, res: Response) {
     const params = z.object({ id: z.string().uuid() }).parse(req.params)
-    const body = z.object({ reason: z.string().optional(), phone: phoneField.optional() }).parse(req.body)
+    const body = z.object({ reason: nullish(z.string()), phone: nullish(phoneField) }).parse(req.body)
 
     await loadChangeableAppointment(params.id, body.phone)
 
     const appointment = await appointmentService.cancelAppointment(params.id, body.reason)
-    await notifyBestEffort(appointment.id, "cancelled")
-    res.json({ appointment })
+    const whatsappConfirmation = await notifyBestEffort(appointment.id, "cancelled")
+    res.json({ appointment, whatsappConfirmation })
   },
 
   async confirmAttendance(req: Request, res: Response) {
     const params = z.object({ id: z.string().uuid() }).parse(req.params)
-    const body = z.object({ phone: phoneField.optional() }).parse(req.body ?? {})
+    const body = z.object({ phone: nullish(phoneField) }).parse(req.body ?? {})
 
     await loadChangeableAppointment(params.id, body.phone)
     const appointment = await appointmentService.confirmAppointment(params.id)
@@ -244,36 +364,24 @@ export const agentController = {
     res.json({ topic: query.topic, value: topicMap[query.topic] })
   },
 
+  /** Voice tool: caller asks "send me the clinic's location" mid-call. */
   async sendLocation(req: Request, res: Response) {
-    const body = z.object({ phone: phoneField }).parse(req.body)
-    const settings = await clinicSettingsRepository.get()
+    const body = z.object({ phone: phoneField, language: nullish(languageField), callId: nullish(z.string()) }).parse(req.body)
+    const { conversation, settings, language, target } = await resolveRecipient(body.phone, body.language)
     const mapsUrl = settings.google_maps_url || buildMapsUrl(settings.address)
 
-    // Never fail the call over a missing pin or a rejected WhatsApp send — the agent
-    // always gets the address back so it can say it out loud as the fallback.
+    // The address always comes back so the agent can say it out loud whatever happens to the send.
     const spoken = { address: settings.address, mapsUrl }
-    if (settings.latitude !== null && settings.longitude !== null) {
-      try {
-        const { messageId } = await whatsappService.sendLocationMessage(body.phone, {
-          latitude: settings.latitude,
-          longitude: settings.longitude,
-          name: settings.clinic_name,
-          address: settings.address,
-        })
-        res.json({ sent: true, messageId, ...spoken })
-        return
-      } catch (err) {
-        logger.warn({ err }, "Voice-channel WhatsApp location pin failed — falling back to text link")
-      }
-    }
-
-    const { sent, messageId } = await pushWhatsappText(body.phone, `📍 ${settings.clinic_name}\n${settings.address}\n${mapsUrl}`)
-    res.json({
-      sent,
-      messageId,
-      ...spoken,
-      ...(sent ? {} : { message: "Couldn't send on WhatsApp. Read the address to the caller instead." }),
+    const delivery = await deliverToPatient({
+      phone: body.phone,
+      purpose: "clinic_location",
+      callId: body.callId,
+      session: () => sendFlowReplyOutOfBand(body.phone, conversation.id, locationReply(language, settings), { awaitLogs: true }),
+      template: clinicInfoTemplate(target),
+      fallbackHint: "Read the address out loud now (it is in this response).",
+      queue: { save: () => voicePendingService.save(body.phone, { intent: "info", language, callId: body.callId }), summary: "the clinic's location" },
     })
+    res.json({ ...delivery, ...spoken })
   },
 
   /** Voice tool: caller asks "send me the available slots on WhatsApp" mid-call. */
@@ -281,13 +389,14 @@ export const agentController = {
     const body = z
       .object({
         phone: phoneField,
-        days: z.coerce.number().min(1).max(60).optional(),
-        timeOfDay: z.enum(["morning", "afternoon", "evening", "any"]).optional(),
+        days: nullish(z.coerce.number().min(1).max(60)),
+        timeOfDay: nullish(z.enum(["morning", "afternoon", "evening", "any"])),
+        language: nullish(languageField),
+        callId: nullish(z.string()),
       })
       .parse(req.body)
 
-    const patient = await patientRepository.findByPhone(body.phone)
-    const lang = patient?.language ?? "es"
+    const { conversation, language, target } = await resolveRecipient(body.phone, body.language)
 
     const pool = await appointmentService.getAvailableSlots(
       body.days,
@@ -295,77 +404,91 @@ export const agentController = {
     )
     const slots = filterByTimeOfDay(pool, body.timeOfDay).slice(0, 9)
 
-    const text =
-      slots.length === 0
-        ? t(lang, "sharedNoSlotsAvailable")
-        : t(lang, "sharedAvailableSlots", { slots: slots.map((s) => `• ${s.label}`).join("\n") })
+    if (slots.length === 0) {
+      res.json({
+        sent: false,
+        slotsSent: 0,
+        failure: "nothing_to_send",
+        message:
+          "NOT SENT. No open slots match that request, so nothing was sent. Tell the caller and offer a different day or time of day.",
+      })
+      return
+    }
 
-    const { sent, messageId } = await pushWhatsappText(body.phone, text)
-    res.json({
-      sent,
-      messageId,
-      slotsSent: slots.length,
-      // If WhatsApp refused the push, hand the model the slots so it can read them aloud instead.
-      ...(sent ? {} : { slots, message: "Couldn't send on WhatsApp. Read these options to the caller instead." }),
+    const text = t(language, "sharedAvailableSlots", { slots: slots.map((s) => `• ${s.label}`).join("\n") })
+    const delivery = await deliverToPatient({
+      phone: body.phone,
+      purpose: "available_slots",
+      callId: body.callId,
+      session: () => sendFlowReplyOutOfBand(body.phone, conversation.id, { text }, { awaitLogs: true }),
+      // A slot list can't ride in a template; the booking follow-up opens the live booking flow, which shows them.
+      template: followupTemplate(target, "book"),
+      fallbackHint: "Read these options to the caller instead (they are in this response).",
+      queue: { save: () => voicePendingService.save(body.phone, { intent: "book", language, callId: body.callId }), summary: "the available times to book" },
     })
+    res.json({ ...delivery, slotsSent: delivery.sent ? slots.length : 0, ...(delivery.sent ? {} : { slots }) })
   },
 
-  /** Voice tool: caller asks "send me my appointment details on WhatsApp" mid-call. */
+  /**
+   * Voice tool: caller asks "send me my appointment details on WhatsApp" mid-call. Sent ONLY to the
+   * number the appointments are booked under, and the details are never echoed back to the model —
+   * so naming someone else's number can't be used to learn their appointments.
+   */
   async sendAppointmentDetailsOnWhatsapp(req: Request, res: Response) {
-    const body = z.object({ phone: phoneField }).parse(req.body)
+    const body = z.object({ phone: phoneField, language: nullish(languageField), callId: nullish(z.string()) }).parse(req.body)
+    res.json(await handoff(body.phone, "status", body.language, body.callId))
+  },
 
-    const patient = await patientRepository.findByPhone(body.phone)
-    const lang = patient?.language ?? "es"
+  /** Voice tool: caller asks for hours / fees / parking / insurance / address "in writing". */
+  async sendClinicInfoOnWhatsapp(req: Request, res: Response) {
+    const body = z
+      .object({
+        phone: phoneField,
+        topic: nullish(z.enum(["all", "address", "hours", "fees", "parking", "insurance"])),
+        language: nullish(languageField),
+        callId: nullish(z.string()),
+      })
+      .parse(req.body)
+    const topic = body.topic ?? "all"
+    const { conversation, settings, language, target } = await resolveRecipient(body.phone, body.language)
 
-    const appointments = patient ? await appointmentRepository.listUpcomingForPatient(patient.id) : []
+    const es = language === "es"
+    const mapsUrl = settings.google_maps_url || buildMapsUrl(settings.address)
+    const sections = {
+      address: { icon: "📍", value: `${settings.address}\n${mapsUrl}` },
+      hours: { icon: "🗓️", value: es ? settings.hours_summary_es : settings.hours_summary_en },
+      fees: { icon: "💳", value: es ? settings.fees_info_es : settings.fees_info_en },
+      parking: { icon: "🅿️", value: es ? settings.parking_info_es : settings.parking_info_en },
+      insurance: { icon: "🏥", value: es ? settings.insurance_info_es : settings.insurance_info_en },
+    }
+    const wanted = topic === "all" ? (["address", "hours", "fees", "parking", "insurance"] as const) : ([topic] as const)
+    const parts = wanted.filter((key) => sections[key].value?.trim()).map((key) => `${sections[key].icon} ${sections[key].value.trim()}`)
 
-    const text =
-      appointments.length === 0
-        ? t(lang, "sharedNoAppointmentsFound")
-        : t(lang, "sharedAppointmentDetails", {
-            appointments: appointments
-              .map((a) => {
-                const zoned = toZonedTime(new Date(a.starts_at), CLINIC_TIMEZONE)
-                const statusKey = a.status === "confirmed" ? "statusConfirmed" : "statusScheduled"
-                return t(lang, "appointmentStatusLine", {
-                  date: format(zoned, "EEEE d MMMM"),
-                  time: format(zoned, "h:mm a"),
-                  status: t(lang, statusKey),
-                })
-              })
-              .join("\n"),
-          })
+    if (parts.length === 0) {
+      res.json({
+        sent: false,
+        failure: "nothing_to_send",
+        message: "NOT SENT. The clinic has no information saved for that topic. Say so, and offer a callback from the team.",
+      })
+      return
+    }
+    const text = [`*${settings.clinic_name}*`, ...parts].join("\n\n")
 
-    const { sent, messageId } = await pushWhatsappText(body.phone, text)
-    res.json({
-      sent,
-      messageId,
-      appointmentsSent: appointments.length,
-      ...(sent ? {} : { appointments, message: "Couldn't send on WhatsApp. Read the details to the caller instead." }),
+    const delivery = await deliverToPatient({
+      phone: body.phone,
+      purpose: `clinic_info:${topic}`,
+      callId: body.callId,
+      session: () => sendFlowReplyOutOfBand(body.phone, conversation.id, { text }, { awaitLogs: true }),
+      // The approved template carries address, hours, parking and the maps link — not fees or insurance.
+      template: topic === "fees" || topic === "insurance" ? null : clinicInfoTemplate(target),
+      fallbackHint: "Read the information out loud now (it is in this response).",
+      queue: { save: () => voicePendingService.save(body.phone, { text, language, callId: body.callId }), summary: "the information you asked for" },
     })
+    res.json({ ...delivery, ...(delivery.sent ? {} : { info: text }) })
   },
 
   async escalate(req: Request, res: Response) {
-    const body = z
-      .object({
-        phone: phoneField.optional(),
-        category: z.enum([
-          "angry_patient",
-          "distressed_patient",
-          "medical_emergency",
-          "mental_health_crisis",
-          "wants_human",
-          "clinical_question",
-          "complaint",
-          "billing_dispute",
-          "low_confidence",
-          "other",
-        ]),
-        reason: z.string().min(1).default("No reason given"),
-        urgency: z.enum(["low", "normal", "high", "critical"]).default("normal"),
-        callId: z.string().optional(),
-      })
-      .parse(req.body)
+    const body = parseEscalation(req.body)
 
     const urgency = effectiveUrgency(body.category, body.urgency)
 
@@ -416,29 +539,21 @@ export const agentController = {
    * instead of collecting details itself. Reuses the same flow logic and
    * conversation state as inbound WhatsApp messages via triggerVoiceHandoff,
    * so the patient continues in a consistent conversation on WhatsApp.
+   *
+   * The response says whether anything actually went out (`sent`) and what the agent
+   * must tell the caller (`message`) — it must never promise WhatsApp unless `sent` is true.
    */
   async whatsappHandoff(req: Request, res: Response) {
     const body = z
       .object({
         phone: phoneField,
         intent: z.enum(["book", "reschedule", "cancel", "info", "human", "status", "menu"]),
-        language: z.enum(["en", "es"]).optional(),
+        language: nullish(languageField),
+        callId: nullish(z.string()),
       })
       .parse(req.body)
 
-    // WhatsApp can refuse (number not on WhatsApp, outside the 24h window, not configured).
-    // That must not surface as a 500 — the agent needs to know to keep helping by voice.
-    try {
-      const { sent, state } = await triggerVoiceHandoff(body.phone, body.intent, body.language)
-      res.json({ sent, state })
-    } catch (err) {
-      logger.warn({ err, intent: body.intent }, "Voice -> WhatsApp handoff failed (non-fatal)")
-      res.json({
-        sent: false,
-        message:
-          "Couldn't reach this number on WhatsApp. Don't promise a WhatsApp message — continue helping by voice, or offer a staff callback.",
-      })
-    }
+    res.json(await handoff(body.phone, body.intent, body.language, body.callId))
   },
 
   /**

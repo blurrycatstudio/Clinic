@@ -1,7 +1,4 @@
-import { format } from "date-fns"
-import { toZonedTime } from "date-fns-tz"
 import {
-  CLINIC_TIMEZONE,
   ConversationState,
   FlowType,
   Intent,
@@ -14,6 +11,8 @@ import type { FlowHandler, FlowReply, FlowResult } from "./types.js"
 import { appointmentService } from "../services/appointmentService.js"
 import { appointmentRepository } from "../repositories/appointmentRepository.js"
 import { tryAnswerOffScript } from "../lib/offScript.js"
+import { isAffirmative, isNegative, parseListChoice, startsWithDecline } from "../lib/replyParsing.js"
+import { formatClinicDate, formatClinicSlotLabel, formatClinicTime } from "../lib/dateFormat.js"
 import { startBookingFromFreeText } from "./bookAppointmentFlow.js"
 import { enterRescheduleFlow } from "./rescheduleFlow.js"
 import { openaiService } from "../services/openaiService.js"
@@ -77,7 +76,7 @@ export async function enterCancelFlow(context: ConversationContext): Promise<Flo
 
   const options = appointments.map((a) => ({
     appointmentId: a.id,
-    label: format(toZonedTime(new Date(a.starts_at), CLINIC_TIMEZONE), "EEE d MMM, h:mm a"),
+    label: formatClinicSlotLabel(a.starts_at, lang),
   }))
 
   return {
@@ -103,7 +102,6 @@ export async function enterCancelFlowForAppointment(context: ConversationContext
     }
   }
 
-  const zoned = toZonedTime(new Date(appointment.starts_at), CLINIC_TIMEZONE)
   return {
     context: {
       ...context,
@@ -111,7 +109,7 @@ export async function enterCancelFlowForAppointment(context: ConversationContext
       activeFlow: FlowType.CANCEL,
       cancellation: { targetAppointmentId: appointmentId },
     },
-    reply: confirmCancellationReply(lang, format(zoned, "EEEE d MMMM"), format(zoned, "h:mm a")),
+    reply: confirmCancellationReply(lang, formatClinicDate(appointment.starts_at, lang), formatClinicTime(appointment.starts_at)),
   }
 }
 
@@ -122,9 +120,16 @@ export const cancelFlow: FlowHandler = async ({ text, buttonId, context, setting
   switch (context.state) {
     case ConversationState.AWAITING_CANCELLATION_TARGET_SELECTION: {
       const options = draft.cachedAppointments ?? []
-      const index = Number.parseInt((buttonId ?? text).trim(), 10) - 1
-      const chosen = options[index]
+      // Only a message that is entirely a number picks a row ("2 pm" is a time, not appointment #2).
+      const choice = parseListChoice(buttonId ?? text)
+      const chosen = choice !== null ? options[choice - 1] : undefined
       if (!chosen) {
+        // A number that isn't on the list: show the list again rather than reading it as a new request.
+        if (choice !== null) {
+          const listReply = appointmentListReply(lang, options)
+          return { context, reply: { ...listReply, text: `${t(lang, "appointmentSelectionInvalid")}\n\n${listReply.text}` } }
+        }
+
         const restated = await tryRestateIntent(text, context, lang, settings)
         if (restated) return restated
 
@@ -144,21 +149,21 @@ export const cancelFlow: FlowHandler = async ({ text, buttonId, context, setting
         }
       }
 
-      const zoned = toZonedTime(new Date(appointment.starts_at), CLINIC_TIMEZONE)
       return {
         context: {
           ...context,
           state: ConversationState.AWAITING_CANCELLATION_CONFIRMATION,
           cancellation: { targetAppointmentId: chosen.appointmentId },
         },
-        reply: confirmCancellationReply(lang, format(zoned, "EEEE d MMMM"), format(zoned, "h:mm a")),
+        reply: confirmCancellationReply(lang, formatClinicDate(appointment.starts_at, lang), formatClinicTime(appointment.starts_at)),
       }
     }
 
     case ConversationState.AWAITING_CANCELLATION_CONFIRMATION: {
-      const normalized = text.trim().toLowerCase()
-      const isYes = ["si", "sí", "yes", "1"].includes(normalized)
-      const isNo = ["no", "2"].includes(normalized)
+      // Strict yes only (no casual "ok"/"sure"): this one is destructive. Any refusal ("no", "no, keep it")
+      // keeps the appointment, and "cancel" is NOT a refusal here — it's what they're being asked to confirm.
+      const isYes = buttonId === "yes" || isAffirmative(text)
+      const isNo = buttonId === "no" || isNegative(text) || startsWithDecline(text)
 
       if (!isYes && !isNo) {
         const offScript = await tryAnswerOffScript(text, lang, settings)

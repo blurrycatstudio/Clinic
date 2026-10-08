@@ -5,8 +5,10 @@ import { appointmentRepository } from "../repositories/appointmentRepository.js"
 import { patientRepository } from "../repositories/patientRepository.js"
 import { conversationRepository } from "../repositories/conversationRepository.js"
 import { clinicSettingsRepository } from "../repositories/clinicSettingsRepository.js"
-import { templateService } from "./templateService.js"
+import { templateService, type TemplateSendResult } from "./templateService.js"
 import { ValidationError } from "../lib/errors.js"
+import { classifyWhatsappError, explainFailureForStaff, type WhatsappFailureKind } from "../lib/whatsappErrors.js"
+import { logger } from "../config/logger.js"
 
 export type AppointmentChangeKind = "confirmed" | "rescheduled" | "cancelled"
 
@@ -18,12 +20,12 @@ export type AppointmentChangeKind = "confirmed" | "rescheduled" | "cancelled"
 export async function notifyPatientOfAppointmentChange(
   appointmentId: string,
   kind: AppointmentChangeKind,
-): Promise<void> {
+): Promise<TemplateSendResult | null> {
   const appointment = await appointmentRepository.findById(appointmentId)
   if (!appointment) throw new ValidationError("Appointment not found")
 
   const patient = await patientRepository.findById(appointment.patient_id)
-  if (!patient) return
+  if (!patient) return null
 
   const conversation = await conversationRepository.getOrCreate(patient.phone_e164)
   const zoned = toZonedTime(new Date(appointment.starts_at), CLINIC_TIMEZONE)
@@ -33,7 +35,7 @@ export async function notifyPatientOfAppointmentChange(
   if (kind === "confirmed") {
     const settings = await clinicSettingsRepository.get()
     const clinicShortName = settings.clinic_name.split(" ")[0] ?? settings.clinic_name
-    await templateService.send({
+    return templateService.send({
       key: "appointmentConfirmation",
       to: patient.phone_e164,
       conversationId: conversation.id,
@@ -45,19 +47,22 @@ export async function notifyPatientOfAppointmentChange(
           : `Your appointment was booked for ${date} at ${time}.`,
     })
   } else if (kind === "rescheduled") {
-    await templateService.send({
+    const settings = await clinicSettingsRepository.get()
+    const clinicShortName = settings.clinic_name.split(" ")[0] ?? settings.clinic_name
+    return templateService.send({
       key: "appointmentRescheduled",
       to: patient.phone_e164,
       conversationId: conversation.id,
       language: patient.language,
-      params: [patient.full_name, date, time],
+      // Matches the approved appointment_rescheduled_en body: name, doctor, new date, new time, clinic, short name.
+      params: [patient.full_name, settings.doctor_name, date, time, settings.clinic_name, clinicShortName],
       sessionFallbackText:
         patient.language === "es"
           ? `Tu cita fue reprogramada para el ${date} a las ${time}.`
           : `Your appointment was moved to ${date} at ${time}.`,
     })
   } else {
-    await templateService.send({
+    return templateService.send({
       key: "appointmentCancelled",
       to: patient.phone_e164,
       conversationId: conversation.id,
@@ -68,5 +73,36 @@ export async function notifyPatientOfAppointmentChange(
           ? `Tu cita del ${date} a las ${time} fue cancelada por la clínica.`
           : `Your appointment on ${date} at ${time} was cancelled by the clinic.`,
     })
+  }
+}
+
+export type NotificationOutcome = {
+  sent: boolean
+  /** Why the patient wasn't messaged — plain language, ready to show staff. Only set when `sent` is false. */
+  message?: string
+  /** Machine-readable cause (session_expired = patient's 24h window is closed, not_on_whatsapp, ...). */
+  failure?: WhatsappFailureKind
+}
+
+/**
+ * Same as notifyPatientOfAppointmentChange, but never throws and reports what happened. The
+ * appointment change itself has already been saved by the time this runs, so a WhatsApp problem
+ * (patient outside the 24h window, number not on WhatsApp, ...) must not make the dashboard or
+ * the voice agent report the whole action as failed — and must not be swallowed silently either.
+ */
+export async function notifyPatientSafely(
+  appointmentId: string,
+  kind: AppointmentChangeKind,
+): Promise<NotificationOutcome> {
+  try {
+    const result = await notifyPatientOfAppointmentChange(appointmentId, kind)
+    if (result === null) return { sent: false, message: "The patient record for this appointment was not found.", failure: "unknown" }
+    if (result.sent) return { sent: true }
+    const failure = result.failure ?? "unknown"
+    return { sent: false, message: explainFailureForStaff(failure), failure }
+  } catch (err) {
+    logger.warn({ err, appointmentId, kind }, "Appointment notification could not be delivered (change was saved)")
+    const failure = classifyWhatsappError(err)
+    return { sent: false, message: explainFailureForStaff(failure), failure }
   }
 }

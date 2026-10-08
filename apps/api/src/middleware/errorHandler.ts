@@ -11,8 +11,11 @@ export function notFoundHandler(req: Request, res: Response) {
 export function errorHandler(err: unknown, req: Request, res: Response, _next: NextFunction) {
   if (err instanceof ZodError) {
     logger.warn({ issues: err.issues, path: req.path }, "Request validation failed")
+    // Spell out WHICH field failed and why — voice tools relay this message straight to the
+    // model, which can only recover ("ask the caller for their number") if it can read the cause.
+    const reasons = err.issues.map((issue) => (issue.path.length > 0 ? `${issue.path.join(".")}: ${issue.message}` : issue.message))
     res.status(400).json({
-      error: { code: "VALIDATION_ERROR", message: "Invalid request", details: err.issues },
+      error: { code: "VALIDATION_ERROR", message: `Invalid request — ${[...new Set(reasons)].join("; ")}`, details: err.issues },
     })
     return
   }

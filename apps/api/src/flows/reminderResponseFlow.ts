@@ -1,15 +1,16 @@
-import { format } from "date-fns"
-import { toZonedTime } from "date-fns-tz"
-import { CLINIC_TIMEZONE, ConversationState, FlowType, t } from "@clinic/shared"
+import { ConversationState, FlowType, t } from "@clinic/shared"
 import type { FlowHandler } from "./types.js"
+import { formatClinicDate, formatClinicTime } from "../lib/dateFormat.js"
 import { appointmentService } from "../services/appointmentService.js"
 import { appointmentRepository } from "../repositories/appointmentRepository.js"
 import { enterRescheduleFlowForAppointment } from "./rescheduleFlow.js"
 import { enterCancelFlowForAppointment } from "./cancelFlow.js"
 
 const CONFIRM_WORDS = ["confirm", "confirmar", "si", "sí", "yes", "1"]
-const RESCHEDULE_WORDS = ["reschedule", "reprogramar", "cambiar", "2"]
-const CANCEL_WORDS = ["cancel", "cancelar", "3"]
+// Includes the labels of the approved templates' quick-reply buttons ("Reschedule", "Cancel Appointment"),
+// which arrive as plain text — without them a tap on the template's Cancel button was rejected as invalid.
+const RESCHEDULE_WORDS = ["reschedule", "reschedule appointment", "reprogramar", "reprogramar cita", "cambiar", "2"]
+const CANCEL_WORDS = ["cancel", "cancel appointment", "cancelar", "cancelar cita", "3"]
 
 /**
  * Handles a reply to the appointment reminder's Confirm/Reschedule/Cancel
@@ -41,11 +42,10 @@ export const reminderResponseFlow: FlowHandler = async ({ text, buttonId, contex
     }
 
     await appointmentService.confirmAppointment(appointmentId)
-    const zoned = toZonedTime(new Date(appointment.starts_at), CLINIC_TIMEZONE)
 
     return {
       context: { ...context, state: ConversationState.AWAITING_MENU_SELECTION, activeFlow: FlowType.NONE, reminder: undefined },
-      reply: { text: t(lang, "reminderConfirmed", { date: format(zoned, "EEEE d MMMM"), time: format(zoned, "h:mm a") }) },
+      reply: { text: t(lang, "reminderConfirmed", { date: formatClinicDate(appointment.starts_at, lang), time: formatClinicTime(appointment.starts_at) }) },
     }
   }
 

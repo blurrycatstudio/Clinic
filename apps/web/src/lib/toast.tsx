@@ -19,7 +19,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     setToasts((prev) => [...prev, { id, message, variant }])
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id))
-    }, 3200)
+    }, Math.min(9000, Math.max(3200, 1500 + message.length * 55)))
   }, [])
 
   const dismiss = (id: number) => setToasts((prev) => prev.filter((t) => t.id !== id))

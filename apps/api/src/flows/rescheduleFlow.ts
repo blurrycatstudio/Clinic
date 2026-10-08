@@ -1,8 +1,4 @@
-import { format } from "date-fns"
-import { toZonedTime } from "date-fns-tz"
 import {
-  BOOKING_HORIZON_DAYS,
-  CLINIC_TIMEZONE,
   ConversationState,
   FlowType,
   Intent,
@@ -12,18 +8,18 @@ import {
   type Language,
 } from "@clinic/shared"
 import type { FlowHandler, FlowReply, FlowResult } from "./types.js"
-import { appointmentService, type AvailableSlot } from "../services/appointmentService.js"
+import { appointmentService } from "../services/appointmentService.js"
 import { appointmentRepository } from "../repositories/appointmentRepository.js"
-import { parseBookingRequest } from "../lib/parseBookingRequest.js"
+import { anchorToDay, parseBookingRequest } from "../lib/parseBookingRequest.js"
+import { isAffirmative, isNegative, parseListChoice, startsWithDecline } from "../lib/replyParsing.js"
+import { formatClinicDate, formatClinicSlotLabel, formatClinicTime } from "../lib/dateFormat.js"
 import { tryAnswerOffScript } from "../lib/offScript.js"
 import { startBookingFromFreeText } from "./bookAppointmentFlow.js"
 import { enterCancelFlow } from "./cancelFlow.js"
 import { openaiService } from "../services/openaiService.js"
+import { ConflictError } from "../lib/errors.js"
 import { backToMenuButton } from "./backToMenuButton.js"
-
-// 8, not 9, to leave room in WhatsApp's 10-row cap for the trailing "See more dates"
-// and "Back to menu" rows a page can carry alongside the slots themselves.
-const SLOTS_PER_PAGE = 8
+import { findSlotsForRequest, pageOfPool, promptForSlots, relistCachedSlots, sameDayAnchor, withNotice } from "./slotList.js"
 
 /**
  * A patient mid-reschedule often just restates their whole request instead of
@@ -59,24 +55,15 @@ function appointmentListReply(lang: Language, promptKey: "chooseAppointmentToRes
   }
 }
 
-/** Each slot becomes a tappable WhatsApp list row; a trailing "See more dates" row (when `hasMore`) and a "Back to menu" row both fit within WhatsApp's 10-row cap since a page is 8 slots. */
-function buildSlotListReply(lang: Language, slots: AvailableSlot[], hasMore: boolean): FlowReply {
-  if (slots.length === 0) return { text: t(lang, "noSlotsAvailable") }
-  const rows = slots.map((s, i) => ({ id: String(i + 1), title: s.label }))
-  if (hasMore) rows.push({ id: "more_slots", title: t(lang, "moreDatesButton") })
-  rows.push(backToMenuButton(lang))
+function rescheduleConfirmationReply(lang: Language, slotIso: string): FlowReply {
   return {
-    text: t(lang, "chooseSlotPrompt"),
-    list: { buttonLabel: t(lang, "viewTimesButton"), rows },
+    text: t(lang, "confirmReschedule", { date: formatClinicDate(slotIso, lang), time: formatClinicTime(slotIso) }),
+    buttons: [
+      { id: "yes", title: t(lang, "confirmYesButton") },
+      { id: "no", title: t(lang, "confirmNoButton") },
+      backToMenuButton(lang),
+    ],
   }
-}
-
-/** Fetches one page of slots starting at `offset`. Requests one extra slot beyond the page size just to detect whether a further page exists, for the trailing "See more dates" row. */
-async function promptForSlots(lang: Language, offset = 0): Promise<{ slots: AvailableSlot[]; hasMore: boolean; reply: FlowReply }> {
-  const fetched = await appointmentService.getAvailableSlots(BOOKING_HORIZON_DAYS, SLOTS_PER_PAGE + 1, offset)
-  const hasMore = fetched.length > SLOTS_PER_PAGE
-  const slots = fetched.slice(0, SLOTS_PER_PAGE)
-  return { slots, hasMore, reply: buildSlotListReply(lang, slots, hasMore) }
 }
 
 /**
@@ -94,55 +81,47 @@ async function resolveRescheduleDate(
   rawText: string,
   lang: Language,
   draft: { targetAppointmentId?: string },
+  /** The day the patient is currently looking at, so a bare "4pm" means that day rather than today. */
+  anchorIso?: string,
 ): Promise<FlowResult | null> {
-  const parsed = parseBookingRequest(rawText, lang, new Date())
-  if (!parsed) return null
+  const requested = parseBookingRequest(rawText, lang, new Date())
+  if (!requested) return null
+  const parsed = anchorToDay(requested, anchorIso)
 
-  const dayMatches =
-    parsed.kind === "asap"
-      ? await appointmentService.getAvailableSlots(BOOKING_HORIZON_DAYS, 1, 0)
-      : await appointmentService.getSlotsOnDate(parsed.date)
-  const exact = parsed.kind === "exact" ? dayMatches.find((s) => Math.abs(new Date(s.startsAtIso).getTime() - parsed.date.getTime()) < 60_000) : null
-  const requestedSlots = exact ? [exact] : dayMatches
+  const base = { targetAppointmentId: draft.targetAppointmentId }
+  const match = await findSlotsForRequest(parsed)
 
-  if (requestedSlots.length === 0) {
-    const { slots, hasMore, reply } = await promptForSlots(lang)
-    if (slots.length === 0) {
-      return { context: { ...context, state: ConversationState.AWAITING_MENU_SELECTION, activeFlow: FlowType.NONE, reschedule: undefined }, reply }
+  if (match.pool.length === 0) {
+    const page = await promptForSlots(lang)
+    if (page.slots.length === 0) {
+      return { context: { ...context, state: ConversationState.AWAITING_MENU_SELECTION, activeFlow: FlowType.NONE, reschedule: undefined }, reply: page.reply }
     }
     return {
       context: {
         ...context,
         state: ConversationState.AWAITING_RESCHEDULE_SLOT_SELECTION,
-        reschedule: { ...draft, cachedSlots: slots, slotOffset: slots.length },
+        reschedule: { ...base, ...page.draft },
       },
-      reply: { ...reply, text: `${t(lang, "requestedDayUnavailable")}\n\n${reply.text}` },
+      reply: withNotice(page.reply, t(lang, "requestedDayUnavailable")),
     }
   }
 
-  if (requestedSlots.length === 1 && parsed.kind !== "day_query") {
-    const slot = requestedSlots[0]!
-    const zoned = toZonedTime(new Date(slot.startsAtIso), CLINIC_TIMEZONE)
+  if (match.pool.length === 1 && parsed.kind !== "day_query" && !match.exactTimeMissed) {
+    const slot = match.pool[0]!
     return {
-      context: { ...context, state: ConversationState.AWAITING_RESCHEDULE_CONFIRMATION, reschedule: { ...draft, selectedSlotIso: slot.startsAtIso } },
-      reply: {
-        text: t(lang, "confirmReschedule", { date: format(zoned, "EEEE d MMMM"), time: format(zoned, "h:mm a") }),
-        buttons: [
-          { id: "yes", title: t(lang, "confirmYesButton") },
-          { id: "no", title: t(lang, "confirmNoButton") },
-          backToMenuButton(lang),
-        ],
-      },
+      context: { ...context, state: ConversationState.AWAITING_RESCHEDULE_CONFIRMATION, reschedule: { ...base, selectedSlotIso: slot.startsAtIso } },
+      reply: rescheduleConfirmationReply(lang, slot.startsAtIso),
     }
   }
 
+  const page = pageOfPool(lang, match.pool)
   return {
     context: {
       ...context,
       state: ConversationState.AWAITING_RESCHEDULE_SLOT_SELECTION,
-      reschedule: { ...draft, cachedSlots: requestedSlots, slotOffset: requestedSlots.length },
+      reschedule: { ...base, ...page.draft },
     },
-    reply: buildSlotListReply(lang, requestedSlots, false),
+    reply: match.exactTimeMissed ? withNotice(page.reply, t(lang, "requestedTimeUnavailable")) : page.reply,
   }
 }
 
@@ -160,7 +139,7 @@ export async function enterRescheduleFlow(context: ConversationContext): Promise
 
   const options = appointments.map((a) => ({
     appointmentId: a.id,
-    label: format(toZonedTime(new Date(a.starts_at), CLINIC_TIMEZONE), "EEE d MMM, h:mm a"),
+    label: formatClinicSlotLabel(a.starts_at, lang),
   }))
 
   return {
@@ -186,10 +165,10 @@ export async function enterRescheduleFlowForAppointment(context: ConversationCon
     }
   }
 
-  const { slots, reply } = await promptForSlots(lang)
+  const page = await promptForSlots(lang)
 
-  if (slots.length === 0) {
-    return { context: { ...context, state: ConversationState.AWAITING_MENU_SELECTION, activeFlow: FlowType.NONE }, reply }
+  if (page.slots.length === 0) {
+    return { context: { ...context, state: ConversationState.AWAITING_MENU_SELECTION, activeFlow: FlowType.NONE }, reply: page.reply }
   }
 
   return {
@@ -197,9 +176,9 @@ export async function enterRescheduleFlowForAppointment(context: ConversationCon
       ...context,
       state: ConversationState.AWAITING_RESCHEDULE_SLOT_SELECTION,
       activeFlow: FlowType.RESCHEDULE,
-      reschedule: { targetAppointmentId: appointmentId, cachedSlots: slots, slotOffset: slots.length },
+      reschedule: { targetAppointmentId: appointmentId, ...page.draft },
     },
-    reply,
+    reply: page.reply,
   }
 }
 
@@ -210,9 +189,16 @@ export const rescheduleFlow: FlowHandler = async ({ text, buttonId, context, set
   switch (context.state) {
     case ConversationState.AWAITING_RESCHEDULE_TARGET_SELECTION: {
       const options = draft.cachedAppointments ?? []
-      const index = Number.parseInt((buttonId ?? text).trim(), 10) - 1
-      const chosen = options[index]
+      // Only a message that is entirely a number picks a row ("2 pm" is a time, not appointment #2).
+      const choice = parseListChoice(buttonId ?? text)
+      const chosen = choice !== null ? options[choice - 1] : undefined
       if (!chosen) {
+        // A number that isn't on the list: show the list again rather than reading it as a new request.
+        if (choice !== null) {
+          const listReply = appointmentListReply(lang, "chooseAppointmentToReschedule", options)
+          return { context, reply: withNotice(listReply, t(lang, "appointmentSelectionInvalid")) }
+        }
+
         const restated = await tryRestateIntent(text, context, lang, settings)
         if (restated) return restated
 
@@ -224,11 +210,11 @@ export const rescheduleFlow: FlowHandler = async ({ text, buttonId, context, set
         return { context, reply: { text: t(lang, "appointmentSelectionInvalid") } }
       }
 
-      const { slots, hasMore, reply } = await promptForSlots(lang)
-      if (slots.length === 0) {
+      const page = await promptForSlots(lang)
+      if (page.slots.length === 0) {
         return {
           context: { ...context, state: ConversationState.AWAITING_MENU_SELECTION, activeFlow: FlowType.NONE },
-          reply,
+          reply: page.reply,
         }
       }
 
@@ -236,38 +222,45 @@ export const rescheduleFlow: FlowHandler = async ({ text, buttonId, context, set
         context: {
           ...context,
           state: ConversationState.AWAITING_RESCHEDULE_SLOT_SELECTION,
-          reschedule: { ...draft, targetAppointmentId: chosen.appointmentId, cachedSlots: slots, slotOffset: slots.length },
+          reschedule: { ...draft, targetAppointmentId: chosen.appointmentId, ...page.draft },
         },
-        reply,
+        reply: page.reply,
       }
     }
 
     case ConversationState.AWAITING_RESCHEDULE_SLOT_SELECTION: {
-      // "See more dates" pages forward from where the last batch left off, replacing
-      // cachedSlots/slotOffset with the new page — each page renumbers from 1.
+      // "See more" pages forward from where the last batch left off, replacing
+      // cachedSlots/slotOffset with the new page — each page renumbers from 1. A day-specific
+      // list (slotPool) pages through that day's slots; a general list pages general availability.
       if ((buttonId ?? text).trim() === "more_slots") {
         const offset = draft.slotOffset ?? draft.cachedSlots?.length ?? 0
-        const { slots: nextSlots, reply } = await promptForSlots(lang, offset)
-        if (nextSlots.length === 0) {
+        const page = draft.slotPool ? pageOfPool(lang, draft.slotPool, offset) : await promptForSlots(lang, offset)
+        if (page.slots.length === 0) {
           return {
             context: { ...context, state: ConversationState.AWAITING_MENU_SELECTION, activeFlow: FlowType.NONE },
-            reply,
+            reply: page.reply,
           }
         }
         return {
-          context: { ...context, reschedule: { ...draft, cachedSlots: nextSlots, slotOffset: offset + nextSlots.length } },
-          reply,
+          context: { ...context, reschedule: { ...draft, ...page.draft } },
+          reply: page.reply,
         }
       }
 
       const slots = draft.cachedSlots ?? []
-      const index = Number.parseInt((buttonId ?? text).trim(), 10) - 1
-      const slot = slots[index]
+      // Only a message that is entirely a list number picks a row — "2 days after at 2 pm" is a date, not option 2.
+      const choice = parseListChoice(buttonId ?? text)
+      const slot = choice !== null ? slots[choice - 1] : undefined
       if (!slot) {
+        const relist = () => relistCachedSlots(lang, slots, draft.slotOffset, draft.slotPool)
+
+        // A number, but not one on the list — show the list again rather than guessing.
+        if (choice !== null) return { context, reply: withNotice(relist(), t(lang, "slotInvalid")) }
+
         // Typed a date/time instead of picking a row — resolve it against real
         // availability for THIS reschedule before considering it a restated,
         // unrelated request (see resolveRescheduleDate for why the order matters).
-        const dateMatch = await resolveRescheduleDate(context, text, lang, draft)
+        const dateMatch = await resolveRescheduleDate(context, text, lang, draft, sameDayAnchor(slots))
         if (dateMatch) return dateMatch
 
         const restated = await tryRestateIntent(text, context, lang, settings)
@@ -275,34 +268,32 @@ export const rescheduleFlow: FlowHandler = async ({ text, buttonId, context, set
 
         const offScript = await tryAnswerOffScript(text, lang, settings)
         if (offScript) {
-          const listReply = buildSlotListReply(lang, slots, false)
-          return { context, reply: { ...listReply, text: `${offScript.text}\n\n${listReply.text}` } }
+          return { context, reply: withNotice(relist(), offScript.text ?? "") }
         }
-        return { context, reply: { text: t(lang, "slotInvalid") } }
+        return { context, reply: withNotice(relist(), t(lang, "slotInvalid")) }
       }
 
-      const zoned = toZonedTime(new Date(slot.startsAtIso), CLINIC_TIMEZONE)
       return {
         context: {
           ...context,
           state: ConversationState.AWAITING_RESCHEDULE_CONFIRMATION,
           reschedule: { ...draft, selectedSlotIso: slot.startsAtIso },
         },
-        reply: {
-          text: t(lang, "confirmReschedule", { date: format(zoned, "EEEE d MMMM"), time: format(zoned, "h:mm a") }),
-          buttons: [
-            { id: "yes", title: t(lang, "confirmYesButton") },
-            { id: "no", title: t(lang, "confirmNoButton") },
-            backToMenuButton(lang),
-          ],
-        },
+        reply: rescheduleConfirmationReply(lang, slot.startsAtIso),
       }
     }
 
     case ConversationState.AWAITING_RESCHEDULE_CONFIRMATION: {
-      const normalized = text.trim().toLowerCase()
-      const isYes = ["si", "sí", "yes", "1"].includes(normalized)
-      const isNo = ["no", "2"].includes(normalized)
+      const isYes = buttonId === "yes" || isAffirmative(text, { casual: true })
+      let isNo = buttonId === "no" || isNegative(text, { allowCancel: true })
+
+      if (!isYes && !isNo) {
+        // A different date/time instead of yes/no ("actually Friday at 10") — move THIS reschedule there.
+        const dateMatch = await resolveRescheduleDate(context, text, lang, draft, draft.selectedSlotIso)
+        if (dateMatch) return dateMatch
+        // "no, that's wrong" — a refusal with no new time attached.
+        isNo = startsWithDecline(text)
+      }
 
       if (!isYes && !isNo) {
         const offScript = await tryAnswerOffScript(text, lang, settings)
@@ -323,13 +314,47 @@ export const rescheduleFlow: FlowHandler = async ({ text, buttonId, context, set
         }
       }
 
-      const updated = await appointmentService.rescheduleAppointment(draft.targetAppointmentId, draft.selectedSlotIso)
-      const zoned = toZonedTime(new Date(updated.starts_at), CLINIC_TIMEZONE)
+      // Staff may have cancelled/completed this visit while the patient was choosing a new time —
+      // don't quietly revive it.
+      const target = await appointmentRepository.findById(draft.targetAppointmentId)
+      if (!target || !["scheduled", "confirmed"].includes(target.status)) {
+        return {
+          context: { ...context, state: ConversationState.AWAITING_MENU_SELECTION, activeFlow: FlowType.NONE, reschedule: undefined },
+          reply: { text: t(lang, "reminderAppointmentGone") },
+        }
+      }
+
+      let updated
+      try {
+        updated = await appointmentService.rescheduleAppointment(draft.targetAppointmentId, draft.selectedSlotIso)
+      } catch (err) {
+        // Someone else took that slot a moment ago (the DB's unique index is the final guard) —
+        // re-offer fresh times instead of a generic "I didn't understand" error.
+        if (err instanceof ConflictError) {
+          const page = await promptForSlots(lang)
+          const conflictReply: FlowReply = withNotice(page.reply, t(lang, "slotConflict"))
+          if (page.slots.length === 0) {
+            return {
+              context: { ...context, state: ConversationState.AWAITING_MENU_SELECTION, activeFlow: FlowType.NONE, reschedule: undefined },
+              reply: conflictReply,
+            }
+          }
+          return {
+            context: {
+              ...context,
+              state: ConversationState.AWAITING_RESCHEDULE_SLOT_SELECTION,
+              reschedule: { ...draft, selectedSlotIso: undefined, ...page.draft },
+            },
+            reply: conflictReply,
+          }
+        }
+        throw err
+      }
 
       return {
         context: { ...context, state: ConversationState.AWAITING_MENU_SELECTION, activeFlow: FlowType.NONE, reschedule: undefined },
         reply: {
-          text: t(lang, "rescheduleConfirmed", { date: format(zoned, "EEEE d MMMM"), time: format(zoned, "h:mm a") }),
+          text: t(lang, "rescheduleConfirmed", { date: formatClinicDate(updated.starts_at, lang), time: formatClinicTime(updated.starts_at) }),
         },
       }
     }

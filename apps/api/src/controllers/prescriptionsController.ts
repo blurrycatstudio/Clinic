@@ -7,6 +7,7 @@ import { pdfService } from "../services/pdfService.js"
 import { storageService } from "../services/storageService.js"
 import { whatsappService } from "../services/whatsappService.js"
 import { NotFoundError } from "../lib/errors.js"
+import { whatsappFailureToAppError } from "../lib/whatsappErrors.js"
 
 async function buildPdf(prescriptionId: string) {
   const prescription = await prescriptionRepository.findById(prescriptionId)
@@ -86,11 +87,16 @@ export const prescriptionsController = {
     const { prescription, patient, buffer } = await buildPdf(params.id)
 
     const pdfUrl = await storageService.uploadPdf(`prescriptions/${prescription.id}.pdf`, buffer)
-    const { messageId } = await whatsappService.sendDocumentMessage(patient.phone_e164, {
-      link: pdfUrl,
-      filename: `RX-${1000 + prescription.sequence_number}.pdf`,
-      caption: `Your prescription from ${patient.full_name}'s visit.`,
-    })
+    let messageId: string | null
+    try {
+      ;({ messageId } = await whatsappService.sendDocumentMessage(patient.phone_e164, {
+        link: pdfUrl,
+        filename: `RX-${1000 + prescription.sequence_number}.pdf`,
+        caption: `Your prescription from ${patient.full_name}'s visit.`,
+      }))
+    } catch (err) {
+      throw whatsappFailureToAppError(err)
+    }
     await prescriptionRepository.markSent(prescription.id, pdfUrl)
 
     res.json({ sent: true, pdfUrl, messageId })

@@ -10,6 +10,7 @@ import { PhoneInput } from "@/components/ui/phone-input"
 import { useLang } from "@/lib/i18n"
 import { api } from "@/lib/api"
 import { useToast } from "@/lib/toast"
+import { withNotificationNote } from "@/lib/notification"
 import { cn } from "@/lib/utils"
 import { supabase } from "@/lib/supabaseClient"
 import { toDateParam, toDisplayAppointment, type ApiAppointment } from "@/lib/appointments"
@@ -89,9 +90,10 @@ function NewAppointmentSheet({ open, onOpenChange }: { open: boolean; onOpenChan
   const createMutation = useMutation({
     mutationFn: (input: { fullName: string; phone: string; reason: string; startsAtIso: string }) =>
       api.post("/appointments", { patientFullName: input.fullName, patientPhoneE164: input.phone, reason: input.reason, startsAtIso: input.startsAtIso }),
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["appointments"] })
-      toast(t.mobileApptCreated)
+      const note = withNotificationNote(t.mobileApptCreated, data)
+      toast(note.text, note.variant)
       resetForm()
       onOpenChange(false)
     },

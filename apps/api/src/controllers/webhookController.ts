@@ -3,6 +3,7 @@ import { env } from "../config/env.js"
 import { logger } from "../config/logger.js"
 import { handleInboundMessage } from "../services/conversationEngine.js"
 import { messageRepository } from "../repositories/messageRepository.js"
+import { VOICE_FOLLOWUP_PAYLOAD_PREFIX } from "../lib/voiceFollowup.js"
 
 /** Meta's webhook subscription handshake — GET with hub.mode/verify_token/challenge. */
 export function verifyWebhook(req: Request, res: Response) {
@@ -36,7 +37,11 @@ type WhatsappWebhookPayload = {
           button?: { text: string; payload: string }
         }[]
         contacts?: { profile?: { name?: string }; wa_id: string }[]
-        statuses?: { id: string; status: "sent" | "delivered" | "read" | "failed" }[]
+        statuses?: {
+          id: string
+          status: "sent" | "delivered" | "read" | "failed"
+          errors?: { code?: number; title?: string; message?: string; error_data?: { details?: string } }[]
+        }[]
       }
     }[]
   }[]
@@ -63,9 +68,23 @@ export async function receiveWebhook(req: Request, res: Response) {
         if (!value) continue
 
         for (const status of value.statuses ?? []) {
-          await messageRepository.updateStatusByWaId(status.id, status.status).catch((err) => {
-            logger.warn({ err, waMessageId: status.id }, "Failed to update message delivery status")
-          })
+          // A "failed" status carries WHY (131026 = number isn't on WhatsApp, 131047 = outside the
+          // 24h window, ...). Keep it so the dashboard and voice-delivery checks can read it.
+          const firstError = status.status === "failed" ? status.errors?.[0] : undefined
+          if (firstError) {
+            logger.warn({ waMessageId: status.id, code: firstError.code, title: firstError.title }, "WhatsApp message delivery failed")
+          }
+          await messageRepository
+            .updateStatusByWaId(
+              status.id,
+              status.status,
+              firstError
+                ? { code: firstError.code ?? null, title: firstError.title, message: firstError.error_data?.details ?? firstError.message }
+                : undefined,
+            )
+            .catch((err) => {
+              logger.warn({ err, waMessageId: status.id }, "Failed to update message delivery status")
+            })
         }
 
         const contactName = value.contacts?.[0]?.profile?.name
@@ -77,7 +96,14 @@ export async function receiveWebhook(req: Request, res: Response) {
             message.interactive?.list_reply?.title ??
             message.button?.text ??
             ""
-          const buttonId = message.interactive?.button_reply?.id ?? message.interactive?.list_reply?.id ?? null
+          // Quick-reply buttons on templates we send come back as `button.payload`. Only payloads we
+          // stamped ourselves ("vf:<intent>", on the voice follow-up template) are treated as a menu
+          // choice; every other template button (Confirm / Reschedule / ...) keeps behaving as text.
+          const voiceFollowupIntent = message.button?.payload?.startsWith(VOICE_FOLLOWUP_PAYLOAD_PREFIX)
+            ? message.button.payload.slice(VOICE_FOLLOWUP_PAYLOAD_PREFIX.length)
+            : null
+          const buttonId =
+            message.interactive?.button_reply?.id ?? message.interactive?.list_reply?.id ?? voiceFollowupIntent ?? null
 
           await handleInboundMessage({
             phoneE164: normalizePhone(message.from),

@@ -3,11 +3,14 @@ import { patientRepository } from "../repositories/patientRepository.js"
 import { whatsappService } from "../services/whatsappService.js"
 import { logger } from "../config/logger.js"
 
-const WINDOW_HOURS = 12
+// Free-form WhatsApp documents only reach a patient whose 24h window is open, so a document
+// uploaded while the patient is quiet has to be retried on later runs until they next message
+// the clinic. 72h gives the daily run three attempts before giving up on a record.
+const WINDOW_HOURS = 72
 
 /**
- * Runs every 12 hours (see vercel.json). Picks up every patient document
- * uploaded since the start of this window that hasn't gone out over
+ * Runs once a day (see vercel.json — Vercel Hobby only allows daily crons). Picks up every
+ * patient document uploaded in the last 72 hours that hasn't gone out over
  * WhatsApp yet, sends it to the patient's registered phone number, and
  * marks it delivered so the next run — or a re-run of this same one —
  * never resends it.
@@ -37,7 +40,8 @@ export async function runDocumentDeliveryJob(): Promise<{ sent: number; failed: 
       sent++
     } catch (err) {
       failed++
-      logger.error({ err, documentId: document.id }, "Failed to deliver patient document over WhatsApp")
+      // Most often the patient's 24h window is closed — expected, and retried on the next run.
+      logger.warn({ err, documentId: document.id }, "Could not deliver patient document over WhatsApp yet")
     }
   }
 

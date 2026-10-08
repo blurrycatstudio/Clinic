@@ -61,6 +61,10 @@ export type PendingBookingDraft = {
   cachedSlots?: CachedSlot[]
   /** How many earlier slots have already been shown — where the next "See more dates" batch should pick up from. */
   slotOffset?: number
+  /** Every slot matching a specific day/time the patient asked for, when there are more than fit on one WhatsApp list page — "See more times" pages through it instead of re-querying general availability. `slotOffset` indexes into it. */
+  slotPool?: CachedSlot[]
+  /** Message key to show above the slot list once it's finally sent — set when a new patient's requested day/time wasn't available, and the list only appears after they give their name. */
+  slotNotice?: "requestedDayUnavailable" | "requestedTimeUnavailable"
   /** Reason from the patient's most recent appointment, offered as a quick "reuse this" shortcut when booking again. */
   lastReason?: string
 }
@@ -74,6 +78,8 @@ export type PendingRescheduleDraft = {
   cachedSlots?: CachedSlot[]
   /** How many earlier slots have already been shown — where the next "See more dates" batch should pick up from. */
   slotOffset?: number
+  /** See PendingBookingDraft.slotPool. */
+  slotPool?: CachedSlot[]
 }
 
 export type PendingCancellationDraft = {

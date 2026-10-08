@@ -8,6 +8,7 @@
     "build": "npm run build --prefix ../../packages/shared && tsc -p tsconfig.json",
     "start": "node dist/src/server.js",
     "typecheck": "tsc --noEmit",
+    "test": "tsx --test \"test/*.test.ts\"",
     "cron:reminders": "tsx src/cron/reminders.ts"
   },
   "dependencies": {

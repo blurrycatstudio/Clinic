@@ -10,7 +10,15 @@ export function normalizePhone(raw: string): string {
   value = value.replace(/^00\s*(?=\d)/, "+")
   const hasPlus = value.startsWith("+")
   const digits = value.replace(/\D/g, "")
-  return hasPlus ? `+${digits}` : digits
+  // 11+ digits can only be country code + number, so the missing "+" is safe to restore
+  // (stored patients and WhatsApp conversations are always "+<digits>"). A bare 10-digit
+  // number is ambiguous and is rejected by callers via hasCountryCode().
+  return hasPlus || digits.length >= 11 ? `+${digits}` : digits
+}
+
+/** True when a normalised number carries its country code — required before we message it, or WhatsApp may route it to a stranger abroad. */
+export function hasCountryCode(normalized: string): boolean {
+  return normalized.startsWith("+") && normalized.replace(/\D/g, "").length >= 8
 }
 
 /** True when two numbers refer to the same line, tolerating a missing "+"/country prefix on one side. */

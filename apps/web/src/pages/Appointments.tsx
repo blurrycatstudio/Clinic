@@ -11,6 +11,7 @@ import { STATUS_COLORS, type AppointmentStatus } from "@/lib/data"
 import { api } from "@/lib/api"
 import { cn } from "@/lib/utils"
 import { useToast } from "@/lib/toast"
+import { withNotificationNote } from "@/lib/notification"
 import { useDashboardStats } from "@/hooks/useDashboardStats"
 import {
   callStatusLabel,
@@ -217,30 +218,33 @@ export default function Appointments() {
 
   const confirmMutation = useMutation({
     mutationFn: (id: string) => api.patch(`/appointments/${id}/status`, { status: "confirmed" }),
-    onSuccess: () => {
+    onSuccess: (data) => {
       invalidate()
       setSelectedAppointment(null)
-      toast("Patient checked in")
+      const note = withNotificationNote("Patient checked in", data)
+      toast(note.text, note.variant)
     },
     onError: () => toast("Failed to check in patient"),
   })
 
   const rescheduleMutation = useMutation({
     mutationFn: ({ id, startsAtIso }: { id: string; startsAtIso: string }) => api.patch(`/appointments/${id}/reschedule`, { startsAtIso }),
-    onSuccess: () => {
+    onSuccess: (data) => {
       invalidate()
       setSelectedAppointment(null)
-      toast("Appointment rescheduled")
+      const note = withNotificationNote("Appointment rescheduled", data)
+      toast(note.text, note.variant)
     },
     onError: () => toast("Failed to reschedule — that slot may already be booked"),
   })
 
   const cancelMutation = useMutation({
     mutationFn: (id: string) => api.patch(`/appointments/${id}/cancel`, {}),
-    onSuccess: () => {
+    onSuccess: (data) => {
       invalidate()
       setSelectedAppointment(null)
-      toast("Appointment cancelled")
+      const note = withNotificationNote("Appointment cancelled", data)
+      toast(note.text, note.variant)
     },
     onError: () => toast("Failed to cancel appointment"),
   })
@@ -282,12 +286,13 @@ export default function Appointments() {
   const createMutation = useMutation({
     mutationFn: (input: { fullName: string; phone: string; reason: string; startsAtIso: string }) =>
       api.post("/appointments", { patientFullName: input.fullName, patientPhoneE164: input.phone, reason: input.reason, startsAtIso: input.startsAtIso }),
-    onSuccess: () => {
+    onSuccess: (data) => {
       invalidate()
       setNewOpen(false)
-      toast("Appointment created")
+      const note = withNotificationNote("Appointment created", data)
+      toast(note.text, note.variant)
     },
-    onError: () => toast("Failed to create appointment"),
+    onError: (err: unknown) => toast(err instanceof Error ? err.message : "Failed to create appointment"),
   })
 
   const filtered = useMemo(
